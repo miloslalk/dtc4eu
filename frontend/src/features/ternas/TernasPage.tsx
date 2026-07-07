@@ -21,7 +21,7 @@ export function TernasPage() {
 
   const [filters, setFilters] = useState<TernaFilters>({ page: 0 });
   const { data, isLoading } = useTernas(filters);
-  const facilityOptions = useFacilities({ page: 0 });
+  const facilityOptions = useFacilities({ page: 0, size: 200 });
 
   const columns: Column<TernaRow>[] = [
     { key: 'ternaCode', header: t('ternas.code'), render: (row) => <span className="font-semibold">{row.ternaCode}</span> },

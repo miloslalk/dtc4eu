@@ -26,7 +26,7 @@ export function TernaBuilderPage() {
   const canWrite = !readOnly && hasAnyRole('ADMIN', 'SUPER_ADMIN', 'COORDINATOR');
 
   const { data: existing, isLoading } = useTerna(ternaId);
-  const facilities = useFacilities({ page: 0 });
+  const facilities = useFacilities({ page: 0, size: 200 });
   const coordinators = useCoordinatorOptions();
   const save = useSaveTerna();
 

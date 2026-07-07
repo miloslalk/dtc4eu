@@ -27,7 +27,7 @@ export function ResponsesPage() {
 
   const [filters, setFilters] = useState<ResponseFilters>({ page: 0 });
   const { data, isLoading } = useResponses(filters);
-  const facilities = useFacilities({ page: 0 });
+  const facilities = useFacilities({ page: 0, size: 200 });
   const questionnaires = useQuestionnaires();
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -123,7 +123,7 @@ export function ResponsesPage() {
 function NewResponseModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const facilities = useFacilities({ page: 0 });
+  const facilities = useFacilities({ page: 0, size: 200 });
   const questionnaires = useQuestionnaires();
   const create = useCreateResponse();
 

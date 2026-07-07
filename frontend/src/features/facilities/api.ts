@@ -45,6 +45,8 @@ export interface FacilityFilters {
   city?: string;
   activity?: string;
   page: number;
+  /** pickers pass a large size; the list keeps the default 20 */
+  size?: number;
 }
 
 export interface Participation {
@@ -87,7 +89,7 @@ export function useFacilities(filters: FacilityFilters) {
     queryFn: async () =>
       (
         await api.get<PageResponse<Facility>>('/facilities', {
-          params: { ...filterParams(filters), page: filters.page, size: 20, sort: 'facilityCode,asc' },
+          params: { ...filterParams(filters), page: filters.page, size: filters.size ?? 20, sort: 'facilityCode,asc' },
         })
       ).data,
     placeholderData: keepPreviousData,

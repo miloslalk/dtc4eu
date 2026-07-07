@@ -10,7 +10,11 @@ DTC4EU (Erasmus KA220 — Democratic Therapeutic Communities for Social Inclusio
 
 ## Current state
 
-Greenfield. Only the spec, the baseline schema, and the project logo exist — no `backend/` or `frontend/` has been scaffolded yet. Work starts at task T0 (scaffold) and proceeds strictly in spec order T0 → T6. Expected early migrations beyond V1: `V2__seed_roles.sql` (ten roles + one super-admin), `V3__seed_cycle.sql` (cycle 2026-2027 as current).
+Phase 1 is implemented on the `phase-1` branch: foundation (auth, users/roles/scope, cycles, `X-Cycle-Id` context), Module 1 (Facilities + participation/members/SAG/QCNC + CSV export), Module 2 (Ternas with the 3-facility and coordinator-count rules), Module 4 (questionnaire definitions, responses with autosave, submit → idempotent area-mean scoring, research CSV export), plus the branded React frontend for all of it.
+
+Migrations: `V1` baseline (never edit) → `V2` roles + dev super-admin (`admin` / `Dtc4eu!Admin2026`, rotate in prod) → `V3` cycle 2026-2027 (current) → `V4` DTCRO placeholder content (9 areas / 45 items, texts clearly marked PLACEHOLDER pending the clinical specialist) → `V5` adds `questionnaire_responses.created_by` (needed for the RESPONDENT own-responses scope; deliberate additive schema change).
+
+Structure notes that go beyond the spec: assigned terna coordinators are auto-granted `user_terna_access` scope; refresh tokens are stateless signed JWTs (schema has no token table); the "UI Screen & Flow spec" (S-xx) was not yet available — screens are derived from the build spec and should be reconciled when that document lands in the repo.
 
 ## Scope guard — Phase 1 only
 
