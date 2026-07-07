@@ -6,6 +6,8 @@ import { LoginPage } from '../features/auth/LoginPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { UsersPage } from '../features/admin/UsersPage';
 import { CyclesPage } from '../features/admin/CyclesPage';
+import { FacilitiesPage } from '../features/facilities/FacilitiesPage';
+import { FacilityDetailPage } from '../features/facilities/FacilityDetailPage';
 
 export function App() {
   return (
@@ -22,6 +24,8 @@ export function App() {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route path="facilities" element={<FacilitiesPage />} />
+        <Route path="facilities/:id" element={<FacilityDetailPage />} />
         <Route
           path="admin/users"
           element={

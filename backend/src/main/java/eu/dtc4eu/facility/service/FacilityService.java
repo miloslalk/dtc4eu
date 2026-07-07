@@ -1,0 +1,381 @@
+package eu.dtc4eu.facility.service;
+
+import eu.dtc4eu.audit.AuditService;
+import eu.dtc4eu.common.error.ConflictException;
+import eu.dtc4eu.common.error.NotFoundException;
+import eu.dtc4eu.common.web.CsvWriter;
+import eu.dtc4eu.common.web.PageResponse;
+import eu.dtc4eu.facility.dto.FacilityDtos.AddMemberRequest;
+import eu.dtc4eu.facility.dto.FacilityDtos.CreateFacilityRequest;
+import eu.dtc4eu.facility.dto.FacilityDtos.FacilityDto;
+import eu.dtc4eu.facility.dto.FacilityDtos.MemberDto;
+import eu.dtc4eu.facility.dto.FacilityDtos.ParticipationDto;
+import eu.dtc4eu.facility.dto.FacilityDtos.PutQcncRequest;
+import eu.dtc4eu.facility.dto.FacilityDtos.PutSagRequest;
+import eu.dtc4eu.facility.dto.FacilityDtos.QcncDto;
+import eu.dtc4eu.facility.dto.FacilityDtos.SagDto;
+import eu.dtc4eu.facility.dto.FacilityDtos.SetParticipationRequest;
+import eu.dtc4eu.facility.dto.FacilityDtos.UpdateFacilityRequest;
+import eu.dtc4eu.facility.entity.Facility;
+import eu.dtc4eu.facility.entity.FacilityCycleParticipation;
+import eu.dtc4eu.facility.entity.FacilityMember;
+import eu.dtc4eu.facility.entity.QcncAssessment;
+import eu.dtc4eu.facility.entity.SetAnalysisGrid;
+import eu.dtc4eu.facility.repository.FacilityCycleParticipationRepository;
+import eu.dtc4eu.facility.repository.FacilityMemberRepository;
+import eu.dtc4eu.facility.repository.FacilityRepository;
+import eu.dtc4eu.facility.repository.QcncAssessmentRepository;
+import eu.dtc4eu.facility.repository.SetAnalysisGridRepository;
+import eu.dtc4eu.security.AppUserDetails;
+import eu.dtc4eu.security.CycleContext;
+import eu.dtc4eu.security.DataScope;
+import eu.dtc4eu.security.DataScopeService;
+import eu.dtc4eu.user.entity.User;
+import eu.dtc4eu.user.repository.UserRepository;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+/**
+ * Module 1. Every read is filtered through the caller's {@link DataScope}
+ * (out-of-scope → 404, spec §6); every cycle-scoped write goes through
+ * {@link CycleContext#requireWritable()}.
+ */
+@Service
+@RequiredArgsConstructor
+public class FacilityService {
+
+    private final FacilityRepository facilityRepository;
+    private final FacilityCycleParticipationRepository participationRepository;
+    private final FacilityMemberRepository memberRepository;
+    private final SetAnalysisGridRepository sagRepository;
+    private final QcncAssessmentRepository qcncRepository;
+    private final UserRepository userRepository;
+    private final DataScopeService dataScopeService;
+    private final CycleContext cycleContext;
+    private final AuditService auditService;
+
+    /* ------------------------------- facilities ------------------------------- */
+
+    @Transactional(readOnly = true)
+    public PageResponse<FacilityDto> list(String q, Facility.FacilityType type, String country, String city,
+                                          FacilityCycleParticipation.Activity activity, Boolean active,
+                                          Pageable pageable, AppUserDetails principal) {
+        DataScope scope = dataScopeService.scopeOf(principal);
+        Page<Facility> page = facilityRepository.findAll(
+                specification(q, type, country, city, activity, active, scope), pageable);
+        Map<Long, FacilityCycleParticipation> participations = participationsFor(page.getContent());
+        Map<Long, String> facilitatorNames = facilitatorNames(participations);
+        return PageResponse.of(page, f -> toDto(f, participations, facilitatorNames));
+    }
+
+    @Transactional(readOnly = true)
+    public FacilityDto get(Long id, AppUserDetails principal) {
+        Facility facility = findInScope(id, principal);
+        Map<Long, FacilityCycleParticipation> participations = participationsFor(List.of(facility));
+        return toDto(facility, participations, facilitatorNames(participations));
+    }
+
+    @Transactional
+    public FacilityDto create(CreateFacilityRequest request, AppUserDetails actor) {
+        if (facilityRepository.existsByFacilityCode(request.facilityCode())) {
+            throw new ConflictException("Facility code already exists");
+        }
+        Facility facility = new Facility();
+        facility.setFacilityCode(request.facilityCode());
+        facility.setFacilityType(request.facilityType());
+        facility.setName(request.name());
+        facility.setProvider(request.provider());
+        facility.setPlace(request.place());
+        facility.setCountry(request.country());
+        facility.setCity(request.city());
+        facility.setAddress(request.address());
+        facility = facilityRepository.save(facility);
+        auditService.success(actor.getId(), "CREATE", "facility", facility.getId());
+        return FacilityDto.of(facility, null, null);
+    }
+
+    @Transactional
+    public FacilityDto update(Long id, UpdateFacilityRequest request, AppUserDetails actor) {
+        Facility facility = findInScope(id, actor);
+        facility.setFacilityType(request.facilityType());
+        facility.setName(request.name());
+        facility.setProvider(request.provider());
+        facility.setPlace(request.place());
+        facility.setCountry(request.country());
+        facility.setCity(request.city());
+        facility.setAddress(request.address());
+        if (request.active() != null) {
+            facility.setActive(request.active());
+        }
+        auditService.success(actor.getId(), "UPDATE", "facility", facility.getId());
+        Map<Long, FacilityCycleParticipation> participations = participationsFor(List.of(facility));
+        return toDto(facility, participations, facilitatorNames(participations));
+    }
+
+    @Transactional(readOnly = true)
+    public String exportCsv(String q, Facility.FacilityType type, String country, String city,
+                            FacilityCycleParticipation.Activity activity, Boolean active,
+                            AppUserDetails principal) {
+        DataScope scope = dataScopeService.scopeOf(principal);
+        List<Facility> facilities = facilityRepository.findAll(
+                specification(q, type, country, city, activity, active, scope),
+                Sort.by("facilityCode"));
+        Map<Long, FacilityCycleParticipation> participations = participationsFor(facilities);
+        Map<Long, String> facilitatorNames = facilitatorNames(participations);
+
+        CsvWriter csv = new CsvWriter()
+                .row("facility_code", "type", "name", "provider", "place", "country", "city", "active",
+                        "activity", "internal_facilitator");
+        for (Facility f : facilities) {
+            FacilityCycleParticipation p = participations.get(f.getId());
+            csv.row(f.getFacilityCode(), f.getFacilityType(), f.getName(), f.getProvider(), f.getPlace(),
+                    f.getCountry(), f.getCity(), f.isActive(),
+                    p != null ? p.getActivity() : null,
+                    p != null && p.getInternalFacilitatorId() != null
+                            ? facilitatorNames.get(p.getInternalFacilitatorId()) : null);
+        }
+        auditService.success(principal.getId(), "EXPORT", "facility", null,
+                Map.of("count", facilities.size(), "cycleId", cycleContext.maybe().map(c -> c.getId()).orElse(null)));
+        return csv.build();
+    }
+
+    /* ------------------------------ participation ----------------------------- */
+
+    @Transactional(readOnly = true)
+    public ParticipationDto getParticipation(Long facilityId, AppUserDetails principal) {
+        findInScope(facilityId, principal);
+        FacilityCycleParticipation participation = participationRepository
+                .findByFacilityIdAndAnnualCycleId(facilityId, cycleContext.requireId())
+                .orElseThrow(() -> new NotFoundException("No participation recorded for this cycle"));
+        return new ParticipationDto(participation.getActivity(), participation.getInternalFacilitatorId(),
+                userName(participation.getInternalFacilitatorId()));
+    }
+
+    /** Upsert per (facility, cycle): the activity is settable per cycle (spec T2). */
+    @Transactional
+    public ParticipationDto setParticipation(Long facilityId, SetParticipationRequest request,
+                                             AppUserDetails actor) {
+        findInScope(facilityId, actor);
+        Long cycleId = cycleContext.requireWritable().getId();
+        if (request.internalFacilitatorId() != null && !userRepository.existsById(request.internalFacilitatorId())) {
+            throw new NotFoundException("Internal facilitator user not found");
+        }
+        FacilityCycleParticipation participation = participationRepository
+                .findByFacilityIdAndAnnualCycleId(facilityId, cycleId)
+                .orElseGet(() -> {
+                    FacilityCycleParticipation created = new FacilityCycleParticipation();
+                    created.setFacilityId(facilityId);
+                    created.setAnnualCycleId(cycleId);
+                    return created;
+                });
+        participation.setActivity(request.activity());
+        participation.setInternalFacilitatorId(request.internalFacilitatorId());
+        participationRepository.save(participation);
+        auditService.success(actor.getId(), "SET_PARTICIPATION", "facility", facilityId,
+                Map.of("cycleId", cycleId, "activity", request.activity().name()));
+        return new ParticipationDto(participation.getActivity(), participation.getInternalFacilitatorId(),
+                userName(participation.getInternalFacilitatorId()));
+    }
+
+    /* --------------------------------- members -------------------------------- */
+
+    @Transactional(readOnly = true)
+    public List<MemberDto> listMembers(Long facilityId, AppUserDetails principal) {
+        findInScope(facilityId, principal);
+        return memberRepository
+                .findByFacilityIdAndAnnualCycleIdOrderByCategoryAscMemberCodeAsc(facilityId, cycleContext.requireId())
+                .stream().map(MemberDto::of).toList();
+    }
+
+    @Transactional
+    public MemberDto addMember(Long facilityId, AddMemberRequest request, AppUserDetails actor) {
+        findInScope(facilityId, actor);
+        Long cycleId = cycleContext.requireWritable().getId();
+        memberRepository.findByMemberCodeAndAnnualCycleId(request.memberCode(), cycleId).ifPresent(existing -> {
+            throw new ConflictException("Member code already registered in this cycle");
+        });
+        FacilityMember member = new FacilityMember();
+        member.setFacilityId(facilityId);
+        member.setAnnualCycleId(cycleId);
+        member.setMemberCode(request.memberCode());
+        member.setCategory(request.category());
+        member = memberRepository.save(member);
+        auditService.success(actor.getId(), "ADD_MEMBER", "facility", facilityId,
+                Map.of("memberCode", member.getMemberCode(), "category", member.getCategory().name()));
+        return MemberDto.of(member);
+    }
+
+    @Transactional
+    public void removeMember(Long facilityId, Long memberId, AppUserDetails actor) {
+        findInScope(facilityId, actor);
+        cycleContext.requireWritable();
+        FacilityMember member = memberRepository.findById(memberId)
+                .filter(m -> m.getFacilityId().equals(facilityId))
+                .orElseThrow(() -> NotFoundException.of("Member", memberId));
+        memberRepository.delete(member);
+        auditService.success(actor.getId(), "REMOVE_MEMBER", "facility", facilityId,
+                Map.of("memberCode", member.getMemberCode()));
+    }
+
+    /* ---------------------------- set analysis grid ---------------------------- */
+
+    @Transactional(readOnly = true)
+    public List<SagDto> getSags(Long facilityId, AppUserDetails principal) {
+        findInScope(facilityId, principal);
+        return sagRepository
+                .findByFacilityIdAndAnnualCycleIdOrderByGridVariantAsc(facilityId, cycleContext.requireId())
+                .stream().map(SagDto::of).toList();
+    }
+
+    @Transactional
+    public SagDto putSag(Long facilityId, PutSagRequest request, AppUserDetails actor) {
+        findInScope(facilityId, actor);
+        Long cycleId = cycleContext.requireWritable().getId();
+        SetAnalysisGrid grid = sagRepository
+                .findByFacilityIdAndAnnualCycleIdAndGridVariant(facilityId, cycleId, request.gridVariant())
+                .orElseGet(() -> {
+                    SetAnalysisGrid created = new SetAnalysisGrid();
+                    created.setFacilityId(facilityId);
+                    created.setAnnualCycleId(cycleId);
+                    created.setGridVariant(request.gridVariant());
+                    return created;
+                });
+        grid.setPayload(request.payload());
+        grid.setCompiledBy(actor.getId());
+        grid = sagRepository.save(grid);
+        auditService.success(actor.getId(), "PUT_SAG", "facility", facilityId,
+                Map.of("cycleId", cycleId, "variant", request.gridVariant()));
+        return SagDto.of(grid);
+    }
+
+    /* ----------------------------------- qcnc ---------------------------------- */
+
+    @Transactional(readOnly = true)
+    public QcncDto getQcnc(Long facilityId, AppUserDetails principal) {
+        findInScope(facilityId, principal);
+        QcncAssessment qcnc = qcncRepository.findByFacilityIdAndAnnualCycleId(facilityId, cycleContext.requireId())
+                .orElseThrow(() -> new NotFoundException("No QCNC assessment recorded for this cycle"));
+        return QcncDto.of(qcnc);
+    }
+
+    @Transactional
+    public QcncDto putQcnc(Long facilityId, PutQcncRequest request, AppUserDetails actor) {
+        findInScope(facilityId, actor);
+        Long cycleId = cycleContext.requireWritable().getId();
+        QcncAssessment qcnc = qcncRepository.findByFacilityIdAndAnnualCycleId(facilityId, cycleId)
+                .orElseGet(() -> {
+                    QcncAssessment created = new QcncAssessment();
+                    created.setFacilityId(facilityId);
+                    created.setAnnualCycleId(cycleId);
+                    return created;
+                });
+        qcnc.setPayload(request.payload());
+        qcnc = qcncRepository.save(qcnc);
+        auditService.success(actor.getId(), "PUT_QCNC", "facility", facilityId, Map.of("cycleId", cycleId));
+        return QcncDto.of(qcnc);
+    }
+
+    /* --------------------------------- helpers -------------------------------- */
+
+    private Facility findInScope(Long id, AppUserDetails principal) {
+        DataScope scope = dataScopeService.scopeOf(principal);
+        return facilityRepository.findById(id)
+                .filter(f -> scope.canSeeFacility(f.getId()))
+                .orElseThrow(() -> NotFoundException.of("Facility", id));
+    }
+
+    private Specification<Facility> specification(String q, Facility.FacilityType type, String country, String city,
+                                                  FacilityCycleParticipation.Activity activity, Boolean active,
+                                                  DataScope scope) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (!scope.all()) {
+                if (scope.facilityIds().isEmpty()) {
+                    predicates.add(cb.disjunction()); // sees nothing
+                } else {
+                    predicates.add(root.get("id").in(scope.facilityIds()));
+                }
+            }
+            if (q != null && !q.isBlank()) {
+                String like = "%" + q.trim().toLowerCase() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("facilityCode")), like),
+                        cb.like(cb.lower(root.get("name")), like)));
+            }
+            if (type != null) {
+                predicates.add(cb.equal(root.get("facilityType"), type));
+            }
+            if (country != null && !country.isBlank()) {
+                predicates.add(cb.like(cb.lower(root.get("country")), "%" + country.trim().toLowerCase() + "%"));
+            }
+            if (city != null && !city.isBlank()) {
+                predicates.add(cb.like(cb.lower(root.get("city")), "%" + city.trim().toLowerCase() + "%"));
+            }
+            if (active != null) {
+                predicates.add(cb.equal(root.get("active"), active));
+            }
+            if (activity != null) {
+                // participation in the selected cycle with the given activity (spec T2 filters)
+                Long cycleId = cycleContext.requireId();
+                Subquery<Long> sub = query.subquery(Long.class);
+                Root<FacilityCycleParticipation> p = sub.from(FacilityCycleParticipation.class);
+                sub.select(p.get("facilityId"))
+                        .where(cb.equal(p.get("facilityId"), root.get("id")),
+                                cb.equal(p.get("annualCycleId"), cycleId),
+                                cb.equal(p.get("activity"), activity));
+                predicates.add(cb.exists(sub));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    private Map<Long, FacilityCycleParticipation> participationsFor(List<Facility> facilities) {
+        if (facilities.isEmpty() || cycleContext.maybe().isEmpty()) {
+            return Map.of();
+        }
+        List<Long> ids = facilities.stream().map(Facility::getId).toList();
+        return participationRepository.findByAnnualCycleIdAndFacilityIdIn(cycleContext.requireId(), ids).stream()
+                .collect(Collectors.toMap(FacilityCycleParticipation::getFacilityId, Function.identity()));
+    }
+
+    private Map<Long, String> facilitatorNames(Map<Long, FacilityCycleParticipation> participations) {
+        List<Long> userIds = participations.values().stream()
+                .map(FacilityCycleParticipation::getInternalFacilitatorId)
+                .filter(java.util.Objects::nonNull)
+                .distinct().toList();
+        if (userIds.isEmpty()) {
+            return Map.of();
+        }
+        return userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, User::getFullName));
+    }
+
+    private FacilityDto toDto(Facility facility, Map<Long, FacilityCycleParticipation> participations,
+                              Map<Long, String> facilitatorNames) {
+        FacilityCycleParticipation participation = participations.get(facility.getId());
+        String facilitatorName = participation != null && participation.getInternalFacilitatorId() != null
+                ? facilitatorNames.get(participation.getInternalFacilitatorId()) : null;
+        return FacilityDto.of(facility, participation, facilitatorName);
+    }
+
+    private String userName(Long userId) {
+        if (userId == null) {
+            return null;
+        }
+        return userRepository.findById(userId).map(User::getFullName).orElse(null);
+    }
+}
