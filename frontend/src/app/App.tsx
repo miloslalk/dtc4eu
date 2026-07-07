@@ -8,6 +8,8 @@ import { UsersPage } from '../features/admin/UsersPage';
 import { CyclesPage } from '../features/admin/CyclesPage';
 import { FacilitiesPage } from '../features/facilities/FacilitiesPage';
 import { FacilityDetailPage } from '../features/facilities/FacilityDetailPage';
+import { TernasPage } from '../features/ternas/TernasPage';
+import { TernaBuilderPage } from '../features/ternas/TernaBuilderPage';
 
 export function App() {
   return (
@@ -26,6 +28,8 @@ export function App() {
         <Route index element={<DashboardPage />} />
         <Route path="facilities" element={<FacilitiesPage />} />
         <Route path="facilities/:id" element={<FacilityDetailPage />} />
+        <Route path="ternas" element={<TernasPage />} />
+        <Route path="ternas/:id" element={<TernaBuilderPage />} />
         <Route
           path="admin/users"
           element={

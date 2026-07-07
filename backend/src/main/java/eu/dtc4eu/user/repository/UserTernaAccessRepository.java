@@ -2,6 +2,7 @@ package eu.dtc4eu.user.repository;
 
 import eu.dtc4eu.user.entity.UserTernaAccess;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -21,5 +22,8 @@ public interface UserTernaAccessRepository extends JpaRepository<UserTernaAccess
             """, nativeQuery = true)
     List<Long> findCoordinatorFacilityIds(@Param("userId") Long userId);
 
-    void deleteByUserId(Long userId);
+    /** Bulk delete executes immediately — safe to re-insert the same keys in one transaction. */
+    @Modifying
+    @Query("delete from UserTernaAccess a where a.userId = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 }

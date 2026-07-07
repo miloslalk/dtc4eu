@@ -48,6 +48,17 @@ public class UserAdminController {
         return userAdminService.list(q, role, active, pageable);
     }
 
+    /** Lightweight picker for terna building — coordinators may call it too (method overrides class rule). */
+    @Operation(summary = "Active users holding the COORDINATOR role (id + name only)")
+    @GetMapping("/coordinators")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','COORDINATOR')")
+    public java.util.List<CoordinatorOption> coordinators() {
+        return userAdminService.coordinatorOptions();
+    }
+
+    public record CoordinatorOption(Long id, String username, String fullName) {
+    }
+
     @GetMapping("/{id}")
     public UserDetailDto get(@PathVariable Long id) {
         return userAdminService.get(id);

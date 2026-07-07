@@ -72,6 +72,14 @@ public class UserAdminService {
         return detail(find(id));
     }
 
+    @Transactional(readOnly = true)
+    public List<eu.dtc4eu.user.controller.UserAdminController.CoordinatorOption> coordinatorOptions() {
+        return userRepository.findActiveByRoleCode(Role.COORDINATOR).stream()
+                .map(u -> new eu.dtc4eu.user.controller.UserAdminController.CoordinatorOption(
+                        u.getId(), u.getUsername(), u.getFullName()))
+                .toList();
+    }
+
     @Transactional
     public UserDetailDto create(CreateUserRequest request, AppUserDetails actor) {
         if (userRepository.existsByUsername(request.username())) {
