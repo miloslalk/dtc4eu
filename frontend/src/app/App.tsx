@@ -10,6 +10,8 @@ import { FacilitiesPage } from '../features/facilities/FacilitiesPage';
 import { FacilityDetailPage } from '../features/facilities/FacilityDetailPage';
 import { TernasPage } from '../features/ternas/TernasPage';
 import { TernaBuilderPage } from '../features/ternas/TernaBuilderPage';
+import { QuestionnairesPage } from '../features/questionnaires/QuestionnairesPage';
+import { QuestionnaireDetailPage } from '../features/questionnaires/QuestionnaireDetailPage';
 
 export function App() {
   return (
@@ -30,6 +32,22 @@ export function App() {
         <Route path="facilities/:id" element={<FacilityDetailPage />} />
         <Route path="ternas" element={<TernasPage />} />
         <Route path="ternas/:id" element={<TernaBuilderPage />} />
+        <Route
+          path="questionnaires"
+          element={
+            <RequireRole roles={['ADMIN', 'SUPER_ADMIN']}>
+              <QuestionnairesPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="questionnaires/:id"
+          element={
+            <RequireRole roles={['ADMIN', 'SUPER_ADMIN']}>
+              <QuestionnaireDetailPage />
+            </RequireRole>
+          }
+        />
         <Route
           path="admin/users"
           element={
