@@ -1,0 +1,21 @@
+# Local development defaults — match docker-compose.yml. Every value can still
+# be overridden by the corresponding environment variable.
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/dtc4eu}
+    username: ${DB_USERNAME:dtc4eu}
+    password: ${DB_PASSWORD:dtc4eu}
+
+app:
+  jwt:
+    # dev-only signing key (HS256 needs >= 32 bytes); real deployments set JWT_SECRET
+    secret: ${JWT_SECRET:dtc4eu-local-dev-secret-key-change-me-0123456789}
+  storage:
+    endpoint: ${STORAGE_ENDPOINT:http://localhost:9000}
+    bucket: ${STORAGE_BUCKET:dtc4eu}
+    access-key: ${STORAGE_ACCESS_KEY:dtc4eu}
+    secret-key: ${STORAGE_SECRET_KEY:dtc4eu123}
+
+logging:
+  level:
+    eu.dtc4eu: DEBUG
