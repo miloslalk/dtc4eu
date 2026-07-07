@@ -1,19 +1,16 @@
 package eu.dtc4eu.audit;
 
 import eu.dtc4eu.audit.entity.AuditLog;
-import eu.dtc4eu.audit.repository.AuditLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
 /**
  * Writes to audit_logs. Spec §6: log create/update/delete, login, submit and
- * export. Runs in its own transaction so an audit row survives a rollback of
- * the surrounding operation, and never breaks the main flow on failure.
+ * export. The insert runs in its own transaction (see {@link AuditWriter});
+ * an audit failure is logged but never breaks the main flow.
  */
 @Slf4j
 @Service
@@ -23,9 +20,8 @@ public class AuditService {
     public static final String STATUS_SUCCESS = "SUCCESS";
     public static final String STATUS_FAILURE = "FAILURE";
 
-    private final AuditLogRepository auditLogRepository;
+    private final AuditWriter auditWriter;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void log(Long userId, String action, String entityType, Long entityId, Map<String, Object> details,
                     String status) {
         try {
@@ -36,7 +32,7 @@ public class AuditService {
             entry.setEntityId(entityId);
             entry.setDetails(details);
             entry.setStatus(status);
-            auditLogRepository.save(entry);
+            auditWriter.write(entry);
         } catch (Exception e) {
             log.error("Failed to write audit log entry: action={} user={}", action, userId, e);
         }

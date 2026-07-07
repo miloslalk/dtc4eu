@@ -21,6 +21,9 @@
     <java.version>17</java.version>
     <!-- overrides Boot-managed version for JDK 25 toolchain support -->
     <lombok.version>1.18.46</lombok.version>
+    <!-- Boot 3.5 manages 1.21.2, whose docker-java speaks API 1.32 — below the
+         minimum (1.40) of current Docker engines (29.x); 1.21.4 fixes detection -->
+    <testcontainers.version>1.21.4</testcontainers.version>
     <springdoc.version>2.8.17</springdoc.version>
     <jjwt.version>0.12.6</jjwt.version>
     <awssdk.version>2.34.0</awssdk.version>

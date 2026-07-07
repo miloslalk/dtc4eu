@@ -15,7 +15,7 @@ The implementation brief is [`DTC4EU_BUILD_SPEC.md`](DTC4EU_BUILD_SPEC.md) (sour
 Prerequisites: JDK 17+, Node 20+, Docker Desktop (running).
 
 ```bash
-# 1. Start dev dependencies (Postgres 16 on :5432, MinIO on :9000/:9001)
+# 1. Start dev dependencies (Postgres 16 on :5433, MinIO on :9000/:9001)
 docker compose up -d
 
 # 2. Backend — boots on :8080, applies Flyway migrations (local profile is the default)

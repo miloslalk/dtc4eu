@@ -2,7 +2,7 @@
 # be overridden by the corresponding environment variable.
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/dtc4eu}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/dtc4eu}
     username: ${DB_USERNAME:dtc4eu}
     password: ${DB_PASSWORD:dtc4eu}
 
