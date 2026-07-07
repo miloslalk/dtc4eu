@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTC4EU — Brand Colour Scheme</title>
+<style>
+  :root{
+    --blue-600:#0F4486; --gold-500:#F6B409; --azure:#0770CB;
+    --paper:#F7F4EE; --ink:#222830; --line:#E7E3DB;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.5;}
+  .wrap{max-width:1040px;margin:0 auto;padding:44px 28px 64px;}
+  header{border-bottom:3px solid var(--gold-500);padding-bottom:22px;margin-bottom:34px;}
+  .kicker{letter-spacing:3px;text-transform:uppercase;font-size:12px;color:var(--azure);font-weight:700;}
+  h1{font-size:30px;margin:8px 0 6px;color:var(--blue-600);font-weight:800;letter-spacing:-.5px;}
+  header p{margin:0;color:#5c626b;font-size:14px;}
+  h2{font-size:14px;text-transform:uppercase;letter-spacing:1.5px;color:var(--blue-600);
+     margin:40px 0 14px;font-weight:700;}
+  .sub{font-size:13px;color:#6a707a;margin:-8px 0 16px;}
+
+  /* anchors */
+  .anchors{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .hero{border-radius:14px;padding:26px;min-height:150px;display:flex;flex-direction:column;
+        justify-content:flex-end;box-shadow:0 6px 22px rgba(15,68,134,.10);}
+  .hero .nm{font-weight:700;font-size:17px;}
+  .hero .hx{font-family:ui-monospace,monospace;font-size:14px;opacity:.9;margin-top:2px;}
+  .hero .role{font-size:12px;opacity:.85;margin-top:10px;}
+
+  /* scales */
+  .scale{display:grid;grid-template-columns:repeat(10,1fr);border-radius:12px;overflow:hidden;
+         box-shadow:0 2px 10px rgba(0,0,0,.06);}
+  .sw{padding:16px 8px 12px;min-height:88px;display:flex;flex-direction:column;justify-content:space-between;
+      cursor:pointer;transition:transform .08s;}
+  .sw:hover{transform:translateY(-2px)}
+  .sw .step{font-size:11px;font-weight:700;opacity:.85}
+  .sw .hex{font-family:ui-monospace,monospace;font-size:10.5px}
+
+  /* semantic */
+  .sem{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .semcard{border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#fff;}
+  .semcard .bar{height:64px;display:flex;align-items:center;justify-content:center;color:#fff;
+       font-weight:700;font-size:14px;}
+  .semcard .body{padding:12px 14px;}
+  .semcard .lbl{font-weight:700;font-size:13px;text-transform:capitalize;}
+  .semcard .hx{font-family:ui-monospace,monospace;font-size:11px;color:#6a707a;margin-top:2px;}
+  .semcard .bg{margin-top:8px;font-size:11px;padding:5px 8px;border-radius:6px;display:inline-block;}
+
+  /* preview */
+  .preview{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .pv-top{background:var(--blue-600);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;}
+  .pv-dot{width:26px;height:26px;border-radius:7px;background:var(--gold-500);}
+  .pv-top b{font-size:15px}
+  .pv-top .chip{margin-left:auto;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);
+       padding:4px 12px;border-radius:999px;font-size:12px;}
+  .pv-body{padding:22px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+  .btn{border:none;border-radius:9px;padding:10px 18px;font-weight:600;font-size:13px;cursor:pointer;}
+  .btn-primary{background:var(--blue-600);color:#fff;}
+  .btn-secondary{background:var(--gold-500);color:#3a2c00;}
+  .btn-ghost{background:transparent;color:var(--blue-600);border:1.5px solid #cdd7e5;}
+  .tag{background:#FEF8E6;color:#946a00;border:1px solid #F9CE5D;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;}
+  .lnk{color:var(--azure);font-weight:600;font-size:13px;text-decoration:none;border-bottom:1.5px solid #bfdcf5;}
+  .hint{font-size:12px;color:#8a8f97;margin-top:26px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Brand Colour Scheme</div>
+    <h1>DTC4EU Visual Identity</h1>
+    <p>Derived from the project logo. Democratic Therapeutic Communities for Social Inclusion · Erasmus+ KA220.</p>
+  </header>
+
+  <h2>Anchor colours</h2>
+  <div class="anchors">
+    <div class="hero" style="background:#0F4486;color:#fff">
+      <div>
+        <div class="nm">Primary · DTC Blue</div>
+        <div class="hx">#0F4486</div>
+        <div class="role">Headers, sidebar, primary actions, links-at-rest, table headers</div>
+      </div>
+    </div>
+    <div class="hero" style="background:#F6B409;color:#3a2c00">
+      <div>
+        <div class="nm">Secondary · Inclusion Gold</div>
+        <div class="hx">#F6B409</div>
+        <div class="role">Accents, highlights, active cycle chip, secondary CTAs, focus</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Primary — DTC Blue</h2>
+  <div class="sub">600 is the anchor. Use 600/700 for surfaces &amp; text, 50–200 for backgrounds &amp; hover states.</div>
+  <div class="scale" id="blue"></div>
+
+  <h2>Secondary — Inclusion Gold</h2>
+  <div class="sub">500 is the anchor. Gold is an accent, not a background — use sparingly for emphasis.</div>
+  <div class="scale" id="gold"></div>
+
+  <h2>Accent — Bright Azure</h2>
+  <div class="sub">From the brain highlight. Reserve for interactive text links and info states, to stay distinct from primary blue.</div>
+  <div class="scale" id="azure"></div>
+
+  <h2>Warm Neutrals</h2>
+  <div class="sub">Paper-tinted greys for backgrounds, borders and body text — warmer than pure grey, matching the logo ground.</div>
+  <div class="scale" id="neutral"></div>
+
+  <h2>Semantic</h2>
+  <div class="sub">Warning is shifted to a burnt-amber so it never competes with brand gold.</div>
+  <div class="sem" id="sem"></div>
+
+  <h2>In use</h2>
+  <div class="preview">
+    <div class="pv-top">
+      <div class="pv-dot"></div>
+      <b>DTC4EU Platform</b>
+      <span class="chip">Cycle 2026–2027</span>
+    </div>
+    <div class="pv-body">
+      <button class="btn btn-primary">Save facility</button>
+      <button class="btn btn-secondary">New terna</button>
+      <button class="btn btn-ghost">Cancel</button>
+      <span class="tag">DTCRO · submitted</span>
+      <a class="lnk" href="#">View computed scores</a>
+    </div>
+  </div>
+
+  <div class="hint">Tip: click any swatch to copy its hex.</div>
+</div>
+
+<script>
+  const blue={50:'#ECF0F5',100:'#D4DDE9',200:'#A4B8D1',300:'#7493B9',400:'#3F699E',500:'#1D4F8D',600:'#0F4486',700:'#0D3B75',800:'#0C3263',900:'#0A2951'};
+  const gold={50:'#FEF8E6',100:'#FDEEC9',200:'#FBDE93',300:'#F9CE5D',400:'#F7BE2B',500:'#F6B409',600:'#E2A408',700:'#CB9206',800:'#B17D04',900:'#996A02'};
+  const azure={50:'#E6F1FB',100:'#C6E0F6',200:'#8DC0EE',300:'#54A0E5',400:'#2285D9',500:'#0770CB',600:'#0661B1',700:'#054F90',800:'#043D70',900:'#032B4F'};
+  const neutral={50:'#FBFAF7',100:'#F9F7F3',200:'#EAE8E3',300:'#CCCBC8',400:'#A2A2A2',500:'#828486',600:'#66696D',700:'#4D5156',800:'#373C43',900:'#222830'};
+  const lightText={blue:400,gold:600,azure:400,neutral:400}; // step >= value -> white text
+  function build(id,obj,fam){
+    const el=document.getElementById(id);
+    Object.entries(obj).forEach(([step,hex])=>{
+      const white = parseInt(step) >= lightText[fam];
+      const d=document.createElement('div');
+      d.className='sw'; d.style.background=hex; d.style.color=white?'#fff':'#222830';
+      d.innerHTML=`<div class="step">${step}</div><div class="hex">${hex}</div>`;
+      d.onclick=()=>navigator.clipboard&&navigator.clipboard.writeText(hex);
+      el.appendChild(d);
+    });
+  }
+  build('blue',blue,'blue'); build('gold',gold,'gold'); build('azure',azure,'azure'); build('neutral',neutral,'neutral');
+  const sem=[['success','#217C5A','#E1F2EB','#1d6b4e'],['warning','#C67C14','#FCF0DE','#8a560e'],['error','#B2341F','#FAE5E0','#8a2818'],['info','#0770CB','#E0EEFA','#055296']];
+  const se=document.getElementById('sem');
+  sem.forEach(([name,c,bg,tx])=>{
+    const card=document.createElement('div');card.className='semcard';
+    card.innerHTML=`<div class="bar" style="background:${c}">${c}</div>
+      <div class="body"><div class="lbl">${name}</div><div class="hx">Fill ${c}</div>
+      <span class="bg" style="background:${bg};color:${tx}">Surface ${bg}</span></div>`;
+    se.appendChild(card);
+  });
+</script>
+</body>
+</html>

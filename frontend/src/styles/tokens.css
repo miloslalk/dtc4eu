@@ -1,0 +1,72 @@
+/* ============================================================
+   DTC4EU — Brand design tokens
+   Derived from the project logo. Drop into the React app (import once
+   at the root) or mirror into Figma variables / Tailwind theme.
+   ============================================================ */
+:root {
+  /* --- Primary: DTC Blue (anchor 600) --- */
+  --blue-50:#ECF0F5; --blue-100:#D4DDE9; --blue-200:#A4B8D1; --blue-300:#7493B9;
+  --blue-400:#3F699E; --blue-500:#1D4F8D; --blue-600:#0F4486; --blue-700:#0D3B75;
+  --blue-800:#0C3263; --blue-900:#0A2951;
+
+  /* --- Secondary: Inclusion Gold (anchor 500) --- */
+  --gold-50:#FEF8E6; --gold-100:#FDEEC9; --gold-200:#FBDE93; --gold-300:#F9CE5D;
+  --gold-400:#F7BE2B; --gold-500:#F6B409; --gold-600:#E2A408; --gold-700:#CB9206;
+  --gold-800:#B17D04; --gold-900:#996A02;
+
+  /* --- Accent: Bright Azure (interactive / info) --- */
+  --azure-50:#E6F1FB; --azure-100:#C6E0F6; --azure-200:#8DC0EE; --azure-300:#54A0E5;
+  --azure-400:#2285D9; --azure-500:#0770CB; --azure-600:#0661B1; --azure-700:#054F90;
+  --azure-800:#043D70; --azure-900:#032B4F;
+
+  /* --- Warm neutrals --- */
+  --neutral-50:#FBFAF7; --neutral-100:#F9F7F3; --neutral-200:#EAE8E3; --neutral-300:#CCCBC8;
+  --neutral-400:#A2A2A2; --neutral-500:#828486; --neutral-600:#66696D; --neutral-700:#4D5156;
+  --neutral-800:#373C43; --neutral-900:#222830;
+
+  /* --- Semantic --- */
+  --success:#217C5A; --success-surface:#E1F2EB;
+  --warning:#C67C14; --warning-surface:#FCF0DE;   /* burnt amber, distinct from brand gold */
+  --error:#B2341F;   --error-surface:#FAE5E0;
+  --info:#0770CB;    --info-surface:#E0EEFA;
+
+  /* ---------- Semantic role mappings (use these in components) ---------- */
+  --color-primary:            var(--blue-600);
+  --color-primary-hover:      var(--blue-700);
+  --color-primary-contrast:   #FFFFFF;
+
+  --color-secondary:          var(--gold-500);
+  --color-secondary-hover:    var(--gold-600);
+  --color-secondary-contrast: #3A2C00;
+
+  --color-link:               var(--azure-500);
+  --color-focus-ring:         var(--gold-500);
+
+  --bg-app:                   var(--neutral-50);   /* warm paper background */
+  --bg-surface:               #FFFFFF;
+  --bg-sidebar:               var(--blue-600);
+  --bg-subtle:                var(--blue-50);
+
+  --text-strong:              var(--neutral-900);
+  --text-body:                var(--neutral-800);
+  --text-muted:               var(--neutral-600);
+  --text-on-primary:          #FFFFFF;
+
+  --border:                   var(--neutral-200);
+  --border-strong:            var(--neutral-300);
+
+  --table-header-bg:          var(--blue-600);
+  --table-header-text:        #FFFFFF;
+  --table-row-alt:            var(--blue-50);
+  --cycle-chip-bg:            var(--gold-500);      /* the annual-cycle context chip */
+  --cycle-chip-text:          #3A2C00;
+}
+
+/* Optional: Tailwind v3 theme.extend.colors equivalent
+theme: { extend: { colors: {
+  blue:   {50:'#ECF0F5',100:'#D4DDE9',200:'#A4B8D1',300:'#7493B9',400:'#3F699E',500:'#1D4F8D',600:'#0F4486',700:'#0D3B75',800:'#0C3263',900:'#0A2951'},
+  gold:   {50:'#FEF8E6',100:'#FDEEC9',200:'#FBDE93',300:'#F9CE5D',400:'#F7BE2B',500:'#F6B409',600:'#E2A408',700:'#CB9206',800:'#B17D04',900:'#996A02'},
+  azure:  {50:'#E6F1FB',100:'#C6E0F6',200:'#8DC0EE',300:'#54A0E5',400:'#2285D9',500:'#0770CB',600:'#0661B1',700:'#054F90',800:'#043D70',900:'#032B4F'},
+  neutral:{50:'#FBFAF7',100:'#F9F7F3',200:'#EAE8E3',300:'#CCCBC8',400:'#A2A2A2',500:'#828486',600:'#66696D',700:'#4D5156',800:'#373C43',900:'#222830'},
+}}}
+*/
