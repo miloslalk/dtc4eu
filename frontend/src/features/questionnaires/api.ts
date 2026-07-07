@@ -63,6 +63,7 @@ export function useQuestionnaire(id: number) {
   return useQuery({
     queryKey: ['questionnaires', id],
     queryFn: async () => (await api.get<QuestionnaireDetail>(`/questionnaires/${id}`)).data,
+    enabled: id > 0,
   });
 }
 

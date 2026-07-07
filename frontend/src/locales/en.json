@@ -156,6 +156,7 @@
     "viewScores": "View scores",
     "fill": "Fill in",
     "readOnlySubmitted": "This response was submitted and is read-only",
+    "pseudonymHint": "Subjects are identified by pseudonymous codes only — never personal names.",
     "categories": {
       "USERS": "Users",
       "FAMILIARS": "Familiars",

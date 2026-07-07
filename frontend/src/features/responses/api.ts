@@ -1,0 +1,138 @@
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { api } from '../../lib/api';
+import type { PageResponse } from '../../lib/types';
+import type { AdministrationMode } from '../questionnaires/api';
+
+export type RespondentCategory =
+  | 'USERS' | 'FAMILIARS' | 'PRACTITIONERS' | 'MANAGERS' | 'SELFEVAL_COLLECTIVE' | 'HETEROEVAL_DELEGATION';
+export type ResponseStatus = 'DRAFT' | 'SUBMITTED';
+
+export const RESPONDENT_CATEGORIES: RespondentCategory[] = [
+  'USERS', 'FAMILIARS', 'PRACTITIONERS', 'MANAGERS', 'SELFEVAL_COLLECTIVE', 'HETEROEVAL_DELEGATION',
+];
+
+export interface ResponseRow {
+  id: number;
+  questionnaireId: number;
+  questionnaireCode: string;
+  facilityId: number | null;
+  facilityCode: string | null;
+  subjectCode: string;
+  respondentCategory: RespondentCategory;
+  status: ResponseStatus;
+  submittedAt: string | null;
+  createdAt: string;
+}
+
+export interface ResponseItem {
+  itemId: number;
+  numericValue: number | null;
+  textValue: string | null;
+}
+
+export interface ResponseDetail {
+  id: number;
+  questionnaireId: number;
+  questionnaireCode: string;
+  formId: number | null;
+  facilityId: number | null;
+  facilityCode: string | null;
+  subjectCode: string;
+  respondentCategory: RespondentCategory;
+  administrationMode: AdministrationMode | null;
+  status: ResponseStatus;
+  submittedAt: string | null;
+  items: ResponseItem[];
+  answeredLikert: number;
+  totalLikert: number;
+}
+
+export interface AreaScore {
+  areaId: number;
+  areaCode: string;
+  areaName: string;
+  meanValue: string;
+  computedAt: string;
+}
+
+export interface ResponseFilters {
+  facilityId?: string;
+  questionnaireId?: string;
+  category?: string;
+  status?: string;
+  page: number;
+}
+
+export function useResponses(filters: ResponseFilters) {
+  return useQuery({
+    queryKey: ['responses', filters],
+    queryFn: async () =>
+      (
+        await api.get<PageResponse<ResponseRow>>('/responses', {
+          params: {
+            facilityId: filters.facilityId || undefined,
+            questionnaireId: filters.questionnaireId || undefined,
+            category: filters.category || undefined,
+            status: filters.status || undefined,
+            page: filters.page,
+            size: 20,
+            sort: 'id,desc',
+          },
+        })
+      ).data,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useResponse(id: number) {
+  return useQuery({
+    queryKey: ['responses', 'detail', id],
+    queryFn: async () => (await api.get<ResponseDetail>(`/responses/${id}`)).data,
+  });
+}
+
+export function useCreateResponse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      questionnaireId: number;
+      formId?: number | null;
+      facilityId?: number | null;
+      subjectCode: string;
+      respondentCategory: RespondentCategory;
+    }) => (await api.post<ResponseDetail>('/responses', payload)).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['responses'] }),
+  });
+}
+
+export function useSaveItems(responseId: number) {
+  return useMutation({
+    mutationFn: async (items: ResponseItem[]) =>
+      (
+        await api.put<{ answeredLikert: number; totalLikert: number; status: ResponseStatus }>(
+          `/responses/${responseId}/items`,
+          { items },
+        )
+      ).data,
+  });
+}
+
+export function useSubmitResponse(responseId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => (await api.post<AreaScore[]>(`/responses/${responseId}/submit`)).data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['responses'] });
+      queryClient.invalidateQueries({ queryKey: ['responses', 'detail', responseId] });
+      queryClient.invalidateQueries({ queryKey: ['responses', responseId, 'scores'] });
+    },
+  });
+}
+
+export function useScores(responseId: number, enabled: boolean) {
+  return useQuery({
+    queryKey: ['responses', responseId, 'scores'],
+    queryFn: async () => (await api.get<AreaScore[]>(`/responses/${responseId}/scores`)).data,
+    enabled,
+  });
+}

@@ -12,6 +12,8 @@ import { TernasPage } from '../features/ternas/TernasPage';
 import { TernaBuilderPage } from '../features/ternas/TernaBuilderPage';
 import { QuestionnairesPage } from '../features/questionnaires/QuestionnairesPage';
 import { QuestionnaireDetailPage } from '../features/questionnaires/QuestionnaireDetailPage';
+import { ResponsesPage } from '../features/responses/ResponsesPage';
+import { ResponseFillPage } from '../features/responses/ResponseFillPage';
 
 export function App() {
   return (
@@ -48,6 +50,8 @@ export function App() {
             </RequireRole>
           }
         />
+        <Route path="responses" element={<ResponsesPage />} />
+        <Route path="responses/:id" element={<ResponseFillPage />} />
         <Route
           path="admin/users"
           element={
