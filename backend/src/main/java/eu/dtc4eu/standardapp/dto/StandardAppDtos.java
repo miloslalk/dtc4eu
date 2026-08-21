@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -18,12 +19,18 @@ public final class StandardAppDtos {
     public record DocumentApplicationDto(Long id, StandardApplication.StandardType standardType, String standardCode,
                                          String serviceName, String serviceType, Integer numUsers, Integer numStaff,
                                          StandardApplication.Origin origin, Integer applicationCyclesCount,
-                                         BigDecimal applicationLevelPct) {
+                                         BigDecimal applicationLevelPct,
+                                         Long assessedBy, String assessedByName, OffsetDateTime assessedAt) {
 
         public static DocumentApplicationDto of(StandardApplication a) {
+            return of(a, null);
+        }
+
+        public static DocumentApplicationDto of(StandardApplication a, String assessedByName) {
             return new DocumentApplicationDto(a.getId(), a.getStandardType(), a.getStandardCode(), a.getServiceName(),
                     a.getServiceType(), a.getNumUsers(), a.getNumStaff(), a.getOrigin(),
-                    a.getApplicationCyclesCount(), a.getApplicationLevelPct());
+                    a.getApplicationCyclesCount(), a.getApplicationLevelPct(),
+                    a.getAssessedBy(), assessedByName, a.getAssessedAt());
         }
     }
 

@@ -199,6 +199,14 @@ export function useRemoveMember(facilityId: number) {
   });
 }
 
+export function useSagSchema(facilityId: number) {
+  return useQuery({
+    queryKey: ['facilities', facilityId, 'sag-schema'],
+    queryFn: async () =>
+      (await api.get<import('../questionnaires/api').ProfileSchema>(`/facilities/${facilityId}/set-analysis-grid/schema`)).data,
+  });
+}
+
 export function useSags(facilityId: number) {
   return useQuery({
     queryKey: ['facilities', facilityId, 'sag'],
@@ -312,13 +320,39 @@ export interface DocumentApplication {
   origin: 'DEVELOPED' | 'IMPLEMENTED' | null;
   applicationCyclesCount: number | null;
   applicationLevelPct: string | null;
+  assessedBy: number | null;
+  assessedByName: string | null;
+  assessedAt: string | null;
+}
+
+export interface ManualEp {
+  id: number;
+  cycleId: number;
+  questionnaireCode: string;
+  label: string;
+}
+
+export interface Effectiveness {
+  questionnaireItemId: number | null;
+  itemCode: string | null;
+  individualEffectiveness: string | null;
+  meanItemEffectiveness: string | null;
+  meanAreaEffectiveness: string | null;
+  meanQuestEffectiveness: string | null;
+  areasWithScore: number | null;
+  areasTotal: number | null;
+  computedAt: string | null;
 }
 
 export interface DocumentApplicationPayload {
   standardType: StandardType;
+  serviceType?: string | null;
+  numUsers?: number | null;
+  numStaff?: number | null;
+  origin?: 'DEVELOPED' | 'IMPLEMENTED' | null;
+  applicationCyclesCount?: number | null;
   standardCode?: string | null;
   serviceName?: string | null;
-  origin?: 'DEVELOPED' | 'IMPLEMENTED' | null;
   applicationLevelPct?: number | null;
 }
 
@@ -336,6 +370,41 @@ export interface FacilityHistory {
   facilityCode: string;
   cyclesInProgramme: number;
   cycles: HistoryCycle[];
+}
+
+export function useManualEps(facilityId: number) {
+  return useQuery({
+    queryKey: ['facilities', facilityId, 'manual-eps'],
+    queryFn: async () => (await api.get<ManualEp[]>(`/facilities/${facilityId}/manual-excellence-points`)).data,
+  });
+}
+
+export function usePutManualEps(facilityId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { cycleId: number; questionnaireCode: string; labels: string[] }) =>
+      (await api.put<ManualEp[]>(`/facilities/${facilityId}/manual-excellence-points`, body)).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['facilities', facilityId] }),
+  });
+}
+
+export function useEffectiveness(facilityId: number, applicationId: number | null) {
+  return useQuery({
+    queryKey: ['facilities', facilityId, 'effectiveness', applicationId],
+    queryFn: async () =>
+      (await api.get<Effectiveness | null>(`/facilities/${facilityId}/document-applications/${applicationId}/effectiveness`)).data,
+    enabled: applicationId !== null,
+  });
+}
+
+export function useLinkEffectiveness(facilityId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ applicationId, questionnaireItemId }: { applicationId: number; questionnaireItemId: number }) =>
+      (await api.put<Effectiveness>(`/facilities/${facilityId}/document-applications/${applicationId}/effectiveness`,
+        { questionnaireItemId })).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['facilities', facilityId, 'effectiveness'] }),
+  });
 }
 
 export function useDocumentApplications(facilityId: number) {

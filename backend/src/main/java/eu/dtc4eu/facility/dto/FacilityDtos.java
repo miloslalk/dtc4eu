@@ -88,7 +88,7 @@ public final class FacilityDtos {
         }
     }
 
-    public record PutSagRequest(@NotBlank @Pattern(regexp = "[A-D]", message = "must be A, B, C or D") String gridVariant,
+    public record PutSagRequest(@NotBlank @Pattern(regexp = "[A-D]|GAS", message = "must be A, B, C, D or GAS") String gridVariant,
                                 Map<String, Object> payload) {
     }
 

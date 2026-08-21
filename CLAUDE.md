@@ -24,9 +24,11 @@ Structure notes that go beyond the spec: assigned terna coordinators are auto-gr
 
 Production runs on a single Hetzner VPS via `deploy/docker-compose.prod.yml` (build from repo root with `--env-file deploy/.env`): Caddy (auto-HTTPS, serves both SPAs, proxies `/api` per vhost via `SITE_DOMAIN`/`PLATFORM_DOMAIN` env vars), both Spring APIs (prod profile, env-only config), one Postgres 16 with two databases (created by `deploy/initdb/`), internal-only MinIO, and a nightly backup container (`deploy/backup.sh`, 14-day rotation). Runbook: `deploy/DEPLOY.md`. Secrets template: `deploy/.env.example` — real `.env` is never committed.
 
-## Scope guard — Phase 1 only
+## Scope guard — Phase 2 in progress
 
-The schema defines all modules, but Phase 1 implements only: foundation (users/roles/cycles/scope), Module 1 (Facilities), Module 2 (Ternas), and Module 4 (DTCRO/MHSRO questionnaires + scoring). Do **not** build endpoints or UI for Modules 3 (Audits), 5 (ViVaCom), 5-bis (rule engine), 6–8 (standard tracking), or the general platform (website, Academy, forum, repository, certificates). Their tables exist; ignore them in code.
+Implemented: foundation, Module 1 (Facilities), Module 2 (Ternas), Module 4 (DTCRO + scoring), Module 3 (**Audits** — `eu.dtc4eu.qualityaudit`, V1 §5 tables, coordinator auto-scope, evaluator count rule, accredited outcomes), Modules 6–8 (quality documents with named assessor, GPP effectiveness snapshots, accreditation history) and the structured **GAS-Set** (`set_analysis_grids` variant `GAS`, schema `profile-schemas/gasset/GAS_SET.json`, Section N restricted to clinical-access roles).
+
+Still out of scope, blocked on client content: **Module 5 ViVaCom** (questionnaire shell seeded INACTIVE by V12 — no item bank delivered; historical EP entered manually via `manual_excellence_points`), **Module 5-bis** (no assignment rules delivered), and the general platform (Academy, forum, repository, certificates — note the public website lives separately in `website/`).
 
 ## Non-negotiable design rules
 

@@ -165,6 +165,13 @@ public class FacilityController {
         return facilityService.putSag(id, request, actor);
     }
 
+    @Operation(summary = "GAS-Set schema (Section N stripped for non-clinical readers)")
+    @GetMapping("/{id}/set-analysis-grid/schema")
+    public com.fasterxml.jackson.databind.JsonNode sagSchema(@PathVariable Long id,
+            @AuthenticationPrincipal AppUserDetails principal) {
+        return facilityService.getSagSchema(id, principal);
+    }
+
     /* qcnc — standards board (expert-feedback C/NC entry over the V11 catalogue) */
 
     @Operation(summary = "QCNC board: catalogue + the three administrations' C/NC marks + meta lists")

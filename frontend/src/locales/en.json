@@ -11,7 +11,8 @@
     "responses": "Responses",
     "administration": "Administration",
     "users": "Users",
-    "cycles": "Cycles"
+    "cycles": "Cycles",
+    "audits": "Audits"
   },
   "auth": {
     "signIn": "Sign in",
@@ -146,7 +147,12 @@
       "origins": {
         "DEVELOPED": "Developed",
         "IMPLEMENTED": "Implemented"
-      }
+      },
+      "assessedBy": "Assessed by",
+      "serviceType": "Service type",
+      "numUsers": "Users in the cycle",
+      "numStaff": "Staff in the cycle",
+      "cyclesCount": "Application cycles"
     },
     "checklist": {
       "title": "Cycle activity checklist (OK / NO)",
@@ -181,6 +187,31 @@
         "ORGANIZATIONAL_STRUCTURAL": "Organizational-structural",
         "COMMUNITY_FUNCTIONAL": "Community-functional"
       }
+    },
+    "gasset": {
+      "intro": "Structured GAS-Set (Setting Analysis Grid) — sections A–N transcribed verbatim from the 2026 corrected edition. Saved automatically while you type; Section N (per-user clinical data) is visible only to clinical-access roles.",
+      "noSchema": "GAS-Set schema not available.",
+      "legacy": "Legacy free-form grids ({{count}})"
+    },
+    "effectiveness": {
+      "title": "GPP effectiveness (Module 6)",
+      "hint": "Link the corresponding questionnaire item; effectiveness levels are snapshotted from this facility's computed scores. Mapping semantics are an open question with the client.",
+      "questionnaire": "Questionnaire",
+      "pickItem": "Corresponding item",
+      "link": "Link & snapshot",
+      "item": "Item",
+      "individual": "Individual",
+      "meanItem": "Mean item",
+      "meanArea": "Mean area",
+      "meanQuest": "Mean questionnaire",
+      "areas": "Areas scored"
+    },
+    "manualEp": {
+      "title": "Manual Excellence Points",
+      "hint": "For questionnaires the engine does not compute (e.g. ViVaCom) and for historical cycles. Labels are stored verbatim, separated by ';'.",
+      "cycle": "Cycle",
+      "questionnaire": "Questionnaire code",
+      "labels": "EP labels"
     }
   },
   "ternas": {
@@ -371,5 +402,35 @@
       "DTC_REPRESENTATIVE": "DTC Representative",
       "POLICYMAKER": "Policymaker"
     }
+  },
+  "audits": {
+    "title": "Quality Audits",
+    "subtitle": "Module 3 — audits of the selected cycle (Simple / BQ / CGQ). Assigned audit coordinators automatically gain access to the audited facility.",
+    "create": "New audit",
+    "edit": "Edit audit",
+    "empty": "No audits recorded in this cycle.",
+    "code": "Audit code",
+    "type": "Audit type",
+    "types": {
+      "SIMPLE": "Simple",
+      "BQ": "BQ",
+      "CGQ": "CGQ"
+    },
+    "facility": "Audited facility",
+    "renewalNumber": "Renewal number",
+    "renewal": "Renewal {{n}}",
+    "coordinators": "Audit coordinators",
+    "coordinatorHint": "Users with the Audit Coordinator role; assignment auto-grants facility access.",
+    "evaluators": "Expert evaluators",
+    "noRoleUsers": "No users hold this role yet — create them under Users.",
+    "outcomes": "Accredited outcomes",
+    "outcomesFor": "Accredited outcomes — {{code}}",
+    "accredited": "Accredited processes / areas / items",
+    "processes": "Accredited process codes (comma-separated)",
+    "pickQuestionnaire": "Questionnaire for areas/items",
+    "areas": "Accredited areas",
+    "addItem": "Add accredited item",
+    "epValue": "EP value",
+    "confirmDelete": "Delete this audit? This cannot be undone."
   }
 }

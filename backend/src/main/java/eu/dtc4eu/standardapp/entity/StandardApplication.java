@@ -73,6 +73,13 @@ public class StandardApplication {
     @Column(name = "application_level_pct")
     private BigDecimal applicationLevelPct;
 
+    /** Expert feedback: every applied document is assessed by a named coordinator each cycle. */
+    @Column(name = "assessed_by")
+    private Long assessedBy;
+
+    @Column(name = "assessed_at")
+    private OffsetDateTime assessedAt;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 

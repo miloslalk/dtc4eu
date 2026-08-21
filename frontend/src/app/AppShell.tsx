@@ -18,6 +18,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/', labelKey: 'nav.dashboard', end: true },
   { to: '/facilities', labelKey: 'nav.facilities', roles: ['SUPER_ADMIN', 'ADMIN', 'RESEARCH_TEAM', 'COORDINATOR', 'INTERNAL_FACILITATOR'] },
   { to: '/ternas', labelKey: 'nav.ternas', roles: ['SUPER_ADMIN', 'ADMIN', 'RESEARCH_TEAM', 'COORDINATOR'] },
+  { to: '/audits', labelKey: 'nav.audits', roles: ['SUPER_ADMIN', 'ADMIN', 'RESEARCH_TEAM', 'AUDIT_COORDINATOR', 'UPPER_COORDINATOR'] },
   { to: '/questionnaires', labelKey: 'nav.questionnaires', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { to: '/responses', labelKey: 'nav.responses', roles: ['SUPER_ADMIN', 'ADMIN', 'RESEARCH_TEAM', 'COORDINATOR', 'INTERNAL_FACILITATOR', 'RESPONDENT'] },
   { to: '/admin/users', labelKey: 'nav.users', roles: ['SUPER_ADMIN', 'ADMIN'] },

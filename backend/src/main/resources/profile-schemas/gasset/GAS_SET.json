@@ -1,0 +1,366 @@
+{
+  "form": "GAS_SET",
+  "version": 1,
+  "_comment": "Structured GAS-Set (Setting Analysis Grid), transcribed VERBATIM from 'BRUSCHETTA_GAS-SET-DTC-2020-DEF_EN_Correct' (2026) — including its own wording and the Section I 'PBP/DGC/NEE' labels, which contradict the GPP/CGS/EEN naming reversal and are flagged to the client. Clinical content is never edited or invented. Section N carries per-user clinical data and is served only to clinical-access roles (restricted: true).",
+  "sections": [
+    {
+      "key": "a",
+      "label": "SECTION A - STRUCTURAL DATA",
+      "fields": [
+        {"key": "a1_managing_body", "label": "A.1 - Type of Managing Body / Service Provider", "type": "enum",
+         "options": ["Private", "Social private", "Public"]},
+        {"key": "a1a_co_managing_body", "label": "A.1a - Type of (any) Co-Managing Body / Service Provider", "type": "enum",
+         "options": ["Private", "Social private", "Public"]},
+        {"key": "a2_location", "label": "A.2 - Location", "type": "enum",
+         "options": ["City", "Town", "Village", "Other"]},
+        {"key": "a2a_location_area", "label": "A.2a - Area", "type": "enum",
+         "options": ["Historic centre", "Residential area", "Outskirts", "Extra-urban area"]},
+        {"key": "a3_architectural_structure", "label": "A.3 - Architectural structure", "type": "enum",
+         "options": ["Apartment block", "Detached house", "Small villa", "Villa with park or large green space around it", "Other"]},
+        {"key": "a4_rooms", "label": "A.4 - Rooms", "type": "group", "fields": [
+          {"key": "bedrooms", "label": "no. of bedrooms", "type": "integer", "min": 0},
+          {"key": "beds_per_room", "label": "no. of beds per room", "type": "text", "maxLength": 60},
+          {"key": "beds_total", "label": "no. of beds in total", "type": "integer", "min": 0},
+          {"key": "bathrooms", "label": "no. of bathrooms", "type": "integer", "min": 0},
+          {"key": "living_dining_room", "label": "living/dining room", "type": "boolean"},
+          {"key": "lounge", "label": "lounge", "type": "boolean"},
+          {"key": "eat_in_kitchen", "label": "eat-in kitchen", "type": "boolean"},
+          {"key": "infirmary", "label": "infirmary", "type": "boolean"},
+          {"key": "service_rooms", "label": "service rooms", "type": "boolean"},
+          {"key": "service_rooms_specify", "label": "service rooms — if YES, specify", "type": "text"},
+          {"key": "other_rooms", "label": "other", "type": "boolean"},
+          {"key": "other_rooms_specify", "label": "other — if YES, specify", "type": "text"}
+        ]},
+        {"key": "a5_rooms_condition", "label": "A.5 - The rooms of the facility are (mark which adjectives best describe the condition of the rooms)",
+         "type": "multiselect", "options": ["new", "old", "in good condition", "in poor condition", "well-kept", "neglected"]},
+        {"key": "a6_furnishings_condition", "label": "A.6 - The furnishings are (mark which adjectives best describe the condition of the furnishings)",
+         "type": "multiselect", "options": ["new", "old", "well-kept", "neglected"]},
+        {"key": "a7_transport_available", "label": "A.7 - Are Means of Transport available?", "type": "boolean"},
+        {"key": "a7_transport_specify", "label": "If Yes, specify which", "type": "text"},
+        {"key": "a8_medical_devices", "label": "A.8 - Are Medical-Nursing Devices present?", "type": "boolean"},
+        {"key": "a8_medical_devices_specify", "label": "If Yes, specify which", "type": "text"},
+        {"key": "a10_diagnostic_devices", "label": "A.10 - Indicate any Diagnostic Devices and Clinical Assessment Instruments", "type": "text", "multiline": true},
+        {"key": "a11_staff_count", "label": "A.11 - Indicate the Number of Staff members of the Community", "type": "integer", "min": 0},
+        {"key": "a12_users", "label": "A.12 - Indicate the Number of Users residing in the Community", "type": "group", "fields": [
+          {"key": "total", "label": "Total", "type": "integer", "min": 0},
+          {"key": "aged_18_40", "label": "aged between 18 and 40", "type": "integer", "min": 0},
+          {"key": "aged_40_62", "label": "aged between 40 and 62", "type": "integer", "min": 0},
+          {"key": "aged_62_84", "label": "aged between 62 and 84", "type": "integer", "min": 0}
+        ]},
+        {"key": "a13_discharged", "label": "A.13 - Indicate the Number of Users discharged from the Community in the last year", "type": "group", "fields": [
+          {"key": "total", "label": "Total", "type": "integer", "min": 0},
+          {"key": "aged_18_40", "label": "aged between 18 and 40", "type": "integer", "min": 0},
+          {"key": "aged_40_62", "label": "aged between 40 and 62", "type": "integer", "min": 0},
+          {"key": "aged_62_84", "label": "aged between 62 and 84", "type": "integer", "min": 0}
+        ]},
+        {"key": "a14_length_of_stay", "label": "A.14 - Indicate the average Length of Stay (months) of the Community's Users", "type": "group",
+         "repeat": {"mode": "fixedRows", "rows": [
+           {"key": "overall", "label": "Overall"},
+           {"key": "aged_18_40", "label": "aged between 18 and 40"},
+           {"key": "aged_40_62", "label": "aged between 40 and 62"},
+           {"key": "aged_62_84", "label": "aged between 62 and 84"}
+         ]},
+         "fields": [
+           {"key": "months", "label": "months", "type": "integer", "min": 0},
+           {"key": "years", "label": "years", "type": "integer", "min": 0}
+         ]}
+      ]
+    },
+    {
+      "key": "b",
+      "label": "SECTION B - CLOSE COLLABORATIONS WITH LOCAL SOCIAL AGENCIES (Intermediate social network with the local community)",
+      "fields": [
+        {"key": "b_collaborations", "label": "Mark with an X all the types of active Collaborations, among the following",
+         "type": "multiselect", "options": [
+           "B.1 OTHER THERAPEUTIC COMMUNITIES / GROUP APARTMENTS",
+           "B.2 COMMUNITY THERAPY MH SERVICES (Supported Housing, Supported Employment, Supported Social Life)",
+           "B.3 PSYCHOTHERAPEUTIC SERVICES (Individual, Family, Group)",
+           "B.4 ART THERAPY SERVICES",
+           "B.5 COMMUNITY MENTAL HEALTH OUTPATIENT CLINICS",
+           "B.6 SCIENTIFIC & PROFESSIONAL ORGANIZATIONS",
+           "B.7 CULTURAL & ARTISTIC ORGANIZATIONS",
+           "B.8 RELIGIOUS & SPIRITUAL ORGANIZATIONS",
+           "B.9 SPORTS ORGANIZATIONS",
+           "B.10 POLITICAL AND CIVIL SOCIETY ORGANIZATIONS",
+           "B.11 SELF-HELP ORGANIZATIONS",
+           "B.12 USER & FAMILY MEMBER MH ASSOCIATIONS",
+           "B.13 VOLUNTEER ASSOCIATIONS",
+           "B.14 COMMUNITY FOUNDATIONS",
+           "B.15 SOCIAL COOPERATIVES / SOCIAL FIRMS",
+           "B.16 OTHER \"NEIGHBOURHOOD\" (Apartment blocks, Shops, \"Neighbourhood\" Settings)"
+         ]},
+        {"key": "b_specify", "label": "Specify", "type": "text", "multiline": true}
+      ]
+    },
+    {
+      "key": "c",
+      "label": "SECTION C - CARE DATA",
+      "fields": [
+        {"key": "c1_ptp_r_planned", "label": "C.1 - Are Personalized Residential Therapeutic Projects (PTP-R) planned for each User?", "type": "boolean"},
+        {"key": "c2_staff_involved", "label": "C.2 - Are Staff members involved together with the User in drafting and monitoring the PTP-R?", "type": "boolean"},
+        {"key": "c3_with_referring_services", "label": "C.3 - Are PTP-Rs drafted and monitored together with the Referring MH Services?", "type": "boolean"},
+        {"key": "c3_1_in_goptp", "label": "C.3.1 - Are PTP-Rs drafted and monitored in Personalized Therapeutic Planning Activity Groups (GOPTP)?", "type": "boolean"},
+        {"key": "c4_cnt_r_signed", "label": "C.4 - Is there a Residential Therapeutic Contract (CNT-R), written and signed by the User and the Staff?", "type": "boolean"},
+        {"key": "c5_cnt_r_community", "label": "C.5 - Is there a CNT-R drafted in collaboration with all members of the community?", "type": "boolean"},
+        {"key": "c6_admission_consent", "label": "C.6 - Is there general consent expressed by the Community to the admission of new members?", "type": "boolean"},
+        {"key": "c7_general_regulation", "label": "C.7 - Is there a general Community Regulation, built democratically by all its members, covering at least the Management of Psychopharmacotherapy and the Organization of Community Life.", "type": "boolean"}
+      ]
+    },
+    {
+      "key": "d",
+      "label": "SECTION D - AREAS OF INTERVENTION",
+      "fields": [
+        {"key": "d_areas", "label": "Mark with an X all the relevant areas of intervention", "type": "multiselect",
+         "options": [
+           "D1 Support for primary and secondary autonomy",
+           "D2 Support for the quality of domestic living",
+           "D3 Support for civil and community social life",
+           "D4 Psychotherapy and expressive therapy",
+           "D5 Pharmacotherapy and medical-nursing therapy",
+           "D6 Other areas"
+         ]}
+      ]
+    },
+    {
+      "key": "e",
+      "label": "SECTION E - PSYCHOFARMACOTHERAPY MANAGEMENT",
+      "fields": [
+        {"key": "e1_self_managed", "label": "E.1 - Does the User self-manage the taking of psychotropic medication?", "type": "boolean"},
+        {"key": "e2_in_residence", "label": "E.2 - Is the administration of psychotropic medication managed within the residence?", "type": "boolean"},
+        {"key": "e3_other_service", "label": "E.3 - Is the administration of psychotropic medication managed at another service?", "type": "boolean"},
+        {"key": "e4_other_doctors", "label": "E.4 - Are there other doctors involved?", "type": "boolean"}
+      ]
+    },
+    {
+      "key": "f",
+      "label": "SECTION F - COMMUNITY REGULATIONS (for each rule tick YES if it exists in the community; if present, provide a brief description)",
+      "fields": [
+        {"key": "f_rules", "label": "Rules", "type": "group",
+         "repeat": {"mode": "fixedRows", "rows": [
+           {"key": "f1", "label": "F.1 - Planning and negotiation of Individual (AI), Group (AG) and Community (AC) Activities"},
+           {"key": "f2", "label": "F.2 - Definition and modification of participation arrangements in scheduled activities for each User"},
+           {"key": "f3", "label": "F.3 - Management of phone and informatic contact with operators and telecommunication tools in general"},
+           {"key": "f4", "label": "F.4 - Involvement of Users' friends in community activities"},
+           {"key": "f5", "label": "F.5 - Involvement of Users' family members in community activities"},
+           {"key": "f6", "label": "F.6 - Involvement of other institutional contacts in scheduled activities"},
+           {"key": "f7", "label": "F.7 - Planning and Management of Users' pharmacological therapies"},
+           {"key": "f8", "label": "F.8 - Definition of the arrangements for Users' financial co-participation in collective and personal activities"},
+           {"key": "f9", "label": "F.9 - Other relevant community rules"}
+         ]},
+         "fields": [
+           {"key": "present", "label": "Rule present", "type": "boolean"},
+           {"key": "description", "label": "Description", "type": "text", "maxLength": 1000}
+         ]}
+      ]
+    },
+    {
+      "key": "g",
+      "label": "SECTION G - ACTIVITIES CARRIED OUT (per activity: carried out YES/NO, no. of daily hours, days of the week, frequency)",
+      "fields": [
+        {"key": "g_ai", "label": "(AI) Individual Activities", "type": "group",
+         "repeat": {"mode": "fixedRows", "rows": [
+           {"key": "ai1", "label": "G.AI.1 - CTI: Individual Therapeutic Sessions"},
+           {"key": "ai2", "label": "G.AI.2 - SI: Individualized Employment Support (assisted work, career guidance, job placement, internship)"},
+           {"key": "ai3", "label": "G.AI.3 - ALE: Support in environment or relationships outside the facility and the family"},
+           {"key": "ai4", "label": "G.AI.4 - SAP: Support for managing individual assets"},
+           {"key": "ai5", "label": "G.AI.5 - CTF: Therapeutic Sessions with individual Users' Family Members"}
+         ]},
+         "fields": [
+           {"key": "done", "label": "Carried out", "type": "boolean"},
+           {"key": "daily_hours", "label": "no. of HOURS daily", "type": "decimal", "min": 0, "max": 24},
+           {"key": "days", "label": "Days of the week", "type": "multiselect", "options": ["M", "T", "W", "Th", "F", "Sa", "Su"]},
+           {"key": "frequency", "label": "Frequency", "type": "enum", "options": ["Every week", "Every 2 weeks", "Once a month", "Other"]}
+         ]},
+        {"key": "g_ag", "label": "(AG) Group Activities", "type": "group",
+         "repeat": {"mode": "fixedRows", "rows": [
+           {"key": "ag1", "label": "G.AG.1 - CM: Community Meeting"},
+           {"key": "ag2", "label": "G.AG.2 - CMMF: Multi-family and Multi-organization Community Meetings"},
+           {"key": "ag3", "label": "G.AG.3 - GT-PGPT: Small Psychotherapeutic Groups"},
+           {"key": "ag4", "label": "G.AG.4 - GT-GTF: Family Therapeutic Groups"},
+           {"key": "ag5", "label": "G.AG.5 - GT-GPTMF: Multi-family Psychotherapy Groups"},
+           {"key": "ag6", "label": "G.AG.6 - GT-GAT: Art Therapy Groups"},
+           {"key": "ag7", "label": "G.AG.7 - GOALE: Artistic, Recreational, Expressive Activity Groups"},
+           {"key": "ag8", "label": "G.AG.8 - GV: Life Groups"},
+           {"key": "ag9", "label": "G.AG.9 - GO-SM: Staff Meeting"},
+           {"key": "ag10", "label": "G.AG.10 - GO-EM: Team of Directorate Meeting"},
+           {"key": "ag11", "label": "G.AG.11 - GO-GS: Clinician Supervision Groups"},
+           {"key": "ag12", "label": "G.AG.12 - GO-GC: Clinician Co-vision Groups"},
+           {"key": "ag13", "label": "G.AG.13 - GO-GF: Training Groups"},
+           {"key": "ag14", "label": "G.AG.14 - GOPTP: Users' Personalized Therapeutic Planning Activity Groups"},
+           {"key": "ag15", "label": "G.AG.15 - GSI: Informal Spontaneous Groups"},
+           {"key": "ag16", "label": "G.AG.16 - GO: Other Actitity Groups …"}
+         ]},
+         "fields": [
+           {"key": "done", "label": "Carried out", "type": "boolean"},
+           {"key": "daily_hours", "label": "no. of HOURS daily", "type": "decimal", "min": 0, "max": 24},
+           {"key": "days", "label": "Days of the week", "type": "multiselect", "options": ["M", "T", "W", "Th", "F", "Sa", "Su"]},
+           {"key": "frequency", "label": "Frequency", "type": "enum", "options": ["Every week", "Every 2 weeks", "Once a month", "Other"]}
+         ]},
+        {"key": "g_ac", "label": "(AC) Community Activities", "type": "group",
+         "repeat": {"mode": "fixedRows", "rows": [
+           {"key": "ac1", "label": "G.AC.1 - AD: Household Activities"},
+           {"key": "ac2", "label": "G.AC.2 - TL: Structured Free Time"},
+           {"key": "ac3", "label": "G.AC.3 - ACL: Social Activity of the Community within the Local Community"},
+           {"key": "ac4", "label": "G.AC.4 - Other …"}
+         ]},
+         "fields": [
+           {"key": "done", "label": "Carried out", "type": "boolean"},
+           {"key": "daily_hours", "label": "no. of HOURS daily", "type": "decimal", "min": 0, "max": 24},
+           {"key": "days", "label": "Days of the week", "type": "multiselect", "options": ["M", "T", "W", "Th", "F", "Sa", "Su"]},
+           {"key": "frequency", "label": "Frequency", "type": "enum", "options": ["Every week", "Every 2 weeks", "Once a month", "Other"]}
+         ]}
+      ]
+    },
+    {
+      "key": "h",
+      "label": "SECTION H - OTHER INFORMATION",
+      "fields": [
+        {"key": "h1_work_certified", "label": "H.1 - Is the work carried out by Staff assessed/certified by Certification Bodies and/or Scientific-Professional Accreditation Organizations?", "type": "boolean"},
+        {"key": "h1_1_specify", "label": "H.1.1 - If Yes, specify which", "type": "text"},
+        {"key": "h2_training_certified", "label": "H.2 - Are Staff' training and skills assessed/certified by Certification Bodies and/or Scientific-Professional Accreditation Organizations?", "type": "boolean"},
+        {"key": "h2_1_specify", "label": "H.2.1 - If Yes, specify which", "type": "text"},
+        {"key": "h3_other_observations", "label": "H.3 - OTHER RELEVANT OBSERVATIONS, CLARIFICATIONS, INDICATIONS …", "type": "text", "multiline": true, "maxLength": 4000}
+      ]
+    },
+    {
+      "key": "i",
+      "label": "SECTION I - QUALITY DOCUMENTS (GPP - CGS - EEN)",
+      "fields": [
+        {"key": "i1_pbp_applied", "label": "I.1 - Are Good Practice Procedures (PBP) applied?", "type": "boolean"},
+        {"key": "i2_pbp_count", "label": "I.2 - If Yes, specify how many", "type": "integer", "min": 0},
+        {"key": "i2_pbp_items", "label": "I.2.x - PBP documents", "type": "group",
+         "repeat": {"mode": "list", "maxRows": 10}, "fields": [
+           {"key": "code", "label": "Identification Code", "type": "text", "maxLength": 40},
+           {"key": "rev", "label": "Rev.", "type": "text", "maxLength": 10},
+           {"key": "title", "label": "Title", "type": "text", "maxLength": 255}
+         ]},
+        {"key": "i3_dgc_applied", "label": "I.3 - Are Group Community Devices (DGC) applied?", "type": "boolean"},
+        {"key": "i4_dgc_count", "label": "I.4 - If Yes, specify how many", "type": "integer", "min": 0},
+        {"key": "i4_dgc_items", "label": "I.4.x - DGC documents", "type": "group",
+         "repeat": {"mode": "list", "maxRows": 10}, "fields": [
+           {"key": "code", "label": "Identification Code", "type": "text", "maxLength": 40},
+           {"key": "rev", "label": "Rev.", "type": "text", "maxLength": 10},
+           {"key": "title", "label": "Title", "type": "text", "maxLength": 255}
+         ]},
+        {"key": "i5_nee_applied", "label": "I.5 - Are Enabling Environment Networks (NEE) applied?", "type": "boolean"},
+        {"key": "i6_nee_count", "label": "I.6 - If Yes, specify how many", "type": "integer", "min": 0},
+        {"key": "i6_nee_items", "label": "I.6.x - NEE documents", "type": "group",
+         "repeat": {"mode": "list", "maxRows": 10}, "fields": [
+           {"key": "code", "label": "Identification Code", "type": "text", "maxLength": 40},
+           {"key": "rev", "label": "Rev.", "type": "text", "maxLength": 10},
+           {"key": "title", "label": "Title", "type": "text", "maxLength": 255}
+         ]}
+      ]
+    },
+    {
+      "key": "l",
+      "label": "SECTION L – REFLECTIVE TEAM of DIRECTORATE DATA (one row per Team figure; codes from TABLE 1)",
+      "fields": [
+        {"key": "l_team", "label": "Team figures", "type": "group",
+         "repeat": {"mode": "list", "maxRows": 30}, "fields": [
+           {"key": "role", "label": "L.1 ROLE (TABLE 1)", "type": "enum", "options": [
+             "DS: Medical Director / Clinical Manager", "MP: Psychiatric Doctor", "PS: Psychotherapist",
+             "PL: Psychologist", "PD: Pedagogue in the healthcare field", "AS: Social Worker",
+             "DC: Delegate Coordinator (operator delegated by the Staff)", "RA: Administrative Refence",
+             "AT: Art Therapist", "A: Other"]},
+           {"key": "sex", "label": "L.2 SEX", "type": "enum", "options": ["M", "F"]},
+           {"key": "age", "label": "L.3 AGE", "type": "integer", "min": 16, "max": 99},
+           {"key": "practitioner_code", "label": "L.4 PRACTITIONAR CODE", "type": "text", "maxLength": 40},
+           {"key": "education", "label": "L.5 EDUCATIONAL QUALIFICATION", "type": "enum", "options": [
+             "1 = None", "2 = Primary school certificate", "3 = Middle school certificate",
+             "4 = High school diploma", "5 = Bachelor's degree", "6 = Master's degree", "7 = Postgraduate"]},
+           {"key": "disciplinary_area", "label": "L.6 DISCIPLINARY AREA (TABLE 2)", "type": "enum", "options": [
+             "MSP: Medical-Healthcare-Psychiatric", "PSI: Psychological-Psychotherapeutic",
+             "EDP: Educational-Pedagogical", "SAC: Socio-Anthropological-Cultural",
+             "AML: Arts-Crafts-Work", "AUS: Auxiliary Services", "REC: Recovery Orientation", "A: Other"]},
+           {"key": "service_months", "label": "L.7 Service in the current community — months", "type": "integer", "min": 0},
+           {"key": "service_years", "label": "L.7 Service in the current community — years", "type": "integer", "min": 0},
+           {"key": "total_months", "label": "L.8 Total work (incl. current community) — months", "type": "integer", "min": 0},
+           {"key": "total_years", "label": "L.8 Total work (incl. current community) — years", "type": "integer", "min": 0},
+           {"key": "contract", "label": "L.9 CONTRACT", "type": "enum", "options": [
+             "TD = Fixed-term", "TI = Permanent", "CE = External Consultant", "A = Other"]},
+           {"key": "managing_body", "label": "L.10 MANAGING BODY", "type": "enum", "options": [
+             "PU = Public", "PS = Private – Social", "PR = Private"]},
+           {"key": "freq_hours", "label": "L.11a Average Hours per Day", "type": "decimal", "min": 0, "max": 24},
+           {"key": "freq_days", "label": "L.11b Days of the week", "type": "multiselect", "options": ["M", "T", "W", "Th", "F", "Sa", "Su"]},
+           {"key": "freq_frequency", "label": "L.11c Frequency of delivery", "type": "enum", "options": [
+             "TS = every week", "2S = every 2 weeks", "1M = once a month", "A = other"]}
+         ]}
+      ]
+    },
+    {
+      "key": "m",
+      "label": "SECTION M - STAFF DATA (one row per Staff figure; codes from TABLE 1)",
+      "fields": [
+        {"key": "m_staff", "label": "Staff figures", "type": "group",
+         "repeat": {"mode": "list", "maxRows": 100}, "fields": [
+           {"key": "role", "label": "M.1 ROLE (TABLE 1)", "type": "enum", "options": [
+             "EP: Healthcare Educator", "OS: Healthcare Support Assistant", "I: Nurse",
+             "TR: Rehabilitation Therapist", "AU: Auxiliary Staff (Cooks, Drivers, Maintenance Workers or Cleaners...)",
+             "MA: Recreational Therapist - Mental Health Support Worker, Art Masters, Teachers, Job Placement Tutors",
+             "UE: Expert Users / Former Users or Peer Support Operators or Social Facilitators",
+             "V: Volunteers / Volunteer Group Operators or Members of User or Family Associations",
+             "T: Trainees / Staff on Training Placement and/or Voluntary Internship", "A: Other"]},
+           {"key": "sex", "label": "M.2 SEX", "type": "enum", "options": ["M", "F"]},
+           {"key": "age", "label": "M.3 AGE", "type": "integer", "min": 16, "max": 99},
+           {"key": "practitioner_code", "label": "M.4 PRACTIONAR CODE", "type": "text", "maxLength": 40},
+           {"key": "education", "label": "M.5 EDUCATIONAL QUALIFICATION", "type": "enum", "options": [
+             "1 = None", "2 = Primary school certificate", "3 = Middle school certificate",
+             "4 = High school diploma", "5 = Bachelor's degree", "6 = Master's degree", "7 = Postgraduate"]},
+           {"key": "disciplinary_area", "label": "M.6 DISCIPLINARY AREA (TABLE 2)", "type": "enum", "options": [
+             "MSP: Medical-Healthcare-Psychiatric", "PSI: Psychological-Psychotherapeutic",
+             "EDP: Educational-Pedagogical", "SAC: Socio-Anthropological-Cultural",
+             "AML: Arts-Crafts-Work", "AUS: Auxiliary Services", "REC: Recovery Orientation", "A: Other"]},
+           {"key": "service_months", "label": "M.7 Service in the current community — months", "type": "integer", "min": 0},
+           {"key": "service_years", "label": "M.7 Service in the current community — years", "type": "integer", "min": 0},
+           {"key": "total_months", "label": "M.8 Total work (incl. current community) — months", "type": "integer", "min": 0},
+           {"key": "total_years", "label": "M.8 Total work (incl. current community) — years", "type": "integer", "min": 0},
+           {"key": "contract", "label": "M.9 CONTRACT", "type": "enum", "options": [
+             "TD = Fixed-term", "TI = Permanent", "CE = External Consultant", "A = Other"]},
+           {"key": "managing_body", "label": "M.10 MANAGING BODY", "type": "enum", "options": [
+             "PU = Public", "PS = Private – Social", "PR = Private"]},
+           {"key": "freq_hours", "label": "M.11a Average Hours per Day", "type": "decimal", "min": 0, "max": 24},
+           {"key": "freq_days", "label": "M.11b Days of the week", "type": "multiselect", "options": ["M", "T", "W", "Th", "F", "Sa", "Su"]},
+           {"key": "freq_frequency", "label": "M.11c Frequency of delivery", "type": "enum", "options": [
+             "TS = every week", "2S = every 2 weeks", "1M = once a month", "A = other"]}
+         ]}
+      ]
+    },
+    {
+      "key": "n",
+      "label": "SECTION N - USER DATA (one row per User; pseudonymous codes only — restricted clinical data)",
+      "restricted": true,
+      "fields": [
+        {"key": "n_users", "label": "Users", "type": "group",
+         "repeat": {"mode": "list", "maxRows": 100}, "fields": [
+           {"key": "user_code", "label": "N.1 USER Code", "type": "text", "maxLength": 40},
+           {"key": "sex", "label": "N.2 SEX", "type": "enum", "options": ["M", "F"]},
+           {"key": "age", "label": "N.3 AGE", "type": "integer", "min": 16, "max": 99},
+           {"key": "marital_status", "label": "N.4 MARITAL STATUS", "type": "enum", "options": [
+             "1 = Single", "2 = Married", "3 = Divorced", "4 = Widowed", "5 = Cohabiting"]},
+           {"key": "education", "label": "N.5 EDUCATIONAL QUALIFICATION", "type": "enum", "options": [
+             "1 = None", "2 = Primary school certificate", "3 = Middle school certificate",
+             "4 = High school diploma", "5 = Bachelor's degree", "6 = Master's degree", "7 = Postgraduate"]},
+           {"key": "occupation", "label": "N.6 OCCUPATION", "type": "enum", "options": [
+             "1 = Student", "2 = Unemployed", "3 = Not Employed (by choice, including Homemaker)",
+             "4 = Part-Time Work", "5 = Full-Time Work", "6 = Retired"]},
+           {"key": "stay_months", "label": "N.7 Stay in the current community — months", "type": "integer", "min": 0},
+           {"key": "stay_years", "label": "N.7 Stay in the current community — years", "type": "integer", "min": 0},
+           {"key": "total_stay_months", "label": "N.8 Total stay in residential services — months", "type": "integer", "min": 0},
+           {"key": "total_stay_years", "label": "N.8 Total stay in residential services — years", "type": "integer", "min": 0},
+           {"key": "diagnosis", "label": "N.9 DIAGNOSIS", "type": "multiselect", "options": [
+             "F10 Mental and behavioural disorders due to psychoactive substance use",
+             "F20 Schizophrenia, schizotypal and delusional disorders",
+             "F30 Mood [affective] disorders",
+             "F40 Somatoform [neurotic] disorders",
+             "F60 Adult personality and behavioural disorders",
+             "F70 Mental retardation",
+             "F80 Disorders of psychological development [childhood only]",
+             "F90 Emotional disorders, behavioural disorders [childhood and adolescence only]"]},
+           {"key": "clinical_history", "label": "CLINICAL HISTORY", "type": "text", "multiline": true, "maxLength": 4000},
+           {"key": "family_history", "label": "FAMILY HISTORY", "type": "text", "multiline": true, "maxLength": 4000}
+         ]}
+      ]
+    }
+  ]
+}

@@ -10,6 +10,7 @@ import { FacilitiesPage } from '../features/facilities/FacilitiesPage';
 import { FacilityDetailPage } from '../features/facilities/FacilityDetailPage';
 import { TernasPage } from '../features/ternas/TernasPage';
 import { TernaBuilderPage } from '../features/ternas/TernaBuilderPage';
+import { AuditsPage } from '../features/audits/AuditsPage';
 import { QuestionnairesPage } from '../features/questionnaires/QuestionnairesPage';
 import { QuestionnaireDetailPage } from '../features/questionnaires/QuestionnaireDetailPage';
 import { ResponsesPage } from '../features/responses/ResponsesPage';
@@ -34,6 +35,7 @@ export function App() {
         <Route path="facilities/:id" element={<FacilityDetailPage />} />
         <Route path="ternas" element={<TernasPage />} />
         <Route path="ternas/:id" element={<TernaBuilderPage />} />
+        <Route path="audits" element={<AuditsPage />} />
         <Route
           path="questionnaires"
           element={

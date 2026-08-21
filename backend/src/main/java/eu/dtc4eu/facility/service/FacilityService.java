@@ -1,6 +1,10 @@
 package eu.dtc4eu.facility.service;
 
 import eu.dtc4eu.audit.AuditService;
+import eu.dtc4eu.user.entity.Role;
+import com.fasterxml.jackson.databind.JsonNode;
+import eu.dtc4eu.questionnaire.service.ProfileSchemaService;
+import eu.dtc4eu.questionnaire.service.ProfileValidationService;
 import eu.dtc4eu.common.error.ConflictException;
 import eu.dtc4eu.common.error.NotFoundException;
 import eu.dtc4eu.common.web.CsvWriter;
@@ -67,6 +71,8 @@ public class FacilityService {
     private final DataScopeService dataScopeService;
     private final CycleContext cycleContext;
     private final AuditService auditService;
+    private final ProfileSchemaService profileSchemaService;
+    private final ProfileValidationService profileValidationService;
 
     /* ------------------------------- facilities ------------------------------- */
 
@@ -257,12 +263,72 @@ public class FacilityService {
 
     /* ---------------------------- set analysis grid ---------------------------- */
 
+    /** The structured GAS-Set rides set_analysis_grids as grid_variant 'GAS'. */
+    public static final String GAS_VARIANT = "GAS";
+    private static final String GAS_SCHEMA_CODE = "gasset";
+    private static final String GAS_SCHEMA_FORM = "GAS_SET";
+
+    /**
+     * Clinical access to GAS-Set Section N (per-user clinical data, register
+     * §11.7): admins, the research team and internal facilitators (whose data
+     * scope already restricts them to their own facilities).
+     */
+    private boolean hasClinicalAccess(AppUserDetails principal) {
+        return principal.hasRole(Role.ADMIN) || principal.hasRole(Role.SUPER_ADMIN)
+                || principal.hasRole(Role.RESEARCH_TEAM) || principal.hasRole(Role.INTERNAL_FACILITATOR);
+    }
+
+    @Transactional(readOnly = true)
+    public JsonNode getSagSchema(Long facilityId, AppUserDetails principal) {
+        findInScope(facilityId, principal);
+        JsonNode schema = profileSchemaService.find(GAS_SCHEMA_CODE, GAS_SCHEMA_FORM)
+                .orElseThrow(() -> new NotFoundException("GAS-Set schema not available"));
+        if (hasClinicalAccess(principal)) {
+            return schema;
+        }
+        JsonNode copy = schema.deepCopy();
+        com.fasterxml.jackson.databind.node.ArrayNode sections =
+                (com.fasterxml.jackson.databind.node.ArrayNode) copy.path("sections");
+        for (int i = sections.size() - 1; i >= 0; i--) {
+            if (sections.get(i).path("restricted").asBoolean(false)) {
+                sections.remove(i);
+            }
+        }
+        return copy;
+    }
+
+    /** Top-level field keys of restricted sections — stripped from GAS payloads for non-clinical readers. */
+    private java.util.Set<String> restrictedGasKeys() {
+        return profileSchemaService.find(GAS_SCHEMA_CODE, GAS_SCHEMA_FORM)
+                .map(schema -> {
+                    java.util.Set<String> keys = new java.util.HashSet<String>();
+                    for (JsonNode section : schema.path("sections")) {
+                        if (section.path("restricted").asBoolean(false)) {
+                            section.path("fields").forEach(f -> keys.add(f.path("key").asText()));
+                        }
+                    }
+                    return keys;
+                })
+                .orElse(java.util.Set.of());
+    }
+
+    private SagDto sagDto(SetAnalysisGrid sag, boolean clinical) {
+        SagDto dto = SagDto.of(sag);
+        if (clinical || !GAS_VARIANT.equals(sag.getGridVariant()) || dto.payload() == null) {
+            return dto;
+        }
+        Map<String, Object> filtered = new java.util.LinkedHashMap<>(dto.payload());
+        filtered.keySet().removeAll(restrictedGasKeys());
+        return new SagDto(dto.id(), dto.gridVariant(), dto.compiledBy(), filtered);
+    }
+
     @Transactional(readOnly = true)
     public List<SagDto> getSags(Long facilityId, AppUserDetails principal) {
         findInScope(facilityId, principal);
+        boolean clinical = hasClinicalAccess(principal);
         return sagRepository
                 .findByFacilityIdAndAnnualCycleIdOrderByGridVariantAsc(facilityId, cycleContext.requireId())
-                .stream().map(SagDto::of).toList();
+                .stream().map(sag -> sagDto(sag, clinical)).toList();
     }
 
     @Transactional
@@ -278,6 +344,11 @@ public class FacilityService {
                     created.setGridVariant(request.gridVariant());
                     return created;
                 });
+        if (GAS_VARIANT.equals(request.gridVariant())) {
+            // lenient validation: the GAS-Set is compiled progressively across the cycle
+            profileSchemaService.find(GAS_SCHEMA_CODE, GAS_SCHEMA_FORM)
+                    .ifPresent(schema -> profileValidationService.validate(request.payload(), schema, false));
+        }
         grid.setPayload(request.payload());
         grid.setCompiledBy(actor.getId());
         grid = sagRepository.save(grid);

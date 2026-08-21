@@ -23,12 +23,18 @@ import eu.dtc4eu.standardapp.dto.StandardAppDtos.DocumentApplicationDto;
 import eu.dtc4eu.standardapp.dto.StandardAppDtos.FacilityHistoryDto;
 import eu.dtc4eu.standardapp.dto.StandardAppDtos.HistoryCycleDto;
 import eu.dtc4eu.standardapp.dto.StandardAppDtos.SaveDocumentApplicationRequest;
+import eu.dtc4eu.standardapp.entity.GppEffectivenessScore;
+import eu.dtc4eu.standardapp.entity.ManualExcellencePoint;
 import eu.dtc4eu.standardapp.entity.StandardApplication;
+import eu.dtc4eu.standardapp.repository.GppEffectivenessScoreRepository;
+import eu.dtc4eu.standardapp.repository.ManualExcellencePointRepository;
 import eu.dtc4eu.standardapp.repository.StandardApplicationRepository;
+import eu.dtc4eu.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -51,6 +57,13 @@ import java.util.stream.Collectors;
 public class StandardApplicationService {
 
     private final StandardApplicationRepository applicationRepository;
+    private final ManualExcellencePointRepository manualEpRepository;
+    private final GppEffectivenessScoreRepository effectivenessRepository;
+    private final eu.dtc4eu.questionnaire.repository.QuestionnaireItemRepository questionnaireItemRepository;
+    private final eu.dtc4eu.scoring.repository.FacilityItemScoreRepository itemScoreRepository;
+    private final eu.dtc4eu.scoring.repository.FacilityAreaScoreRepository areaScoreRepository;
+    private final eu.dtc4eu.scoring.repository.FacilityQuestionnaireScoreRepository questionnaireScoreRepository;
+    private final UserRepository userRepository;
     private final FacilityRepository facilityRepository;
     private final FacilityCycleParticipationRepository participationRepository;
     private final AnnualCycleRepository cycleRepository;
@@ -69,7 +82,7 @@ public class StandardApplicationService {
         return applicationRepository
                 .findByFacilityIdAndAnnualCycleIdOrderByStandardTypeAscStandardCodeAsc(facilityId,
                         cycleContext.requireId())
-                .stream().map(DocumentApplicationDto::of).toList();
+                .stream().map(a -> DocumentApplicationDto.of(a, userName(a.getAssessedBy()))).toList();
     }
 
     @Transactional
@@ -85,10 +98,10 @@ public class StandardApplicationService {
         StandardApplication application = new StandardApplication();
         application.setFacilityId(facilityId);
         application.setAnnualCycleId(cycleId);
-        apply(application, request);
+        apply(application, request, actor);
         application = applicationRepository.save(application);
         auditService.success(actor.getId(), "CREATE", "standard_application", application.getId());
-        return DocumentApplicationDto.of(application);
+        return DocumentApplicationDto.of(application, userName(application.getAssessedBy()));
     }
 
     @Transactional
@@ -97,9 +110,9 @@ public class StandardApplicationService {
         facilityInScope(facilityId, actor);
         cycleContext.requireWritable();
         StandardApplication application = owned(facilityId, applicationId);
-        apply(application, request);
+        apply(application, request, actor);
         auditService.success(actor.getId(), "UPDATE", "standard_application", application.getId());
-        return DocumentApplicationDto.of(application);
+        return DocumentApplicationDto.of(application, userName(application.getAssessedBy()));
     }
 
     @Transactional
@@ -144,10 +157,18 @@ public class StandardApplicationService {
                             q -> new java.util.ArrayList<>())
                     .add(label);
         }
+        // manual entries (register §12.4: historical / ViVaCom EP) merge in verbatim
+        for (ManualExcellencePoint manual : manualEpRepository
+                .findByFacilityIdOrderByAnnualCycleIdAscQuestionnaireCodeAscLabelAsc(facilityId)) {
+            epByCycle.computeIfAbsent(manual.getAnnualCycleId(), c -> new TreeMap<>())
+                    .computeIfAbsent(manual.getQuestionnaireCode(), q -> new java.util.ArrayList<>())
+                    .add(manual.getLabel());
+        }
         epByCycle.values().forEach(byQuestionnaire -> byQuestionnaire.values()
                 .forEach(labels -> labels.sort(Comparator.naturalOrder())));
 
         Set<Long> cycleIds = new HashSet<>();
+        cycleIds.addAll(epByCycle.keySet());
         cycleIds.addAll(participationByCycle.keySet());
         cycleIds.addAll(applicationsByCycle.keySet());
         cycleIds.addAll(epByCycle.keySet());
@@ -168,9 +189,149 @@ public class StandardApplicationService {
                 participationByCycle.size(), cycles);
     }
 
+    /* ------------------------- manual excellence points ------------------------- */
+
+    @Transactional(readOnly = true)
+    public List<ManualEpDto> manualEps(Long facilityId, AppUserDetails principal) {
+        facilityInScope(facilityId, principal);
+        return manualEpRepository.findByFacilityIdOrderByAnnualCycleIdAscQuestionnaireCodeAscLabelAsc(facilityId)
+                .stream().map(p -> new ManualEpDto(p.getId(), p.getAnnualCycleId(), p.getQuestionnaireCode(),
+                        p.getLabel())).toList();
+    }
+
+    /**
+     * Replaces the manual EP labels of one facility+cycle+questionnaire.
+     * Deliberately NOT gated on a writable cycle: the whole point is
+     * backfilling historical (closed) cycles.
+     */
+    @Transactional
+    public List<ManualEpDto> putManualEps(Long facilityId, Long cycleId, String questionnaireCode,
+                                          List<String> labels, AppUserDetails actor) {
+        facilityInScope(facilityId, actor);
+        if (!cycleRepository.existsById(cycleId)) {
+            throw NotFoundException.of("Cycle", cycleId);
+        }
+        String code = questionnaireCode.trim().toUpperCase();
+        manualEpRepository.deleteByFacilityIdAndAnnualCycleIdAndQuestionnaireCode(facilityId, cycleId, code);
+        for (String label : labels.stream().map(String::trim).filter(l -> !l.isEmpty()).distinct().toList()) {
+            ManualExcellencePoint point = new ManualExcellencePoint();
+            point.setFacilityId(facilityId);
+            point.setAnnualCycleId(cycleId);
+            point.setQuestionnaireCode(code);
+            point.setLabel(label);
+            point.setCreatedBy(actor.getId());
+            manualEpRepository.save(point);
+        }
+        auditService.success(actor.getId(), "PUT_MANUAL_EP", "facility", facilityId,
+                Map.of("cycleId", cycleId, "questionnaire", code, "labels", labels.size()));
+        return manualEps(facilityId, actor);
+    }
+
+    public record ManualEpDto(Long id, Long cycleId, String questionnaireCode, String label) {
+    }
+
+    /* --------------------------- GPP effectiveness (Module 6) --------------------------- */
+
+    public record EffectivenessDto(Long questionnaireItemId, String itemCode,
+                                   java.math.BigDecimal individualEffectiveness,
+                                   java.math.BigDecimal meanItemEffectiveness,
+                                   java.math.BigDecimal meanAreaEffectiveness,
+                                   java.math.BigDecimal meanQuestEffectiveness,
+                                   Integer areasWithScore, Integer areasTotal,
+                                   java.time.OffsetDateTime computedAt) {
+    }
+
+    @Transactional(readOnly = true)
+    public EffectivenessDto getEffectiveness(Long facilityId, Long applicationId, AppUserDetails principal) {
+        facilityInScope(facilityId, principal);
+        StandardApplication application = owned(facilityId, applicationId);
+        return effectivenessRepository.findFirstByStandardApplicationIdOrderByIdDesc(application.getId())
+                .map(this::effectivenessDto)
+                .orElse(null);
+    }
+
+    /**
+     * Links a GPP application to its corresponding questionnaire item and
+     * snapshots the effectiveness levels from the Phase-1 scoring tables.
+     * ASSUMPTION (flagged to the client): individual = the facility's item
+     * final score, mean item = its Aver-I, mean area = the area final, mean
+     * questionnaire = the facility overall.
+     */
+    @Transactional
+    public EffectivenessDto linkEffectiveness(Long facilityId, Long applicationId, Long questionnaireItemId,
+                                              AppUserDetails actor) {
+        facilityInScope(facilityId, actor);
+        StandardApplication application = owned(facilityId, applicationId);
+        if (application.getStandardType() != StandardApplication.StandardType.GPP) {
+            throw new eu.dtc4eu.common.error.BadRequestException(
+                    "Effectiveness scoring applies to GPP documents only");
+        }
+        eu.dtc4eu.questionnaire.entity.QuestionnaireItem item = questionnaireItemRepository
+                .findById(questionnaireItemId)
+                .orElseThrow(() -> NotFoundException.of("Questionnaire item", questionnaireItemId));
+
+        Long cycleId = application.getAnnualCycleId();
+        Long questionnaireId = item.getQuestionnaireId();
+
+        java.math.BigDecimal individual = null;
+        java.math.BigDecimal meanItem = null;
+        for (eu.dtc4eu.scoring.entity.FacilityItemScore score : itemScoreRepository
+                .findByFacilityIdAndAnnualCycleIdAndQuestionnaireId(facilityId, cycleId, questionnaireId)) {
+            if (Objects.equals(score.getAreaId(), item.getAreaId())
+                    && Objects.equals(score.getItemLetter(), item.getItemLetter())) {
+                individual = score.getFinalScore();
+                meanItem = score.getAverI();
+                break;
+            }
+        }
+        java.math.BigDecimal meanArea = null;
+        int areasWithScore = 0;
+        int areasTotal = 0;
+        for (eu.dtc4eu.scoring.entity.FacilityAreaScore score : areaScoreRepository
+                .findByFacilityIdAndAnnualCycleIdAndQuestionnaireId(facilityId, cycleId, questionnaireId)) {
+            areasTotal++;
+            if (score.getFinalScore() != null) {
+                areasWithScore++;
+            }
+            if (Objects.equals(score.getAreaId(), item.getAreaId())) {
+                meanArea = score.getFinalScore();
+            }
+        }
+        java.math.BigDecimal meanQuest = questionnaireScoreRepository
+                .findByFacilityIdAndAnnualCycleIdAndQuestionnaireId(facilityId, cycleId, questionnaireId)
+                .map(eu.dtc4eu.scoring.entity.FacilityQuestionnaireScore::getOverallScore)
+                .orElse(null);
+
+        effectivenessRepository.deleteByStandardApplicationId(application.getId());
+        GppEffectivenessScore snapshot = new GppEffectivenessScore();
+        snapshot.setStandardApplicationId(application.getId());
+        snapshot.setQuestionnaireItemId(questionnaireItemId);
+        snapshot.setIndividualEffectiveness(individual);
+        snapshot.setMeanItemEffectiveness(meanItem);
+        snapshot.setMeanAreaEffectiveness(meanArea);
+        snapshot.setMeanQuestEffectiveness(meanQuest);
+        snapshot.setAreasWithScore(areasWithScore);
+        snapshot.setAreasTotal(areasTotal);
+        effectivenessRepository.save(snapshot);
+        auditService.success(actor.getId(), "LINK_GPP_EFFECTIVENESS", "standard_application", applicationId,
+                Map.of("itemId", questionnaireItemId));
+        return effectivenessDto(snapshot);
+    }
+
+    private EffectivenessDto effectivenessDto(GppEffectivenessScore score) {
+        String itemCode = score.getQuestionnaireItemId() == null ? null
+                : questionnaireItemRepository.findById(score.getQuestionnaireItemId())
+                        .map(eu.dtc4eu.questionnaire.entity.QuestionnaireItem::getItemCode).orElse(null);
+        return new EffectivenessDto(score.getQuestionnaireItemId(), itemCode,
+                score.getIndividualEffectiveness(), score.getMeanItemEffectiveness(),
+                score.getMeanAreaEffectiveness(), score.getMeanQuestEffectiveness(),
+                score.getAreasWithScore(), score.getAreasTotal(), score.getComputedAt());
+    }
+
     /* ---------------------------------- internals ---------------------------------- */
 
-    private void apply(StandardApplication application, SaveDocumentApplicationRequest request) {
+    private void apply(StandardApplication application, SaveDocumentApplicationRequest request,
+                       AppUserDetails actor) {
         application.setStandardType(request.standardType());
         application.setStandardCode(request.standardCode());
         application.setServiceName(request.serviceName());
@@ -180,6 +341,13 @@ public class StandardApplicationService {
         application.setOrigin(request.origin());
         application.setApplicationCyclesCount(request.applicationCyclesCount());
         application.setApplicationLevelPct(request.applicationLevelPct());
+        application.setAssessedBy(actor.getId());
+        application.setAssessedAt(OffsetDateTime.now());
+    }
+
+    String userName(Long userId) {
+        return userId == null ? null
+                : userRepository.findById(userId).map(u -> u.getFullName()).orElse(null);
     }
 
     private StandardApplication owned(Long facilityId, Long applicationId) {

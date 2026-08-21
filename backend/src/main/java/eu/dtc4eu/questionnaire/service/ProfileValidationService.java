@@ -87,10 +87,41 @@ public class ProfileValidationService {
                 }
             }
             case "text" -> {
+                int maxLength = field.hasNonNull("maxLength") ? field.get("maxLength").asInt() : MAX_TEXT_LENGTH;
                 if (!(value instanceof String s)) {
                     errors.add(path + " must be text");
-                } else if (s.length() > MAX_TEXT_LENGTH) {
+                } else if (s.length() > maxLength) {
                     errors.add(path + " is too long");
+                }
+            }
+            case "date" -> {
+                if (!(value instanceof String s) || !s.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                    errors.add(path + " must be a date (YYYY-MM-DD)");
+                } else {
+                    try {
+                        java.time.LocalDate.parse(s);
+                    } catch (java.time.format.DateTimeParseException e) {
+                        errors.add(path + " must be a valid date");
+                    }
+                }
+            }
+            case "multiselect" -> {
+                Set<String> options = new HashSet<>();
+                field.path("options").forEach(o -> options.add(o.asText()));
+                if (!(value instanceof List<?> selections)) {
+                    errors.add(path + " must be a list of selections");
+                } else {
+                    Set<Object> seen = new HashSet<>();
+                    for (Object selection : selections) {
+                        if (!(selection instanceof String s) || !options.contains(s)) {
+                            errors.add(path + " contains an unknown option");
+                            break;
+                        }
+                        if (!seen.add(selection)) {
+                            errors.add(path + " contains a duplicate selection");
+                            break;
+                        }
+                    }
                 }
             }
             case "boolean" -> {
@@ -151,7 +182,8 @@ public class ProfileValidationService {
                 errors.add(path + " must be a list");
                 return;
             }
-            if (list.size() > MAX_LIST_ROWS) {
+            int maxRows = repeat.hasNonNull("maxRows") ? repeat.get("maxRows").asInt() : MAX_LIST_ROWS;
+            if (list.size() > maxRows) {
                 errors.add(path + " has too many rows");
                 return;
             }

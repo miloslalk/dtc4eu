@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../components/PageHeader';
@@ -6,11 +6,14 @@ import { Button } from '../../components/Button';
 import { SelectField, TextAreaField, TextField, filterInputClass } from '../../components/fields';
 import { StatusTag } from '../../components/StatusTag';
 import { Spinner } from '../../components/Spinner';
+import { ProfileForm } from '../../components/ProfileForm';
 import { EmptyState } from '../../components/EmptyState';
 import { useAuth } from '../../lib/auth';
 import { useCycle } from '../../lib/cycle';
 import { apiErrorMessage } from '../../lib/api';
 import { FacilityScoresTab } from '../scoring/FacilityScoresTab';
+import { useQuestionnaire, useQuestionnaires } from '../questionnaires/api';
+import { cycleLabel } from '../../lib/types';
 import {
   ACTIVITIES, FACILITY_TYPES, MEMBER_CATEGORIES, STANDARD_TYPES, SUBTYPES_BY_TYPE,
   useAddMember, useDeleteDocumentApplication, useDocumentApplications, useFacilitatorPicker, useFacility,
@@ -23,6 +26,11 @@ import {
   QCNC_ADMINISTRATIONS,
   type QcncAdministrationType,
   type QcncStandard,
+  useSagSchema,
+  useManualEps,
+  usePutManualEps,
+  useEffectiveness,
+  useLinkEffectiveness,
   useQcncBoard,
   useSaveQcncResults,
 } from './api';
@@ -306,19 +314,28 @@ function DocumentsSection({ facilityId }: { facilityId: number }) {
   const remove = useDeleteDocumentApplication(facilityId);
 
   const [editing, setEditing] = useState<DocumentApplication | 'new' | null>(null);
-  const [form, setForm] = useState({ standardType: 'GPP' as StandardType, standardCode: '', serviceName: '', level: '' });
+  const [form, setForm] = useState({
+    standardType: 'GPP' as StandardType, standardCode: '', serviceName: '', level: '',
+    serviceType: '', numUsers: '', numStaff: '', origin: '' as '' | 'DEVELOPED' | 'IMPLEMENTED', cyclesCount: '',
+  });
   const [error, setError] = useState<string | null>(null);
 
   const openEditor = (doc: DocumentApplication | 'new') => {
     setEditing(doc);
     setError(null);
     setForm(doc === 'new'
-      ? { standardType: 'GPP', standardCode: '', serviceName: '', level: '' }
+      ? { standardType: 'GPP', standardCode: '', serviceName: '', level: '',
+          serviceType: '', numUsers: '', numStaff: '', origin: '', cyclesCount: '' }
       : {
           standardType: doc.standardType,
           standardCode: doc.standardCode ?? '',
           serviceName: doc.serviceName ?? '',
           level: doc.applicationLevelPct != null ? String(Number(doc.applicationLevelPct)) : '',
+          serviceType: doc.serviceType ?? '',
+          numUsers: doc.numUsers != null ? String(doc.numUsers) : '',
+          numStaff: doc.numStaff != null ? String(doc.numStaff) : '',
+          origin: doc.origin ?? '',
+          cyclesCount: doc.applicationCyclesCount != null ? String(doc.applicationCyclesCount) : '',
         });
   };
 
@@ -330,6 +347,11 @@ function DocumentsSection({ facilityId }: { facilityId: number }) {
           standardType: form.standardType,
           standardCode: form.standardCode.trim() || null,
           serviceName: form.serviceName.trim() || null,
+          serviceType: form.serviceType.trim() || null,
+          numUsers: form.numUsers === '' ? null : Number(form.numUsers),
+          numStaff: form.numStaff === '' ? null : Number(form.numStaff),
+          origin: form.origin === '' ? null : form.origin,
+          applicationCyclesCount: form.cyclesCount === '' ? null : Number(form.cyclesCount),
           applicationLevelPct: form.level === '' ? null : Number(form.level),
         },
       });
@@ -357,6 +379,7 @@ function DocumentsSection({ facilityId }: { facilityId: number }) {
             <th className="px-4 py-2">{t('facilities.documents.code')}</th>
             <th className="px-4 py-2">{t('facilities.documents.serviceName')}</th>
             <th className="px-4 py-2 text-right">{t('facilities.documents.applicationLevel')}</th>
+            <th className="px-4 py-2">{t('facilities.documents.assessedBy')}</th>
             {canWrite && <th className="w-28 px-4 py-2" />}
           </tr>
         </thead>
@@ -368,6 +391,12 @@ function DocumentsSection({ facilityId }: { facilityId: number }) {
               <td className="px-4 py-2">{doc.serviceName ?? '—'}</td>
               <td className="px-4 py-2 text-right font-mono">
                 {doc.applicationLevelPct != null ? `${Number(doc.applicationLevelPct)} %` : '—'}
+              </td>
+              <td className="px-4 py-2 text-xs text-neutral-600">
+                {doc.assessedByName ?? '—'}
+                {doc.assessedAt && (
+                  <span className="block text-[10px] text-neutral-400">{doc.assessedAt.slice(0, 10)}</span>
+                )}
               </td>
               {canWrite && (
                 <td className="px-4 py-2 text-right">
@@ -384,7 +413,7 @@ function DocumentsSection({ facilityId }: { facilityId: number }) {
             </tr>
           ))}
           {(documents ?? []).length === 0 && (
-            <tr><td colSpan={canWrite ? 5 : 4} className="px-4 py-4 text-sm text-neutral-400">{t('common.empty')}</td></tr>
+            <tr><td colSpan={canWrite ? 6 : 5} className="px-4 py-4 text-sm text-neutral-400">{t('common.empty')}</td></tr>
           )}
         </tbody>
       </table>
@@ -405,7 +434,24 @@ function DocumentsSection({ facilityId }: { facilityId: number }) {
               onChange={(e) => setForm({ ...form, serviceName: e.target.value })} />
             <TextField label={t('facilities.documents.applicationLevel')} type="number" value={form.level}
               onChange={(e) => setForm({ ...form, level: e.target.value })} />
+            <TextField label={t('facilities.documents.serviceType')} value={form.serviceType}
+              onChange={(e) => setForm({ ...form, serviceType: e.target.value })} />
+            <SelectField label={t('facilities.documents.origin')} value={form.origin}
+              onChange={(e) => setForm({ ...form, origin: e.target.value as typeof form.origin })}>
+              <option value="">—</option>
+              <option value="DEVELOPED">{t('facilities.documents.origins.DEVELOPED')}</option>
+              <option value="IMPLEMENTED">{t('facilities.documents.origins.IMPLEMENTED')}</option>
+            </SelectField>
+            <TextField label={t('facilities.documents.numUsers')} type="number" value={form.numUsers}
+              onChange={(e) => setForm({ ...form, numUsers: e.target.value })} />
+            <TextField label={t('facilities.documents.numStaff')} type="number" value={form.numStaff}
+              onChange={(e) => setForm({ ...form, numStaff: e.target.value })} />
+            <TextField label={t('facilities.documents.cyclesCount')} type="number" value={form.cyclesCount}
+              onChange={(e) => setForm({ ...form, cyclesCount: e.target.value })} />
           </div>
+          {editing !== 'new' && editing !== null && editing.standardType === 'GPP' && (
+            <EffectivenessPanel facilityId={facilityId} applicationId={editing.id} canWrite={canWrite} />
+          )}
           <p className="text-xs text-neutral-500">{t('facilities.documents.codeHint')}</p>
           {error && <p className="text-sm font-medium text-error">{error}</p>}
           <div className="flex gap-2">
@@ -415,6 +461,146 @@ function DocumentsSection({ facilityId }: { facilityId: number }) {
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * Module 6 — GPP effectiveness: link the corresponding questionnaire item and
+ * snapshot the effectiveness levels from the facility's computed scores.
+ */
+function EffectivenessPanel({ facilityId, applicationId, canWrite }: {
+  facilityId: number;
+  applicationId: number;
+  canWrite: boolean;
+}) {
+  const { t } = useTranslation();
+  const questionnaires = useQuestionnaires();
+  const effectiveness = useEffectiveness(facilityId, applicationId);
+  const link = useLinkEffectiveness(facilityId);
+  const [questionnaireId, setQuestionnaireId] = useState<number | ''>('');
+  const [itemId, setItemId] = useState<number | ''>('');
+  const [error, setError] = useState<string | null>(null);
+  const detail = useQuestionnaire(questionnaireId === '' ? 0 : questionnaireId);
+
+  const row = effectiveness.data;
+  const value = (v: string | null | undefined) => (v == null ? '—' : Number(v).toFixed(3));
+
+  return (
+    <div className="rounded-lg border border-neutral-200 bg-white p-3">
+      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-blue-700">
+        {t('facilities.effectiveness.title')}
+      </p>
+      <p className="mb-2 text-[11px] text-neutral-500">{t('facilities.effectiveness.hint')}</p>
+      {row && (
+        <dl className="mb-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+          <div><dt className="text-neutral-500">{t('facilities.effectiveness.item')}</dt>
+            <dd className="font-mono font-bold text-blue-700">{row.itemCode ?? '—'}</dd></div>
+          <div><dt className="text-neutral-500">{t('facilities.effectiveness.individual')}</dt>
+            <dd className="font-mono">{value(row.individualEffectiveness)}</dd></div>
+          <div><dt className="text-neutral-500">{t('facilities.effectiveness.meanItem')}</dt>
+            <dd className="font-mono">{value(row.meanItemEffectiveness)}</dd></div>
+          <div><dt className="text-neutral-500">{t('facilities.effectiveness.meanArea')}</dt>
+            <dd className="font-mono">{value(row.meanAreaEffectiveness)}</dd></div>
+          <div><dt className="text-neutral-500">{t('facilities.effectiveness.meanQuest')}</dt>
+            <dd className="font-mono">{value(row.meanQuestEffectiveness)}</dd></div>
+          <div><dt className="text-neutral-500">{t('facilities.effectiveness.areas')}</dt>
+            <dd className="font-mono">{row.areasWithScore ?? '—'} / {row.areasTotal ?? '—'}</dd></div>
+        </dl>
+      )}
+      {canWrite && (
+        <div className="flex flex-wrap items-end gap-2">
+          <SelectField label={t('facilities.effectiveness.questionnaire')} value={questionnaireId}
+            onChange={(e) => { setQuestionnaireId(e.target.value === '' ? '' : Number(e.target.value)); setItemId(''); }}>
+            <option value="">—</option>
+            {(questionnaires.data ?? []).map((q) => (
+              <option key={q.id} value={q.id}>{q.code}</option>
+            ))}
+          </SelectField>
+          <SelectField label={t('facilities.effectiveness.pickItem')} value={itemId}
+            onChange={(e) => setItemId(e.target.value === '' ? '' : Number(e.target.value))}>
+            <option value="">—</option>
+            {(detail.data?.items ?? []).map((item) => (
+              <option key={item.id} value={item.id}>{item.itemCode}</option>
+            ))}
+          </SelectField>
+          <Button variant="ghost" loading={link.isPending} disabled={itemId === ''}
+            onClick={async () => {
+              setError(null);
+              try {
+                await link.mutateAsync({ applicationId, questionnaireItemId: itemId as number });
+              } catch (e) {
+                setError(apiErrorMessage(e));
+              }
+            }}>
+            {t('facilities.effectiveness.link')}
+          </Button>
+          {error && <span className="text-xs font-medium text-error">{error}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Manual Excellence Points for questionnaires the engine does not compute (register §12.4). */
+function ManualEpEditor({ facilityId }: { facilityId: number }) {
+  const { t } = useTranslation();
+  const { hasAnyRole } = useAuth();
+  const canWrite = hasAnyRole('ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'AUDIT_COORDINATOR');
+  const { cycles } = useCycle();
+  const manual = useManualEps(facilityId);
+  const put = usePutManualEps(facilityId);
+
+  const [cycleId, setCycleId] = useState<number | ''>('');
+  const [code, setCode] = useState('VIVACOM');
+  const [labels, setLabels] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (cycleId === '') return;
+    const existing = (manual.data ?? [])
+      .filter((p) => p.cycleId === cycleId && p.questionnaireCode === code)
+      .map((p) => p.label);
+    setLabels(existing.join('; '));
+  }, [cycleId, code, manual.data]);
+
+  if (!canWrite) return null;
+
+  return (
+    <div className="border-t border-neutral-200 bg-neutral-50 px-5 py-4">
+      <p className="mb-1 text-xs font-bold uppercase tracking-wide text-neutral-600">
+        {t('facilities.manualEp.title')}
+      </p>
+      <p className="mb-2 text-[11px] text-neutral-500">{t('facilities.manualEp.hint')}</p>
+      <div className="flex flex-wrap items-end gap-2">
+        <SelectField label={t('facilities.manualEp.cycle')} value={cycleId}
+          onChange={(e) => setCycleId(e.target.value === '' ? '' : Number(e.target.value))}>
+          <option value="">—</option>
+          {cycles.map((cycle) => (
+            <option key={cycle.id} value={cycle.id}>{cycleLabel(cycle)}</option>
+          ))}
+        </SelectField>
+        <TextField label={t('facilities.manualEp.questionnaire')} value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())} className="max-w-36" />
+        <TextField label={t('facilities.manualEp.labels')} value={labels} placeholder="1.2; 3.5; 4.16"
+          onChange={(e) => setLabels(e.target.value)} className="min-w-64 flex-1" />
+        <Button variant="ghost" loading={put.isPending} disabled={cycleId === '' || !code}
+          onClick={async () => {
+            setError(null);
+            try {
+              await put.mutateAsync({
+                cycleId: cycleId as number,
+                questionnaireCode: code,
+                labels: labels.split(/[;,]/).map((s) => s.trim()).filter(Boolean),
+              });
+            } catch (e) {
+              setError(apiErrorMessage(e));
+            }
+          }}>
+          {t('common.save')}
+        </Button>
+      </div>
+      {error && <p className="mt-2 text-xs font-medium text-error">{error}</p>}
+    </div>
   );
 }
 
@@ -484,6 +670,7 @@ function HistorySection({ facilityId }: { facilityId: number }) {
         </table>
         </div>
       )}
+      <ManualEpEditor facilityId={facilityId} />
     </section>
   );
 }
@@ -577,57 +764,122 @@ function SagTab({ facilityId }: { facilityId: number }) {
   const { readOnly } = useCycle();
   const canWrite = !readOnly && hasAnyRole('ADMIN', 'SUPER_ADMIN', 'INTERNAL_FACILITATOR');
 
+  const schema = useSagSchema(facilityId);
   const { data: sags, isLoading } = useSags(facilityId);
   const putSag = usePutSag(facilityId);
 
-  const [variant, setVariant] = useState('A');
-  const [payloadText, setPayloadText] = useState('{}');
-  const [message, setMessage] = useState<string | null>(null);
+  const [payload, setPayload] = useState<Record<string, unknown>>({});
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [error, setError] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dirty = useRef<Record<string, unknown> | null>(null);
+  const loaded = useRef(false);
+
+  const gas = sags?.find((s) => s.gridVariant === 'GAS');
+  const legacy = (sags ?? []).filter((s) => s.gridVariant !== 'GAS');
 
   useEffect(() => {
-    const existing = sags?.find((s) => s.gridVariant === variant);
-    setPayloadText(JSON.stringify(existing?.payload ?? {}, null, 2));
-  }, [sags, variant]);
-
-  if (isLoading) return <Spinner label={t('common.loading')} />;
-
-  const handleSave = async () => {
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = JSON.parse(payloadText);
-    } catch {
-      setMessage('Invalid JSON');
-      return;
+    if (gas && !loaded.current) {
+      setPayload(gas.payload ?? {});
+      loaded.current = true;
     }
+  }, [gas]);
+
+  const flush = useCallback(async () => {
+    if (dirty.current === null) return;
+    const next = dirty.current;
+    dirty.current = null;
+    setSaveState('saving');
     try {
-      await putSag.mutateAsync({ gridVariant: variant, payload: parsed });
-      setMessage(t('common.saved'));
+      await putSag.mutateAsync({ gridVariant: 'GAS', payload: next });
+      setSaveState('saved');
+      setError(null);
     } catch (e) {
-      setMessage(apiErrorMessage(e));
+      setSaveState('error');
+      setError(apiErrorMessage(e));
     }
-  };
+  }, [putSag]);
+
+  const handleChange = useCallback((next: Record<string, unknown>) => {
+    setPayload(next);
+    dirty.current = next;
+    setSaveState('idle');
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(flush, 900);
+  }, [flush]);
+
+  if (isLoading || schema.isLoading) return <Spinner label={t('common.loading')} />;
+  if (!schema.data) return <p className="text-sm text-neutral-500">{t('facilities.gasset.noSchema')}</p>;
 
   return (
-    <div className="max-w-2xl space-y-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-      <p className="text-xs text-neutral-500">
-        The grid structure (variants A–D) is pending confirmation from the clinical specialist (spec §9);
-        answers are stored as free-form JSON until then.
-      </p>
-      <SelectField label={t('facilities.gridVariant')} value={variant}
-        onChange={(e) => setVariant(e.target.value)}>
-        {['A', 'B', 'C', 'D'].map((v) => (
-          <option key={v} value={v}>
-            {v}{sags?.some((s) => s.gridVariant === v) ? ' ✓' : ''}
-          </option>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 shadow-sm">
+        <p className="min-w-0 flex-1 text-xs text-neutral-500">{t('facilities.gasset.intro')}</p>
+        <span className="text-xs text-neutral-500">
+          {saveState === 'saving' && t('common.saving')}
+          {saveState === 'saved' && t('common.saved')}
+          {saveState === 'error' && <span className="font-medium text-error">{error}</span>}
+        </span>
+        {canWrite && (
+          <Button variant="ghost" loading={putSag.isPending} onClick={flush}>
+            {t('common.save')}
+          </Button>
+        )}
+      </div>
+
+      {/* section jump list */}
+      <nav className="flex flex-wrap gap-1.5" aria-label="GAS-Set sections">
+        {schema.data.sections.map((section) => (
+          <a key={section.key} href={`#gas-${section.key}`}
+            className="rounded-full border border-neutral-200 bg-white px-3 py-1 font-mono text-xs font-bold uppercase text-blue-600 hover:bg-blue-50">
+            {section.key}
+          </a>
         ))}
-      </SelectField>
-      <TextAreaField label="Payload (JSON)" rows={10} value={payloadText} disabled={!canWrite}
-        onChange={(e) => setPayloadText(e.target.value)} className="font-mono text-xs" />
-      {message && <p className="text-sm font-medium text-neutral-600">{message}</p>}
-      {canWrite && <Button onClick={handleSave} loading={putSag.isPending}>{t('common.save')}</Button>}
+      </nav>
+
+      <div className="[&>div>section]:scroll-mt-20">
+        <GasSetSections schema={schema.data} payload={payload} onChange={handleChange} readOnly={!canWrite} />
+      </div>
+
+      {legacy.length > 0 && (
+        <details className="rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm shadow-sm">
+          <summary className="cursor-pointer font-semibold text-neutral-600">
+            {t('facilities.gasset.legacy', { count: legacy.length })}
+          </summary>
+          {legacy.map((sag) => (
+            <pre key={sag.id} className="mt-2 overflow-x-auto rounded-lg bg-neutral-50 p-3 text-xs">
+              {`Variant ${sag.gridVariant}\n` + JSON.stringify(sag.payload, null, 2)}
+            </pre>
+          ))}
+        </details>
+      )}
     </div>
   );
 }
+
+/** ProfileForm wrapper adding per-section anchor ids for the jump list. */
+function GasSetSections({ schema, payload, onChange, readOnly }: {
+  schema: import('../questionnaires/api').ProfileSchema;
+  payload: Record<string, unknown>;
+  onChange: (next: Record<string, unknown>) => void;
+  readOnly: boolean;
+}) {
+  return (
+    <div className="space-y-5">
+      {schema.sections.map((section) => (
+        <div key={section.key} id={`gas-${section.key}`}>
+          <ProfileForm
+            schema={{ ...schema, sections: [section] }}
+            value={payload}
+            onChange={onChange}
+            readOnly={readOnly}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 function QcncTab({ facilityId }: { facilityId: number }) {
   const { t } = useTranslation();

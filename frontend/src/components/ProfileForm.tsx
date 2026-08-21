@@ -93,11 +93,40 @@ function FieldControl({ field, value, onChange, readOnly, compact }: {
         </label>
       );
     case 'text':
+      if (field.multiline) {
+        return (
+          <label className="block">
+            {label}
+            <textarea
+              rows={3}
+              disabled={readOnly}
+              maxLength={field.maxLength}
+              value={typeof value === 'string' ? value : ''}
+              onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value)}
+              className={inputClass}
+            />
+          </label>
+        );
+      }
       return (
         <label className={compact ? '' : 'block max-w-md'}>
           {label}
           <input
             type="text"
+            disabled={readOnly}
+            maxLength={field.maxLength}
+            value={typeof value === 'string' ? value : ''}
+            onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value)}
+            className={inputClass}
+          />
+        </label>
+      );
+    case 'date':
+      return (
+        <label className={compact ? '' : 'block max-w-[12rem]'}>
+          {label}
+          <input
+            type="date"
             disabled={readOnly}
             value={typeof value === 'string' ? value : ''}
             onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value)}
@@ -105,6 +134,37 @@ function FieldControl({ field, value, onChange, readOnly, compact }: {
           />
         </label>
       );
+    case 'multiselect': {
+      const selected = Array.isArray(value) ? (value as string[]) : [];
+      const toggle = (option: string) => {
+        const next = selected.includes(option)
+          ? selected.filter((v) => v !== option)
+          : [...selected, option];
+        onChange(next.length === 0 ? undefined : next);
+      };
+      return (
+        <fieldset className={compact ? '' : 'block'}>
+          <legend className="mb-1 text-sm font-semibold text-neutral-700">
+            {field.label}
+            {field.required && <span className="ml-0.5 text-error">*</span>}
+          </legend>
+          <div className={compact ? 'flex flex-wrap gap-x-3 gap-y-1' : 'grid gap-1.5 sm:grid-cols-2'}>
+            {(field.options ?? []).map((option) => (
+              <label key={option} className="flex items-start gap-2 text-sm text-neutral-700">
+                <input
+                  type="checkbox"
+                  disabled={readOnly}
+                  checked={selected.includes(option)}
+                  onChange={() => toggle(option)}
+                  className="mt-0.5"
+                />
+                <span>{option}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      );
+    }
     case 'boolean':
       return (
         <label className={compact ? '' : 'block max-w-[10rem]'}>

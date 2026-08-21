@@ -77,4 +77,52 @@ public class StandardApplicationController {
                                       @AuthenticationPrincipal AppUserDetails principal) {
         return service.history(facilityId, principal);
     }
+
+    /* ---------------- manual excellence points (register §12.4) ---------------- */
+
+    @Operation(summary = "Manual EP labels of the facility across all cycles")
+    @GetMapping("/manual-excellence-points")
+    public java.util.List<StandardApplicationService.ManualEpDto> manualEps(
+            @PathVariable Long facilityId, @AuthenticationPrincipal AppUserDetails principal) {
+        return service.manualEps(facilityId, principal);
+    }
+
+    public record PutManualEpsRequest(@jakarta.validation.constraints.NotNull Long cycleId,
+                                      @jakarta.validation.constraints.NotBlank String questionnaireCode,
+                                      @jakarta.validation.constraints.NotNull java.util.List<String> labels) {
+    }
+
+    @Operation(summary = "Replace the manual EP labels of one cycle+questionnaire (works on closed cycles)")
+    @PreAuthorize(ASSESSORS)
+    @PutMapping("/manual-excellence-points")
+    public java.util.List<StandardApplicationService.ManualEpDto> putManualEps(
+            @PathVariable Long facilityId, @Valid @RequestBody PutManualEpsRequest request,
+            @AuthenticationPrincipal AppUserDetails principal) {
+        return service.putManualEps(facilityId, request.cycleId(),
+                request.questionnaireCode(), request.labels(), principal);
+    }
+
+    /* ---------------------- GPP effectiveness (Module 6) ---------------------- */
+
+    @Operation(summary = "Effectiveness snapshot of a GPP document application")
+    @GetMapping("/document-applications/{applicationId}/effectiveness")
+    public StandardApplicationService.EffectivenessDto effectiveness(
+            @PathVariable Long facilityId, @PathVariable Long applicationId,
+            @AuthenticationPrincipal AppUserDetails principal) {
+        return service.getEffectiveness(facilityId, applicationId, principal);
+    }
+
+    public record LinkEffectivenessRequest(@jakarta.validation.constraints.NotNull Long questionnaireItemId) {
+    }
+
+    @Operation(summary = "Link the corresponding questionnaire item and snapshot effectiveness levels")
+    @PreAuthorize(ASSESSORS)
+    @PutMapping("/document-applications/{applicationId}/effectiveness")
+    public StandardApplicationService.EffectivenessDto linkEffectiveness(
+            @PathVariable Long facilityId, @PathVariable Long applicationId,
+            @Valid @RequestBody LinkEffectivenessRequest request,
+            @AuthenticationPrincipal AppUserDetails principal) {
+        return service.linkEffectiveness(facilityId, applicationId,
+                request.questionnaireItemId(), principal);
+    }
 }

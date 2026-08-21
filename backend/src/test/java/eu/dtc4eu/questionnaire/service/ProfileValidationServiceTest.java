@@ -107,4 +107,59 @@ class ProfileValidationServiceTest {
                 Map.of("staff_rows", List.of(Map.of("count", 3))), schema, false))
                 .hasMessageContaining("not a known field");
     }
+
+    /* ------------- Phase 2 extensions: multiselect, date, limits ------------- */
+
+    private JsonNode gasLikeSchema() throws Exception {
+        return new ObjectMapper().readTree("""
+                {"form":"X","version":1,"sections":[{"key":"s","label":"S","fields":[
+                  {"key":"picks","type":"multiselect","options":["A","B","C"]},
+                  {"key":"when","type":"date"},
+                  {"key":"note","type":"text","maxLength":5},
+                  {"key":"rows","type":"group","repeat":{"mode":"list","maxRows":2},
+                   "fields":[{"key":"v","type":"integer"}]}
+                ]}]}
+                """);
+    }
+
+    @Test
+    void multiselectAcceptsKnownOptionsAndRejectsUnknownOrDuplicate() throws Exception {
+        JsonNode schema = gasLikeSchema();
+        service.validate(Map.of("picks", List.of("A", "C")), schema, false);
+
+        assertThatThrownBy(() -> service.validate(Map.of("picks", List.of("A", "Z")), schema, false))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("unknown option");
+        assertThatThrownBy(() -> service.validate(Map.of("picks", List.of("A", "A")), schema, false))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("duplicate selection");
+    }
+
+    @Test
+    void dateMustBeIsoAndReal() throws Exception {
+        JsonNode schema = gasLikeSchema();
+        service.validate(Map.of("when", "2026-02-28"), schema, false);
+
+        assertThatThrownBy(() -> service.validate(Map.of("when", "28/02/2026"), schema, false))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("must be a date");
+        assertThatThrownBy(() -> service.validate(Map.of("when", "2026-02-31"), schema, false))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("valid date");
+    }
+
+    @Test
+    void perFieldMaxLengthAndPerListMaxRowsAreEnforced() throws Exception {
+        JsonNode schema = gasLikeSchema();
+        service.validate(Map.of("note", "12345"), schema, false);
+        assertThatThrownBy(() -> service.validate(Map.of("note", "123456"), schema, false))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("too long");
+
+        service.validate(Map.of("rows", List.of(Map.of("v", 1), Map.of("v", 2))), schema, false);
+        assertThatThrownBy(() -> service.validate(
+                Map.of("rows", List.of(Map.of("v", 1), Map.of("v", 2), Map.of("v", 3))), schema, false))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("too many rows");
+    }
 }

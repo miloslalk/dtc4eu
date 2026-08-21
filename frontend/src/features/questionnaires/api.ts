@@ -72,19 +72,21 @@ export interface QuestionnaireDetail extends Omit<QuestionnaireRow, 'areaCount' 
 export interface ProfileFieldDef {
   key: string;
   label: string;
-  type: 'integer' | 'decimal' | 'text' | 'boolean' | 'enum' | 'group';
+  type: 'integer' | 'decimal' | 'text' | 'boolean' | 'enum' | 'group' | 'multiselect' | 'date';
   required?: boolean;
   min?: number;
   max?: number;
   options?: string[];
-  repeat?: { mode: 'fixedRows'; rows: { key: string; label: string }[] } | { mode: 'list' };
+  multiline?: boolean;
+  maxLength?: number;
+  repeat?: { mode: 'fixedRows'; rows: { key: string; label: string }[] } | { mode: 'list'; maxRows?: number };
   fields?: ProfileFieldDef[];
 }
 
 export interface ProfileSchema {
   form: string;
   version: number;
-  sections: { key: string; label: string; fields: ProfileFieldDef[] }[];
+  sections: { key: string; label: string; restricted?: boolean; fields: ProfileFieldDef[] }[];
 }
 
 export function useProfileSchema(questionnaireId: number, formId: number | null) {
