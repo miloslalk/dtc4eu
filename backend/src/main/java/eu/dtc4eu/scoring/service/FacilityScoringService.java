@@ -161,6 +161,41 @@ public class FacilityScoringService {
             row.setComputedAt(now);
             benchmarkRepository.save(row);
         }
+
+        rewriteExcellencePoints(terna, questionnaireId, facilityIds, now);
+    }
+
+    /**
+     * Expert feedback (Phase 1 prototype review): EP = the facility's
+     * quantitative strength POINTS that fall inside its benchmark areas —
+     * the areas where it is the best of its terna. Rewritten together with
+     * the benchmarks so a sibling facility's submit keeps every member's EP
+     * consistent.
+     */
+    private void rewriteExcellencePoints(Terna terna, Long questionnaireId, List<Long> facilityIds,
+                                         OffsetDateTime now) {
+        Map<Long, Set<Long>> wonAreasByFacility = benchmarkRepository
+                .findByTernaIdAndQuestionnaireId(terna.getId(), questionnaireId).stream()
+                .collect(Collectors.groupingBy(TernaBenchmarkArea::getBestFacilityId,
+                        Collectors.mapping(TernaBenchmarkArea::getAreaId, Collectors.toSet())));
+
+        for (Long memberId : facilityIds) {
+            scaleScoreRepository.deleteByFacilityIdAndAnnualCycleIdAndQuestionnaireIdAndMetricTypeIn(memberId,
+                    terna.getAnnualCycleId(), questionnaireId,
+                    List.of(FacilityScaleScore.MetricType.EXCELLENCE_POINT));
+            Set<Long> wonAreas = wonAreasByFacility.getOrDefault(memberId, Set.of());
+            if (wonAreas.isEmpty()) {
+                continue;
+            }
+            scaleScoreRepository
+                    .findByFacilityIdAndAnnualCycleIdAndQuestionnaireIdAndMetricTypeIn(memberId,
+                            terna.getAnnualCycleId(), questionnaireId,
+                            List.of(FacilityScaleScore.MetricType.QUANT_STRENGTH)).stream()
+                    .filter(point -> point.getItemLetter() != null && wonAreas.contains(point.getAreaId()))
+                    .forEach(point -> savePoint(memberId, terna.getAnnualCycleId(), questionnaireId,
+                            FacilityScaleScore.MetricType.EXCELLENCE_POINT, point.getAreaId(),
+                            point.getItemLetter(), point.getValue(), now));
+        }
     }
 
     /* ---------------------------------- reads ----------------------------------- */
@@ -224,14 +259,11 @@ public class FacilityScoringService {
                 .sorted()
                 .toList();
 
+        // EP rows are already restricted to the facility's benchmark areas
+        // (expert feedback rule); EP-Bench is a narrower subset whose exact
+        // rule is still an open question with the client — served as null.
         List<String> excellencePoints = pointLabels(points, FacilityScaleScore.MetricType.EXCELLENCE_POINT, true,
                 areas);
-        List<String> epBench = excellencePoints.stream()
-                .filter(label -> {
-                    int dot = label.indexOf('.');
-                    return dot > 0 && benchmarkAreaNos.contains(Integer.parseInt(label.substring(0, dot)));
-                })
-                .toList();
 
         return new SummaryTableDto(
                 null, null,
@@ -241,7 +273,7 @@ public class FacilityScoringService {
                 pointLabels(points, FacilityScaleScore.MetricType.QUANT_STRENGTH, false, areas),
                 pointLabels(points, FacilityScaleScore.MetricType.QUANT_STRENGTH, true, areas),
                 benchmarkAreaNos.stream().map(String::valueOf).toList(),
-                excellencePoints, epBench);
+                excellencePoints, null);
     }
 
     /* -------------------------------- internals --------------------------------- */
@@ -304,8 +336,6 @@ public class FacilityScoringService {
             Classification classification = entry.getValue().classification();
             if (classification == Classification.EFFICACY) {
                 savePoint(facilityId, cycleId, questionnaireId, FacilityScaleScore.MetricType.QUANT_STRENGTH,
-                        entry.getKey().areaId(), entry.getKey().letter(), entry.getValue().finalScore(), now);
-                savePoint(facilityId, cycleId, questionnaireId, FacilityScaleScore.MetricType.EXCELLENCE_POINT,
                         entry.getKey().areaId(), entry.getKey().letter(), entry.getValue().finalScore(), now);
             } else if (classification == Classification.CRITICAL) {
                 savePoint(facilityId, cycleId, questionnaireId, FacilityScaleScore.MetricType.QUANT_WEAKNESS,

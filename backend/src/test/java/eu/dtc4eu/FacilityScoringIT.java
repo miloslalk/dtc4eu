@@ -243,9 +243,11 @@ class FacilityScoringIT {
         assertThat(summary.get("qualStrengthPoints")).isNull();
         // facility1 is the only scored member → best of its terna in all 9 areas
         assertThat((List<String>) summary.get("benchmarkAreas")).hasSize(9).contains("1", "9");
-        // EP = the quantitative strength set (documented assumption); all fall in benchmark areas
+        // Expert-feedback rule: EP = strength points inside the facility's
+        // benchmark areas (it wins all 9 here, so all 18 strengths qualify).
         assertThat((List<String>) summary.get("excellencePoints")).hasSize(18);
-        assertThat((List<String>) summary.get("epBench")).hasSize(18);
+        // EP-Bench: exact rule still open with the client — served as null
+        assertThat(summary.get("epBench")).isNull();
     }
 
     @Test

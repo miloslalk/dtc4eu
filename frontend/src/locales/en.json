@@ -87,7 +87,11 @@
     "internalFacilitator": "Internal facilitator",
     "setParticipation": "Set participation",
     "gridVariant": "Grid variant",
-    "types": { "TC": "DTC-TC", "GA": "DTC-GA", "SH": "SH" },
+    "types": {
+      "TC": "DTC-TC",
+      "GA": "DTC-GA",
+      "SH": "SH"
+    },
     "typeNames": {
       "TC": "DTC-TC — Therapeutic Community",
       "GA": "DTC-GA — Group Apartment",
@@ -103,8 +107,17 @@
       "SUPPORTED_APARTMENTS": "3.a Supported Apartments SH",
       "HOME_CARE": "3.b Home Care SH"
     },
-    "activities": { "VISITING_TERNA": "Visiting terna", "QUALITY_AUDIT": "Quality audit", "TRAINING_PAUSE": "Training pause" },
-    "categories": { "USER": "Users", "FAMILY": "Family members", "STAFF": "Staff", "MANAGER": "Managers" },
+    "activities": {
+      "VISITING_TERNA": "Visiting terna",
+      "QUALITY_AUDIT": "Quality audit",
+      "TRAINING_PAUSE": "Training pause"
+    },
+    "categories": {
+      "USER": "Users",
+      "FAMILY": "Family members",
+      "STAFF": "Staff",
+      "MANAGER": "Managers"
+    },
     "history": {
       "title": "Accreditation history",
       "cyclesInProgramme": "Annual cycles in the accreditation programme: {{count}}",
@@ -130,7 +143,44 @@
         "CGS": "CGS — Community Group Setting",
         "EEN": "EEN — Enabling Environment Setting"
       },
-      "origins": { "DEVELOPED": "Developed", "IMPLEMENTED": "Implemented" }
+      "origins": {
+        "DEVELOPED": "Developed",
+        "IMPLEMENTED": "Implemented"
+      }
+    },
+    "checklist": {
+      "title": "Cycle activity checklist (OK / NO)",
+      "sagDone": "Setting Analysis Grid — Internal Facilitator",
+      "qcncDone": "QCNC — Internal Facilitator",
+      "dtcroLongFormDone": "DTCRO Long Form — Internal Facilitator",
+      "foundationMeetingDone": "Foundation Meeting",
+      "finalForumDone": "Final Forum"
+    },
+    "qcncBoard": {
+      "intro": "Conformity / Non-Conformity per quality standard, over the three administrations of the cycle: the Internal Facilitator's self-assessment, the Terna Coordinator's own assessment, and the Terna Coordinator's assessment for the visiting delegation. ★ marks the mandatory Q1 standards (1D, 1E, 1K, 1O, 1P, 1Q, 1R).",
+      "standard": "Standard",
+      "mandatory": "Mandatory standard",
+      "notAdministered": "not administered yet",
+      "strengthMeta": "Strength standards (C in all three)",
+      "weaknessMeta": "Weakness standards (NC in all three)",
+      "metaEmpty": "Computed once all three administrations are recorded.",
+      "saveColumn": "Save {{column}}",
+      "clusters": {
+        "Q1": "Attachment – Belonging",
+        "Q2": "Containment – Permissiveness",
+        "Q3": "Communication – Communalism",
+        "Q4": "Involvement – Reality Confrontation",
+        "Q5": "Agency – Democratization"
+      },
+      "administrations": {
+        "INTERNAL_FACILITATOR": "Internal Facilitator",
+        "TERNA_COORDINATOR_OWN": "Terna Coordinator",
+        "TERNA_COORDINATOR_DELEGATION": "Terna Coord. — Delegation"
+      },
+      "types": {
+        "ORGANIZATIONAL_STRUCTURAL": "Organizational-structural",
+        "COMMUNITY_FUNCTIONAL": "Community-functional"
+      }
     }
   },
   "ternas": {
@@ -147,7 +197,11 @@
     "finalForum": "Final forum",
     "facilityCountRule": "A terna links exactly 3 facilities",
     "coordinatorRule": "TCS ternas have 2 coordinators; GAS/SHS have 1",
-    "types": { "TCS": "TCs terna", "GAS": "GAs terna", "SHS": "SHs terna" },
+    "types": {
+      "TCS": "TCs terna",
+      "GAS": "GAs terna",
+      "SHS": "SHs terna"
+    },
     "from": "From",
     "to": "To",
     "tabBuilder": "Builder",
@@ -262,7 +316,7 @@
     },
     "summary": {
       "title": "Summary table — annual cycle",
-      "hint": "Qualitative rows stay empty until QCNC data entry is in scope (register open question 12.2).",
+      "hint": "Qualitative area rows await the client's cluster-level QCNC rule; standard-level C/NC entry lives on the facility's QCNC tab. EP-Bench's exact rule is an open question with the client.",
       "qualWeaknessAreas": "Qualitative Weakness Areas (C-NC)",
       "qualWeaknessPoints": "Qualitative Weakness Points",
       "quantWeaknessAreas": "Quantitative Weakness Areas",
@@ -298,7 +352,11 @@
     "sequence": "No.",
     "sequenceLabel": "Cycle number in the programme",
     "overlapHint": "Cycles span 16 months (Sep 1 → Dec 31 of the following year) and adjacent cycles overlap — several cycles can be OPEN at once.",
-    "statuses": { "OPEN": "Open", "CLOSED": "Closed", "ARCHIVED": "Archived" },
+    "statuses": {
+      "OPEN": "Open",
+      "CLOSED": "Closed",
+      "ARCHIVED": "Archived"
+    },
     "roleNames": {
       "SUPER_ADMIN": "Super Administrator",
       "ADMIN": "Administrator",

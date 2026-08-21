@@ -21,8 +21,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Terna_Example1 workbook semantics): Excel AVERAGE-skip-missing at every
  * stage, Del absent for letters d/e, exact TAB.5 boundaries (2.0 → CRITICAL,
  * 3.0 → EFFICACY), 3-decimal HALF_UP outputs. Numbers are hand-computed from
- * the register's formulas; swap in the client's workbook values when the
- * Terna_Example1 file is provided.
+ * the register's formulas; the two ternaExample1* tests below additionally
+ * replay real columns from the client's Terna_Example1 workbook
+ * (tools/dtc4euexpertfeedbackontheplatform (1)).
  */
 class FacilityScoringEngineTest {
 
@@ -178,5 +179,81 @@ class FacilityScoringEngineTest {
         assertThat(result.overall()).isNull();
         assertThat(result.overallClassification()).isNull();
         assertThat(result.items().get(c(AREA_1, "a")).finalScore()).isNull();
+    }
+
+    /**
+     * The workbook computes area category scores as the AVERAGE of the item
+     * category means (sheet DTC-TC1: D13 = mean of N13:N17 present values),
+     * NOT as a pooled mean over raw answers. With unequal per-item response
+     * counts the two differ — this pins the workbook semantics.
+     */
+    @Test
+    void areaCategoryMeanIsMeanOfItemMeansNotPooledRawMean() {
+        Map<Long, List<Coordinate>> grid = new LinkedHashMap<>();
+        grid.put(AREA_1, List.of(c(AREA_1, "a"), c(AREA_1, "b")));
+
+        var input = responses();
+        // respondent 1 answers only 1.a=4; respondent 2 answers 1.a=2 and 1.b=1
+        input.put(RespondentCategory.USER, List.of(
+                Map.of(c(AREA_1, "a"), 4),
+                Map.of(c(AREA_1, "a"), 2, c(AREA_1, "b"), 1)));
+
+        Result result = FacilityScoringEngine.compute(input, grid);
+        // item means: 1.a=3, 1.b=1 → area mean-of-means = 2.000 (pooled raw would be 7/3 = 2.333)
+        assertThat(result.areas().get(AREA_1).userMean()).isEqualByComparingTo("2.000");
+    }
+
+    /**
+     * Real numbers from the Terna_Example1 workbook, sheet "DTC - TC 1": the
+     * Community (column S) and Delegation (column T) administrations are
+     * single questionnaires with integer answers, so they replay exactly.
+     * Asserts every area Com (column I) and Del (column J).
+     */
+    @Test
+    void ternaExample1CommunityAndDelegationColumnsReplayExactly() {
+        long[] areaIds = new long[9];
+        Map<Long, List<Coordinate>> grid = new LinkedHashMap<>();
+        for (int areaNo = 1; areaNo <= 9; areaNo++) {
+            long areaId = 200L + areaNo;
+            areaIds[areaNo - 1] = areaId;
+            grid.put(areaId, List.of(c(areaId, "a"), c(areaId, "b"), c(areaId, "c"),
+                    c(areaId, "d"), c(areaId, "e")));
+        }
+
+        int[][] community = { // column S, areas 1..9 × letters a..e
+                {3, 4, 2, 4, 3}, {3, 4, 3, 4, 3}, {3, 3, 4, 2, 4},
+                {3, 3, 1, 4, 4}, {3, 3, 4, 4, 4}, {4, 4, 3, 2, 3},
+                {2, 2, 4, 4, 4}, {4, 2, 2, 3, 3}, {4, 3, 2, 3, 4}};
+        int[][] delegation = { // column T, areas 1..9 × letters a..c
+                {3, 4, 3}, {2, 2, 2}, {4, 3, 4}, {3, 4, 1}, {4, 3, 4},
+                {3, 4, 4}, {4, 4, 4}, {4, 2, 2}, {4, 2, 2}};
+
+        Map<Coordinate, Integer> communityAnswers = new LinkedHashMap<>();
+        Map<Coordinate, Integer> delegationAnswers = new LinkedHashMap<>();
+        String letters = "abcde";
+        for (int a = 0; a < 9; a++) {
+            for (int l = 0; l < 5; l++) {
+                communityAnswers.put(c(areaIds[a], String.valueOf(letters.charAt(l))), community[a][l]);
+            }
+            for (int l = 0; l < 3; l++) {
+                delegationAnswers.put(c(areaIds[a], String.valueOf(letters.charAt(l))), delegation[a][l]);
+            }
+        }
+        var input = responses();
+        input.put(RespondentCategory.LONG_FORM, List.of(communityAnswers));
+        input.put(RespondentCategory.DELEGATION, List.of(delegationAnswers));
+
+        Result result = FacilityScoringEngine.compute(input, grid);
+
+        String[] expectedCom = {"3.200", "3.400", "3.200", "3.000", "3.600", "3.200", "3.200", "2.800", "3.200"};
+        String[] expectedDel = {"3.333", "2.000", "3.667", "2.667", "3.667", "3.667", "4.000", "2.667", "2.667"};
+        for (int a = 0; a < 9; a++) {
+            Scores area = result.areas().get(areaIds[a]);
+            assertThat(area.com()).as("area %d Com (workbook column I)", a + 1)
+                    .isEqualByComparingTo(expectedCom[a]);
+            assertThat(area.del()).as("area %d Del (workbook column J)", a + 1)
+                    .isEqualByComparingTo(expectedDel[a]);
+            assertThat(area.averI()).as("area %d has no individual administrations", a + 1).isNull();
+        }
     }
 }

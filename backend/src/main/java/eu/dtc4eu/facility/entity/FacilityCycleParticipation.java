@@ -38,4 +38,21 @@ public class FacilityCycleParticipation {
 
     @Column(name = "internal_facilitator_id")
     private Long internalFacilitatorId;
+
+    /* Expert-feedback activity checklist: TRUE = OK, FALSE = NO, NULL = unset. */
+
+    @Column(name = "sag_done")
+    private Boolean sagDone;
+
+    @Column(name = "qcnc_done")
+    private Boolean qcncDone;
+
+    @Column(name = "dtcro_long_form_done")
+    private Boolean dtcroLongFormDone;
+
+    @Column(name = "foundation_meeting_done")
+    private Boolean foundationMeetingDone;
+
+    @Column(name = "final_forum_done")
+    private Boolean finalForumDone;
 }

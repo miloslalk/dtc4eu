@@ -2,6 +2,8 @@ package eu.dtc4eu.facility.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -27,6 +29,8 @@ import java.util.Map;
 @NoArgsConstructor
 public class QcncAssessment {
 
+    public enum AdministrationType {INTERNAL_FACILITATOR, TERNA_COORDINATOR_OWN, TERNA_COORDINATOR_DELEGATION}
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -36,6 +40,13 @@ public class QcncAssessment {
 
     @Column(name = "annual_cycle_id", nullable = false)
     private Long annualCycleId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "administration_type", nullable = false, length = 40)
+    private AdministrationType administrationType = AdministrationType.INTERNAL_FACILITATOR;
+
+    @Column(name = "administered_by")
+    private Long administeredBy;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")

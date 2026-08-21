@@ -59,11 +59,15 @@ public final class FacilityDtos {
     }
 
     public record ParticipationDto(FacilityCycleParticipation.Activity activity, Long internalFacilitatorId,
-                                   String internalFacilitatorName) {
+                                   String internalFacilitatorName,
+                                   Boolean sagDone, Boolean qcncDone, Boolean dtcroLongFormDone,
+                                   Boolean foundationMeetingDone, Boolean finalForumDone) {
     }
 
     public record SetParticipationRequest(@NotNull FacilityCycleParticipation.Activity activity,
-                                          Long internalFacilitatorId) {
+                                          Long internalFacilitatorId,
+                                          Boolean sagDone, Boolean qcncDone, Boolean dtcroLongFormDone,
+                                          Boolean foundationMeetingDone, Boolean finalForumDone) {
     }
 
     public record MemberDto(Long id, String memberCode, FacilityMember.Category category) {

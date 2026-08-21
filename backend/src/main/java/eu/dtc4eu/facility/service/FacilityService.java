@@ -175,8 +175,14 @@ public class FacilityService {
         FacilityCycleParticipation participation = participationRepository
                 .findByFacilityIdAndAnnualCycleId(facilityId, cycleContext.requireId())
                 .orElseThrow(() -> new NotFoundException("No participation recorded for this cycle"));
+        return participationDto(participation);
+    }
+
+    private ParticipationDto participationDto(FacilityCycleParticipation participation) {
         return new ParticipationDto(participation.getActivity(), participation.getInternalFacilitatorId(),
-                userName(participation.getInternalFacilitatorId()));
+                userName(participation.getInternalFacilitatorId()),
+                participation.getSagDone(), participation.getQcncDone(), participation.getDtcroLongFormDone(),
+                participation.getFoundationMeetingDone(), participation.getFinalForumDone());
     }
 
     /** Upsert per (facility, cycle): the activity is settable per cycle (spec T2). */
@@ -198,11 +204,15 @@ public class FacilityService {
                 });
         participation.setActivity(request.activity());
         participation.setInternalFacilitatorId(request.internalFacilitatorId());
+        participation.setSagDone(request.sagDone());
+        participation.setQcncDone(request.qcncDone());
+        participation.setDtcroLongFormDone(request.dtcroLongFormDone());
+        participation.setFoundationMeetingDone(request.foundationMeetingDone());
+        participation.setFinalForumDone(request.finalForumDone());
         participationRepository.save(participation);
         auditService.success(actor.getId(), "SET_PARTICIPATION", "facility", facilityId,
                 Map.of("cycleId", cycleId, "activity", request.activity().name()));
-        return new ParticipationDto(participation.getActivity(), participation.getInternalFacilitatorId(),
-                userName(participation.getInternalFacilitatorId()));
+        return participationDto(participation);
     }
 
     /* --------------------------------- members -------------------------------- */
@@ -281,7 +291,9 @@ public class FacilityService {
     @Transactional(readOnly = true)
     public QcncDto getQcnc(Long facilityId, AppUserDetails principal) {
         findInScope(facilityId, principal);
-        QcncAssessment qcnc = qcncRepository.findByFacilityIdAndAnnualCycleId(facilityId, cycleContext.requireId())
+        QcncAssessment qcnc = qcncRepository
+                .findByFacilityIdAndAnnualCycleIdAndAdministrationType(facilityId, cycleContext.requireId(),
+                        QcncAssessment.AdministrationType.INTERNAL_FACILITATOR)
                 .orElseThrow(() -> new NotFoundException("No QCNC assessment recorded for this cycle"));
         return QcncDto.of(qcnc);
     }
@@ -290,7 +302,9 @@ public class FacilityService {
     public QcncDto putQcnc(Long facilityId, PutQcncRequest request, AppUserDetails actor) {
         findInScope(facilityId, actor);
         Long cycleId = cycleContext.requireWritable().getId();
-        QcncAssessment qcnc = qcncRepository.findByFacilityIdAndAnnualCycleId(facilityId, cycleId)
+        QcncAssessment qcnc = qcncRepository
+                .findByFacilityIdAndAnnualCycleIdAndAdministrationType(facilityId, cycleId,
+                        QcncAssessment.AdministrationType.INTERNAL_FACILITATOR)
                 .orElseGet(() -> {
                     QcncAssessment created = new QcncAssessment();
                     created.setFacilityId(facilityId);
@@ -305,7 +319,7 @@ public class FacilityService {
 
     /* --------------------------------- helpers -------------------------------- */
 
-    private Facility findInScope(Long id, AppUserDetails principal) {
+    Facility findInScope(Long id, AppUserDetails principal) {
         DataScope scope = dataScopeService.scopeOf(principal);
         return facilityRepository.findById(id)
                 .filter(f -> scope.canSeeFacility(f.getId()))

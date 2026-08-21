@@ -14,7 +14,10 @@ import eu.dtc4eu.facility.dto.FacilityDtos.SetParticipationRequest;
 import eu.dtc4eu.facility.dto.FacilityDtos.UpdateFacilityRequest;
 import eu.dtc4eu.facility.entity.Facility;
 import eu.dtc4eu.facility.entity.FacilityCycleParticipation;
+import eu.dtc4eu.facility.dto.QcncDtos;
+import eu.dtc4eu.facility.entity.QcncAssessment;
 import eu.dtc4eu.facility.service.FacilityService;
+import eu.dtc4eu.facility.service.QcncStandardsService;
 import eu.dtc4eu.security.AppUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -51,6 +54,7 @@ import java.util.List;
 public class FacilityController {
 
     private final FacilityService facilityService;
+    private final QcncStandardsService qcncStandardsService;
 
     @Operation(summary = "List facilities (filters: q, setting, subtype, country, city, activity-in-cycle, active)")
     @GetMapping
@@ -159,6 +163,25 @@ public class FacilityController {
     public SagDto putSag(@PathVariable Long id, @Valid @RequestBody PutSagRequest request,
                          @AuthenticationPrincipal AppUserDetails actor) {
         return facilityService.putSag(id, request, actor);
+    }
+
+    /* qcnc — standards board (expert-feedback C/NC entry over the V11 catalogue) */
+
+    @Operation(summary = "QCNC board: catalogue + the three administrations' C/NC marks + meta lists")
+    @GetMapping("/{id}/qcnc-standards")
+    public QcncDtos.QcncBoardDto qcncBoard(@PathVariable Long id,
+                                           @AuthenticationPrincipal AppUserDetails principal) {
+        return qcncStandardsService.getBoard(id, principal);
+    }
+
+    @Operation(summary = "Replace one administration's C/NC results; records the administrator")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','COORDINATOR','AUDIT_COORDINATOR','INTERNAL_FACILITATOR')")
+    @PutMapping("/{id}/qcnc-standards/{administrationType}")
+    public QcncDtos.QcncBoardDto saveQcncResults(@PathVariable Long id,
+                                                 @PathVariable QcncAssessment.AdministrationType administrationType,
+                                                 @Valid @RequestBody QcncDtos.SaveResultsRequest request,
+                                                 @AuthenticationPrincipal AppUserDetails principal) {
+        return qcncStandardsService.saveResults(id, administrationType, request, principal);
     }
 
     /* qcnc */

@@ -67,7 +67,18 @@ export interface Participation {
   activity: Activity;
   internalFacilitatorId: number | null;
   internalFacilitatorName: string | null;
+  sagDone: boolean | null;
+  qcncDone: boolean | null;
+  dtcroLongFormDone: boolean | null;
+  foundationMeetingDone: boolean | null;
+  finalForumDone: boolean | null;
 }
+
+/** The expert-feedback OK/NO activity checklist keys, in display order. */
+export const PARTICIPATION_CHECKLIST = [
+  'sagDone', 'qcncDone', 'dtcroLongFormDone', 'foundationMeetingDone', 'finalForumDone',
+] as const;
+export type ChecklistKey = (typeof PARTICIPATION_CHECKLIST)[number];
 
 export interface Member {
   id: number;
@@ -150,7 +161,15 @@ export function useParticipation(facilityId: number) {
 export function useSetParticipation(facilityId: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { activity: Activity; internalFacilitatorId?: number | null }) =>
+    mutationFn: async (payload: {
+      activity: Activity;
+      internalFacilitatorId?: number | null;
+      sagDone?: boolean | null;
+      qcncDone?: boolean | null;
+      dtcroLongFormDone?: boolean | null;
+      foundationMeetingDone?: boolean | null;
+      finalForumDone?: boolean | null;
+    }) =>
       (await api.post<Participation>(`/facilities/${facilityId}/participation`, payload)).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['facilities'] }),
   });
@@ -193,6 +212,57 @@ export function usePutSag(facilityId: number) {
     mutationFn: async (payload: { gridVariant: string; payload: Record<string, unknown> }) =>
       (await api.put<Sag>(`/facilities/${facilityId}/set-analysis-grid`, payload)).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['facilities', facilityId, 'sag'] }),
+  });
+}
+
+export type QcncAdministrationType =
+  | 'INTERNAL_FACILITATOR' | 'TERNA_COORDINATOR_OWN' | 'TERNA_COORDINATOR_DELEGATION';
+export const QCNC_ADMINISTRATIONS: QcncAdministrationType[] =
+  ['INTERNAL_FACILITATOR', 'TERNA_COORDINATOR_OWN', 'TERNA_COORDINATOR_DELEGATION'];
+
+export interface QcncStandard {
+  id: number;
+  clusterCode: 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'Q5';
+  letterCode: string;
+  standardType: 'ORGANIZATIONAL_STRUCTURAL' | 'COMMUNITY_FUNCTIONAL';
+  mandatory: boolean;
+  settingParameters: Record<string, string> | null;
+  description: string | null;
+  sortOrder: number | null;
+}
+
+export interface QcncAdministration {
+  administrationType: QcncAdministrationType;
+  administeredById: number | null;
+  administeredByName: string | null;
+  updatedAt: string | null;
+  conformityByStandard: Record<number, 'C' | 'NC'>;
+}
+
+export interface QcncBoard {
+  standards: QcncStandard[];
+  administrations: QcncAdministration[];
+  strengthStandardIds: number[];
+  weaknessStandardIds: number[];
+}
+
+export function useQcncBoard(facilityId: number) {
+  return useQuery({
+    queryKey: ['facilities', facilityId, 'qcnc-board'],
+    queryFn: async () => (await api.get<QcncBoard>(`/facilities/${facilityId}/qcnc-standards`)).data,
+  });
+}
+
+export function useSaveQcncResults(facilityId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ administrationType, results }: {
+      administrationType: QcncAdministrationType;
+      results: { standardId: number; conformity: 'C' | 'NC' }[];
+    }) =>
+      (await api.put<QcncBoard>(`/facilities/${facilityId}/qcnc-standards/${administrationType}`, { results })).data,
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['facilities', facilityId, 'qcnc-board'] }),
   });
 }
 
