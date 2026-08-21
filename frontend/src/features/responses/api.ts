@@ -4,11 +4,11 @@ import type { PageResponse } from '../../lib/types';
 import type { AdministrationMode } from '../questionnaires/api';
 
 export type RespondentCategory =
-  | 'USERS' | 'FAMILIARS' | 'PRACTITIONERS' | 'MANAGERS' | 'SELFEVAL_COLLECTIVE' | 'HETEROEVAL_DELEGATION';
+  | 'USER' | 'FAMILY' | 'STAFF' | 'MANAGER' | 'LONG_FORM' | 'DELEGATION';
 export type ResponseStatus = 'DRAFT' | 'SUBMITTED';
 
 export const RESPONDENT_CATEGORIES: RespondentCategory[] = [
-  'USERS', 'FAMILIARS', 'PRACTITIONERS', 'MANAGERS', 'SELFEVAL_COLLECTIVE', 'HETEROEVAL_DELEGATION',
+  'USER', 'FAMILY', 'STAFF', 'MANAGER', 'LONG_FORM', 'DELEGATION',
 ];
 
 export interface ResponseRow {
@@ -42,6 +42,7 @@ export interface ResponseDetail {
   administrationMode: AdministrationMode | null;
   status: ResponseStatus;
   submittedAt: string | null;
+  profileSnapshot: Record<string, unknown> | null;
   items: ResponseItem[];
   answeredLikert: number;
   totalLikert: number;
@@ -99,9 +100,23 @@ export function useCreateResponse() {
       formId?: number | null;
       facilityId?: number | null;
       subjectCode: string;
-      respondentCategory: RespondentCategory;
+      respondentCategory?: RespondentCategory;
     }) => (await api.post<ResponseDetail>('/responses', payload)).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['responses'] }),
+  });
+}
+
+/** Header update — used by the profile step to persist the anagraphic snapshot. */
+export function useUpdateResponse(responseId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      subjectCode: string;
+      facilityId?: number | null;
+      profileSnapshot?: Record<string, unknown>;
+    }) => (await api.put<ResponseDetail>(`/responses/${responseId}`, payload)).data,
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['responses', 'detail', responseId] }),
   });
 }
 

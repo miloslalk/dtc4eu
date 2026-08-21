@@ -3,17 +3,29 @@ import { api } from '../../lib/api';
 import type { PageResponse } from '../../lib/types';
 
 export type FacilityType = 'TC' | 'GA' | 'SH';
+export type FacilitySubtype =
+  | 'RTC' | 'STC' | 'DAY_TC'
+  | 'DOUBLE_GA' | 'SIMPLE_GA' | 'COUPLE_GA'
+  | 'SUPPORTED_APARTMENTS' | 'HOME_CARE';
 export type Activity = 'VISITING_TERNA' | 'QUALITY_AUDIT' | 'TRAINING_PAUSE';
-export type MemberCategory = 'USERS' | 'FAMILIARS' | 'PRACTITIONERS' | 'MANAGERS';
+export type MemberCategory = 'USER' | 'FAMILY' | 'STAFF' | 'MANAGER';
 
 export const FACILITY_TYPES: FacilityType[] = ['TC', 'GA', 'SH'];
+/** v0.2 register §7 taxonomy: 3 settings × 8 types. */
+export const SUBTYPES_BY_TYPE: Record<FacilityType, FacilitySubtype[]> = {
+  TC: ['RTC', 'STC', 'DAY_TC'],
+  GA: ['DOUBLE_GA', 'SIMPLE_GA', 'COUPLE_GA'],
+  SH: ['SUPPORTED_APARTMENTS', 'HOME_CARE'],
+};
+export const FACILITY_SUBTYPES: FacilitySubtype[] = FACILITY_TYPES.flatMap((t) => SUBTYPES_BY_TYPE[t]);
 export const ACTIVITIES: Activity[] = ['VISITING_TERNA', 'QUALITY_AUDIT', 'TRAINING_PAUSE'];
-export const MEMBER_CATEGORIES: MemberCategory[] = ['USERS', 'FAMILIARS', 'PRACTITIONERS', 'MANAGERS'];
+export const MEMBER_CATEGORIES: MemberCategory[] = ['USER', 'FAMILY', 'STAFF', 'MANAGER'];
 
 export interface Facility {
   id: number;
   facilityCode: string;
   facilityType: FacilityType;
+  facilitySubtype: FacilitySubtype | null;
   name: string;
   provider: string | null;
   place: string | null;
@@ -29,6 +41,7 @@ export interface Facility {
 export interface FacilityPayload {
   facilityCode?: string;
   facilityType: FacilityType;
+  facilitySubtype?: FacilitySubtype | null;
   name: string;
   provider?: string | null;
   place?: string | null;
@@ -41,6 +54,7 @@ export interface FacilityPayload {
 export interface FacilityFilters {
   q?: string;
   type?: string;
+  subtype?: string;
   country?: string;
   city?: string;
   activity?: string;
@@ -77,6 +91,7 @@ function filterParams(filters: FacilityFilters) {
   return {
     q: filters.q || undefined,
     type: filters.type || undefined,
+    subtype: filters.subtype || undefined,
     country: filters.country || undefined,
     city: filters.city || undefined,
     activity: filters.activity || undefined,
@@ -208,5 +223,87 @@ export function usePutQcnc(facilityId: number) {
     mutationFn: async (payload: { payload: Record<string, unknown> }) =>
       (await api.put<Qcnc>(`/facilities/${facilityId}/qcnc`, payload)).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['facilities', facilityId, 'qcnc'] }),
+  });
+}
+
+/* -------- quality documents + accreditation history (v0.2 register §6) -------- */
+
+export type StandardType = 'GPP' | 'CGS' | 'EEN';
+export const STANDARD_TYPES: StandardType[] = ['GPP', 'CGS', 'EEN'];
+
+export interface DocumentApplication {
+  id: number;
+  standardType: StandardType;
+  standardCode: string | null;
+  serviceName: string | null;
+  serviceType: string | null;
+  numUsers: number | null;
+  numStaff: number | null;
+  origin: 'DEVELOPED' | 'IMPLEMENTED' | null;
+  applicationCyclesCount: number | null;
+  applicationLevelPct: string | null;
+}
+
+export interface DocumentApplicationPayload {
+  standardType: StandardType;
+  standardCode?: string | null;
+  serviceName?: string | null;
+  origin?: 'DEVELOPED' | 'IMPLEMENTED' | null;
+  applicationLevelPct?: number | null;
+}
+
+export interface HistoryCycle {
+  cycleId: number;
+  cycleCode: string;
+  sequenceNumber: number | null;
+  activity: string | null;
+  excellencePointsByQuestionnaire: Record<string, string[]>;
+  documentApplications: DocumentApplication[];
+}
+
+export interface FacilityHistory {
+  facilityId: number;
+  facilityCode: string;
+  cyclesInProgramme: number;
+  cycles: HistoryCycle[];
+}
+
+export function useDocumentApplications(facilityId: number) {
+  return useQuery({
+    queryKey: ['facilities', facilityId, 'document-applications'],
+    queryFn: async () =>
+      (await api.get<DocumentApplication[]>(`/facilities/${facilityId}/document-applications`)).data,
+  });
+}
+
+export function useSaveDocumentApplication(facilityId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, payload }: { id: number | null; payload: DocumentApplicationPayload }) =>
+      id === null
+        ? (await api.post<DocumentApplication>(`/facilities/${facilityId}/document-applications`, payload)).data
+        : (await api.put<DocumentApplication>(`/facilities/${facilityId}/document-applications/${id}`, payload)).data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['facilities', facilityId, 'document-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['facilities', facilityId, 'history'] });
+    },
+  });
+}
+
+export function useDeleteDocumentApplication(facilityId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => api.delete(`/facilities/${facilityId}/document-applications/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['facilities', facilityId, 'document-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['facilities', facilityId, 'history'] });
+    },
+  });
+}
+
+export function useFacilityHistory(facilityId: number) {
+  return useQuery({
+    queryKey: ['facilities', facilityId, 'history'],
+    queryFn: async () => (await api.get<FacilityHistory>(`/facilities/${facilityId}/history`)).data,
   });
 }

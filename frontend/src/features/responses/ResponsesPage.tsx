@@ -12,7 +12,7 @@ import { useAuth } from '../../lib/auth';
 import { useCycle } from '../../lib/cycle';
 import { apiErrorMessage, downloadFile } from '../../lib/api';
 import { useFacilities } from '../facilities/api';
-import { useQuestionnaires } from '../questionnaires/api';
+import { useQuestionnaire, useQuestionnaires } from '../questionnaires/api';
 import {
   RESPONDENT_CATEGORIES, useCreateResponse, useResponses,
   type RespondentCategory, type ResponseFilters, type ResponseRow,
@@ -127,22 +127,31 @@ function NewResponseModal({ open, onClose }: { open: boolean; onClose: () => voi
   const questionnaires = useQuestionnaires();
   const create = useCreateResponse();
 
-  const [form, setForm] = useState({ questionnaireId: '', facilityId: '', subjectCode: '', category: 'USERS' as RespondentCategory });
+  const [form, setForm] = useState({
+    questionnaireId: '', formId: '', facilityId: '', subjectCode: '', category: '' as '' | RespondentCategory,
+  });
   const [error, setError] = useState<string | null>(null);
 
   const activeQuestionnaires = (questionnaires.data ?? []).filter((q) => q.active);
+  const { data: questionnaireDetail } = useQuestionnaire(Number(form.questionnaireId) || 0);
+  const forms = questionnaireDetail?.forms ?? [];
+  const hasForms = forms.length > 0;
+  const selectedForm = forms.find((f) => f.id === Number(form.formId));
+  const isCollective = selectedForm != null && selectedForm.administrationMode !== 'INDIVIDUAL';
 
   const handleCreate = async () => {
-    if (!form.questionnaireId || !form.subjectCode.trim()) {
+    if (!form.questionnaireId || !form.subjectCode.trim() || (hasForms && !form.formId)
+        || (!hasForms && !form.category)) {
       setError(t('common.required'));
       return;
     }
     try {
       const created = await create.mutateAsync({
         questionnaireId: Number(form.questionnaireId),
+        formId: form.formId ? Number(form.formId) : null,
         facilityId: form.facilityId ? Number(form.facilityId) : null,
         subjectCode: form.subjectCode.trim(),
-        respondentCategory: form.category,
+        respondentCategory: !hasForms && form.category ? form.category : undefined,
       });
       onClose();
       navigate(`/responses/${created.id}`);
@@ -165,12 +174,21 @@ function NewResponseModal({ open, onClose }: { open: boolean; onClose: () => voi
     >
       <div className="space-y-4">
         <SelectField label={t('responses.questionnaire')} required value={form.questionnaireId}
-          onChange={(e) => setForm({ ...form, questionnaireId: e.target.value })}>
+          onChange={(e) => setForm({ ...form, questionnaireId: e.target.value, formId: '' })}>
           <option value="">—</option>
           {activeQuestionnaires.map((q) => (
             <option key={q.id} value={q.id}>{q.code} — {q.name}</option>
           ))}
         </SelectField>
+        {hasForms && (
+          <SelectField label={t('responses.form')} required value={form.formId}
+            onChange={(e) => setForm({ ...form, formId: e.target.value })}>
+            <option value="">—</option>
+            {forms.map((f) => (
+              <option key={f.id} value={f.id}>{f.name ?? f.formCode ?? f.administrationMode}</option>
+            ))}
+          </SelectField>
+        )}
         <SelectField label={t('responses.facility')} value={form.facilityId}
           onChange={(e) => setForm({ ...form, facilityId: e.target.value })}>
           <option value="">—</option>
@@ -178,14 +196,19 @@ function NewResponseModal({ open, onClose }: { open: boolean; onClose: () => voi
             <option key={facility.id} value={facility.id}>{facility.facilityCode} — {facility.name}</option>
           ))}
         </SelectField>
-        <TextField label={t('responses.subjectCode')} required placeholder="SUBJ-001" value={form.subjectCode}
+        <TextField
+          label={isCollective ? t('responses.workingGroupCode') : t('responses.subjectCode')}
+          required placeholder={isCollective ? 'WG-001' : 'SUBJ-001'} value={form.subjectCode}
           onChange={(e) => setForm({ ...form, subjectCode: e.target.value })} />
-        <SelectField label={t('responses.respondentCategory')} required value={form.category}
-          onChange={(e) => setForm({ ...form, category: e.target.value as RespondentCategory })}>
-          {RESPONDENT_CATEGORIES.map((category) => (
-            <option key={category} value={category}>{t(`responses.categories.${category}`)}</option>
-          ))}
-        </SelectField>
+        {!hasForms && (
+          <SelectField label={t('responses.respondentCategory')} required value={form.category}
+            onChange={(e) => setForm({ ...form, category: e.target.value as RespondentCategory })}>
+            <option value="">—</option>
+            {RESPONDENT_CATEGORIES.map((category) => (
+              <option key={category} value={category}>{t(`responses.categories.${category}`)}</option>
+            ))}
+          </SelectField>
+        )}
         <p className="text-xs text-neutral-500">{t('responses.pseudonymHint')}</p>
         {error && <p className="rounded-lg bg-error-surface px-3 py-2 text-sm font-medium text-error">{error}</p>}
       </div>

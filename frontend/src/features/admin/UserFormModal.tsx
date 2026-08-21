@@ -56,7 +56,8 @@ export function UserFormModal({ open, userId, onClose }: Props) {
     }
   }, [open, isEdit, detail]);
 
-  const needsFacilityScope = form.roles.includes('INTERNAL_FACILITATOR') || form.roles.includes('EVALUATOR');
+  const needsFacilityScope = form.roles.includes('INTERNAL_FACILITATOR') || form.roles.includes('EVALUATOR')
+    || form.roles.includes('AUDIT_COORDINATOR');
   const needsTernaScope = form.roles.includes('COORDINATOR');
   const facilities = useFacilityPicker(open && needsFacilityScope);
   const ternas = useTernaPicker(open && needsTernaScope);
@@ -137,7 +138,7 @@ export function UserFormModal({ open, userId, onClose }: Props) {
 
         <fieldset>
           <legend className="mb-1 text-sm font-semibold text-neutral-700">{t('admin.roles')} *</legend>
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid gap-1.5 sm:grid-cols-2">
             {ALL_ROLES.map((role) => (
               <label key={role} className="flex items-center gap-2 text-sm text-neutral-700">
                 <input

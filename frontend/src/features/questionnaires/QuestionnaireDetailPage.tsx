@@ -73,7 +73,7 @@ function Header({ questionnaire }: { questionnaire: QuestionnaireDetail }) {
     <div>
       <PageHeader
         title={
-          <span className="flex items-center gap-3">
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             {questionnaire.code}
             <StatusTag tone="info">{t('questionnaires.scale')} {questionnaire.scaleMin}–{questionnaire.scaleMax}</StatusTag>
             <StatusTag tone={questionnaire.active ? 'success' : 'neutral'}>
@@ -190,19 +190,29 @@ function ItemsCard({ questionnaire }: { questionnaire: QuestionnaireDetail }) {
   const saveItem = useSaveItem(questionnaire.id);
   const deleteItem = useDeleteItem(questionnaire.id);
   const [editing, setEditing] = useState<Item | null | 'new'>(null);
-  const [form, setForm] = useState({ areaId: '', itemCode: '', itemText: '', responseType: 'LIKERT' as ResponseType, sortOrder: '' });
+  const [form, setForm] = useState({
+    areaId: '', formId: '', itemLetter: '', itemCode: '', itemText: '',
+    responseType: 'LIKERT' as ResponseType, sortOrder: '',
+  });
   const [error, setError] = useState<string | null>(null);
 
   const areaCode = (areaId: number | null) =>
     questionnaire.areas.find((area) => area.id === areaId)?.areaCode ?? '—';
+  const formCode = (formId: number | null) =>
+    questionnaire.forms.find((f) => f.id === formId)?.formCode ?? null;
 
   const openEditor = (item: Item | 'new') => {
     setEditing(item);
     setError(null);
     setForm(item === 'new'
-      ? { areaId: '', itemCode: '', itemText: '', responseType: 'LIKERT', sortOrder: String(questionnaire.items.length + 1) }
+      ? {
+          areaId: '', formId: '', itemLetter: '', itemCode: '', itemText: '',
+          responseType: 'LIKERT', sortOrder: String(questionnaire.items.length + 1),
+        }
       : {
           areaId: item.areaId?.toString() ?? '',
+          formId: item.formId?.toString() ?? '',
+          itemLetter: item.itemLetter ?? '',
           itemCode: item.itemCode,
           itemText: item.itemText,
           responseType: item.responseType,
@@ -216,6 +226,8 @@ function ItemsCard({ questionnaire }: { questionnaire: QuestionnaireDetail }) {
         itemId: editing === 'new' || editing === null ? null : editing.id,
         payload: {
           areaId: form.areaId === '' ? null : Number(form.areaId),
+          formId: form.formId === '' ? null : Number(form.formId),
+          itemLetter: form.itemLetter === '' ? null : form.itemLetter,
           itemCode: form.itemCode.trim(),
           itemText: form.itemText.trim(),
           responseType: form.responseType,
@@ -245,6 +257,11 @@ function ItemsCard({ questionnaire }: { questionnaire: QuestionnaireDetail }) {
             <span className="w-8 shrink-0 rounded bg-blue-50 px-1 text-center font-mono text-[10px] text-blue-700">
               {areaCode(item.areaId)}
             </span>
+            {formCode(item.formId) && (
+              <span className="w-20 shrink-0 truncate rounded bg-gold-50 px-1 text-center font-mono text-[10px] text-gold-900">
+                {formCode(item.formId)}
+              </span>
+            )}
             <span className="flex-1 text-neutral-800">{item.itemText}</span>
             {item.responseType === 'FREE_TEXT' && <StatusTag tone="neutral">txt</StatusTag>}
             <button type="button" className="text-xs font-medium text-azure-500 hover:underline"
@@ -274,7 +291,7 @@ function ItemsCard({ questionnaire }: { questionnaire: QuestionnaireDetail }) {
         }
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <TextField label={t('questionnaires.code')} required value={form.itemCode}
               onChange={(e) => setForm({ ...form, itemCode: e.target.value })} />
             <SelectField label={t('questionnaires.area')} value={form.areaId}
@@ -287,7 +304,23 @@ function ItemsCard({ questionnaire }: { questionnaire: QuestionnaireDetail }) {
           </div>
           <TextAreaField label={t('questionnaires.itemText')} required value={form.itemText}
             onChange={(e) => setForm({ ...form, itemText: e.target.value })} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <SelectField label={t('questionnaires.form')} value={form.formId}
+              onChange={(e) => setForm({ ...form, formId: e.target.value })}>
+              <option value="">—</option>
+              {questionnaire.forms.map((f) => (
+                <option key={f.id} value={f.id}>{f.formCode ?? f.name ?? f.administrationMode}</option>
+              ))}
+            </SelectField>
+            <SelectField label={t('questionnaires.itemLetter')} value={form.itemLetter}
+              onChange={(e) => setForm({ ...form, itemLetter: e.target.value })}>
+              <option value="">—</option>
+              {['a', 'b', 'c', 'd', 'e'].map((letter) => (
+                <option key={letter} value={letter}>{letter}</option>
+              ))}
+            </SelectField>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
             <SelectField label={t('questionnaires.responseType')} value={form.responseType}
               onChange={(e) => setForm({ ...form, responseType: e.target.value as ResponseType })}>
               <option value="LIKERT">LIKERT</option>
@@ -308,17 +341,21 @@ function FormsCard({ questionnaire }: { questionnaire: QuestionnaireDetail }) {
   const addForm = useAddForm(questionnaire.id);
   const deleteForm = useDeleteForm(questionnaire.id);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ administrationMode: 'INDIVIDUAL', stakeholderCategory: '', facilityType: '', name: '' });
+  const [form, setForm] = useState({
+    formCode: '', administrationMode: 'INDIVIDUAL', stakeholderCategory: '', facilityType: '', name: '', sortOrder: '',
+  });
   const [error, setError] = useState<string | null>(null);
 
   const handleAdd = async () => {
     try {
       await addForm.mutateAsync({
+        formCode: form.formCode.trim() || null,
         administrationMode: form.administrationMode as (typeof ADMINISTRATION_MODES)[number],
         stakeholderCategory: form.stakeholderCategory === ''
           ? null : (form.stakeholderCategory as (typeof STAKEHOLDER_CATEGORIES)[number]),
         facilityType: form.facilityType || null,
         name: form.name || null,
+        sortOrder: form.sortOrder === '' ? null : Number(form.sortOrder),
       });
       setOpen(false);
     } catch (e) {
@@ -339,6 +376,7 @@ function FormsCard({ questionnaire }: { questionnaire: QuestionnaireDetail }) {
       <ul className="divide-y divide-neutral-100">
         {questionnaire.forms.map((f) => (
           <li key={f.id} className="flex items-center gap-2 px-4 py-2 text-sm">
+            {f.formCode && <span className="font-mono text-xs font-bold text-blue-600">{f.formCode}</span>}
             <span className="flex-1 text-neutral-800">
               {f.name ?? t(`questionnaires.modes.${f.administrationMode}`)}
             </span>
@@ -368,6 +406,12 @@ function FormsCard({ questionnaire }: { questionnaire: QuestionnaireDetail }) {
         }
       >
         <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextField label={t('questionnaires.formCode')} placeholder="USER" value={form.formCode}
+              onChange={(e) => setForm({ ...form, formCode: e.target.value })} />
+            <TextField label={t('questionnaires.sortOrder')} type="number" value={form.sortOrder}
+              onChange={(e) => setForm({ ...form, sortOrder: e.target.value })} />
+          </div>
           <SelectField label={t('questionnaires.administrationMode')} value={form.administrationMode}
             onChange={(e) => setForm({ ...form, administrationMode: e.target.value })}>
             {ADMINISTRATION_MODES.map((mode) => (

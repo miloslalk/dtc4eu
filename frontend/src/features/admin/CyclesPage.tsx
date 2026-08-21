@@ -8,23 +8,28 @@ import { DataTable, type Column } from '../../components/DataTable';
 import { StatusTag } from '../../components/StatusTag';
 import { useCycle } from '../../lib/cycle';
 import { apiErrorMessage } from '../../lib/api';
-import type { CycleInfo } from '../../lib/types';
-import { useCreateCycle, useSetCurrentCycle, useUpdateCycle } from './api';
+import { cycleLabel, type CycleInfo } from '../../lib/types';
+import { useCreateCycle, useUpdateCycle } from './api';
 
+/**
+ * S-40 annual cycles admin. Cycles span 16 months (Sep 1 → Dec 31 of the
+ * following year) and ADJACENT CYCLES OVERLAP (v0.2 register §8) — several
+ * can be OPEN at once and there is no "current" flag; everyone works in the
+ * cycle they select in the header.
+ */
 export function CyclesPage() {
   const { t } = useTranslation();
   const { cycles } = useCycle();
   const createCycle = useCreateCycle();
   const updateCycle = useUpdateCycle();
-  const setCurrent = useSetCurrentCycle();
 
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ code: '', startDate: '', endDate: '' });
+  const [form, setForm] = useState({ code: '', startDate: '', endDate: '', sequenceNumber: '' });
   const [error, setError] = useState<string | null>(null);
 
   const handleCreate = async () => {
     if (!/^\d{4}-\d{4}$/.test(form.code)) {
-      setError(`${t('admin.cycleCode')}: 2026-2027`);
+      setError(`${t('admin.cycleCode')}: 2027-2028`);
       return;
     }
     try {
@@ -32,9 +37,10 @@ export function CyclesPage() {
         code: form.code,
         startDate: form.startDate || undefined,
         endDate: form.endDate || undefined,
+        sequenceNumber: form.sequenceNumber === '' ? undefined : Number(form.sequenceNumber),
       });
       setOpen(false);
-      setForm({ code: '', startDate: '', endDate: '' });
+      setForm({ code: '', startDate: '', endDate: '', sequenceNumber: '' });
       setError(null);
     } catch (e) {
       setError(apiErrorMessage(e));
@@ -49,7 +55,14 @@ export function CyclesPage() {
     }
   };
 
-  const columns: Column<CycleInfo & { startDate?: string; endDate?: string }>[] = [
+  const columns: Column<CycleInfo>[] = [
+    {
+      key: 'sequenceNumber',
+      header: t('admin.sequence'),
+      render: (c) => (c.sequenceNumber != null
+        ? <StatusTag tone="gold">{cycleLabel(c)}</StatusTag>
+        : <span className="text-neutral-400">—</span>),
+    },
     { key: 'code', header: t('admin.cycleCode'), render: (c) => <span className="font-semibold">{c.code}</span> },
     { key: 'startDate', header: t('admin.startDate'), render: (c) => c.startDate ?? '—' },
     { key: 'endDate', header: t('admin.endDate'), render: (c) => c.endDate ?? '—' },
@@ -69,24 +82,13 @@ export function CyclesPage() {
         </select>
       ),
     },
-    {
-      key: 'current',
-      header: t('admin.current'),
-      render: (c) =>
-        c.current ? (
-          <StatusTag tone="gold">{t('admin.current')}</StatusTag>
-        ) : (
-          <Button variant="ghost" className="!px-2 !py-1 text-xs" onClick={() => setCurrent.mutate(c.id)}>
-            {t('admin.setCurrent')}
-          </Button>
-        ),
-    },
   ];
 
   return (
     <div>
       <PageHeader
         title={t('admin.cyclesTitle')}
+        subtitle={t('admin.overlapHint')}
         actions={<Button onClick={() => setOpen(true)}>{t('admin.newCycle')}</Button>}
       />
 
@@ -104,12 +106,17 @@ export function CyclesPage() {
         }
       >
         <div className="space-y-4">
-          <TextField label={t('admin.cycleCode')} required placeholder="2027-2028" value={form.code}
-            onChange={(e) => setForm({ ...form, code: e.target.value })} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextField label={t('admin.cycleCode')} required placeholder="2027-2028" value={form.code}
+              onChange={(e) => setForm({ ...form, code: e.target.value })} />
+            <TextField label={t('admin.sequenceLabel')} type="number" placeholder="2" value={form.sequenceNumber}
+              onChange={(e) => setForm({ ...form, sequenceNumber: e.target.value })} />
+          </div>
           <TextField label={t('admin.startDate')} type="date" value={form.startDate}
             onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
           <TextField label={t('admin.endDate')} type="date" value={form.endDate}
             onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+          <p className="text-xs text-neutral-500">{t('admin.overlapHint')}</p>
           {error && <p className="rounded-lg bg-error-surface px-3 py-2 text-sm font-medium text-error">{error}</p>}
         </div>
       </Modal>

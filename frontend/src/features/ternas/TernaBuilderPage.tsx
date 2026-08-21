@@ -9,17 +9,19 @@ import { useAuth } from '../../lib/auth';
 import { useCycle } from '../../lib/cycle';
 import { apiErrorMessage } from '../../lib/api';
 import { useFacilities } from '../facilities/api';
+import { TernaAnalyticsTab } from './TernaAnalyticsTab';
 import {
   TERNA_TYPES, useCoordinatorOptions, useSaveTerna, useTerna, type SaveTernaPayload, type TernaType,
 } from './api';
 
-/** Terna builder (create + edit): 3 facilities, coordinators by type rule, 5 key dates. */
+/** Terna builder (create + edit) with an Analytics tab (S-21 + v0.2 register §3.4/§3.6). */
 export function TernaBuilderPage() {
   const { t } = useTranslation();
   const { id } = useParams();
   const isEdit = id !== undefined && id !== 'new';
   const ternaId = isEdit ? Number(id) : null;
   const navigate = useNavigate();
+  const [tab, setTab] = useState<'builder' | 'analytics'>('builder');
 
   const { user, hasAnyRole } = useAuth();
   const { readOnly } = useCycle();
@@ -123,8 +125,31 @@ export function TernaBuilderPage() {
       </div>
       <PageHeader title={isEdit ? `${existing?.ternaCode}` : t('ternas.new')} />
 
-      <div className="space-y-6 rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-        <div className="grid grid-cols-2 gap-4">
+      {isEdit && (
+        <div className="mb-5 flex gap-1 border-b border-neutral-200">
+          {(['builder', 'analytics'] as const).map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              className={`-mb-px rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold transition-colors ${
+                tab === key
+                  ? 'border-gold-500 text-blue-600'
+                  : 'border-transparent text-neutral-500 hover:text-blue-600'
+              }`}
+            >
+              {key === 'builder' ? t('ternas.tabBuilder') : t('ternas.tabAnalytics')}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {isEdit && tab === 'analytics' && ternaId !== null && <TernaAnalyticsTab ternaId={ternaId} />}
+
+      <div className={`space-y-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6 ${
+        isEdit && tab === 'analytics' ? 'hidden' : ''
+      }`}>
+        <div className="grid gap-4 sm:grid-cols-2">
           <TextField label={t('ternas.code')} required value={ternaCode} disabled={!canWrite || isEdit}
             placeholder="T1" onChange={(e) => setTernaCode(e.target.value)} />
           <SelectField label={t('ternas.type')} required value={ternaType} disabled={!canWrite}
@@ -141,7 +166,7 @@ export function TernaBuilderPage() {
           </legend>
           <div className="space-y-2">
             {[0, 1, 2].map((slot) => (
-              <div key={slot} className="flex items-center gap-3">
+              <div key={slot} className="flex flex-wrap items-center gap-3">
                 <span className="w-6 text-sm font-bold text-blue-600">{slot + 1}.</span>
                 <select
                   className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm
@@ -162,7 +187,7 @@ export function TernaBuilderPage() {
                     </option>
                   ))}
                 </select>
-                <span className="w-56 truncate text-xs text-neutral-500">
+                <span className="w-full truncate text-xs text-neutral-500 sm:w-56">
                   {t('facilities.internalFacilitator')}:{' '}
                   {facilityIds[slot] !== '' ? facilitatorOf.get(facilityIds[slot] as number) ?? '—' : '—'}
                 </span>
@@ -178,7 +203,7 @@ export function TernaBuilderPage() {
               — {t('ternas.coordinatorRule')} ({coordinatorIds.length}/{requiredCoordinators})
             </span>
           </legend>
-          <div className="grid max-h-40 grid-cols-2 gap-1.5 overflow-y-auto rounded-lg border border-neutral-200 p-2">
+          <div className="grid max-h-40 grid-cols-1 gap-1.5 sm:grid-cols-2 overflow-y-auto rounded-lg border border-neutral-200 p-2">
             {(coordinators.data ?? []).map((option) => (
               <label key={option.id} className="flex items-center gap-2 text-sm text-neutral-700">
                 <input type="checkbox" disabled={!canWrite} checked={coordinatorIds.includes(option.id)}

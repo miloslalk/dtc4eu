@@ -7,12 +7,19 @@ import { StatusTag } from '../../components/StatusTag';
 import { Spinner } from '../../components/Spinner';
 import { ConfirmDialog } from '../../components/Modal';
 import { QuestionnaireContainer, type Answer } from '../../components/QuestionnaireContainer';
+import { ProfileForm } from '../../components/ProfileForm';
 import { useCycle } from '../../lib/cycle';
 import { apiErrorMessage } from '../../lib/api';
-import { useQuestionnaire } from '../questionnaires/api';
-import { useResponse, useSaveItems, useScores, useSubmitResponse, type AreaScore } from './api';
+import { useProfileSchema, useQuestionnaire } from '../questionnaires/api';
+import {
+  useResponse, useSaveItems, useScores, useSubmitResponse, useUpdateResponse, type AreaScore,
+} from './api';
 
-/** Fill/read screen for one response: autosave while DRAFT, scores once SUBMITTED. */
+/**
+ * Fill/read screen for one response (S-32): a profile-header step (v0.2
+ * register §2.4) followed by the form's Likert areas, autosaving while DRAFT;
+ * scores once SUBMITTED.
+ */
 export function ResponseFillPage() {
   const { t } = useTranslation();
   const { id } = useParams();
@@ -20,20 +27,24 @@ export function ResponseFillPage() {
 
   const { data: response, isLoading } = useResponse(responseId);
   const { data: questionnaire } = useQuestionnaire(response?.questionnaireId ?? 0);
+  const { data: profileSchema } = useProfileSchema(response?.questionnaireId ?? 0, response?.formId ?? null);
   const { readOnly: cycleReadOnly } = useCycle();
   const saveItems = useSaveItems(responseId);
+  const updateResponse = useUpdateResponse(responseId);
   const submit = useSubmitResponse(responseId);
 
   const submitted = response?.status === 'SUBMITTED';
   const readOnly = submitted || cycleReadOnly;
   const { data: scores } = useScores(responseId, submitted === true);
 
+  const [step, setStep] = useState<'profile' | 'items'>('items');
   const [answers, setAnswers] = useState<Map<number, Answer>>(new Map());
+  const [profile, setProfile] = useState<Record<string, unknown>>({});
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // seed local answers from the server once
+  // seed local answers + profile from the server once
   const seeded = useRef(false);
   useEffect(() => {
     if (response && !seeded.current) {
@@ -41,9 +52,19 @@ export function ResponseFillPage() {
       response.items.forEach((item) =>
         initial.set(item.itemId, { numericValue: item.numericValue, textValue: item.textValue }));
       setAnswers(initial);
+      setProfile((response.profileSnapshot ?? {}) as Record<string, unknown>);
       seeded.current = true;
     }
   }, [response]);
+
+  // a DRAFT with a profile step opens on the profile step
+  const stepInitialised = useRef(false);
+  useEffect(() => {
+    if (!stepInitialised.current && response && profileSchema && response.status === 'DRAFT') {
+      setStep('profile');
+      stepInitialised.current = true;
+    }
+  }, [response, profileSchema]);
 
   // debounced autosave of changed items (spec T5: autosave to DRAFT)
   const pending = useRef(new Map<number, Answer>());
@@ -78,12 +99,43 @@ export function ResponseFillPage() {
     timer.current = setTimeout(flush, 700);
   }, [flush]);
 
+  // debounced autosave of the profile snapshot (own timer, same status chip)
+  const profileTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const profileDirty = useRef<Record<string, unknown> | null>(null);
+
+  const flushProfile = useCallback(async () => {
+    if (!response || profileDirty.current === null) return;
+    const snapshot = profileDirty.current;
+    profileDirty.current = null;
+    setSaveState('saving');
+    try {
+      await updateResponse.mutateAsync({
+        subjectCode: response.subjectCode,
+        facilityId: response.facilityId,
+        profileSnapshot: snapshot,
+      });
+      setSaveState('saved');
+    } catch (e) {
+      setSaveState('error');
+      setError(apiErrorMessage(e));
+    }
+  }, [response, updateResponse]);
+
+  const handleProfileChange = useCallback((next: Record<string, unknown>) => {
+    setProfile(next);
+    profileDirty.current = next;
+    if (profileTimer.current) clearTimeout(profileTimer.current);
+    profileTimer.current = setTimeout(flushProfile, 700);
+  }, [flushProfile]);
+
   const progress = useMemo(() => {
-    if (!questionnaire) return { answered: 0, total: 0 };
-    const likertIds = questionnaire.items.filter((i) => i.responseType === 'LIKERT').map((i) => i.id);
+    if (!questionnaire || !response) return { answered: 0, total: 0 };
+    const likertIds = questionnaire.items
+      .filter((i) => i.responseType === 'LIKERT' && (response.formId == null || i.formId === response.formId))
+      .map((i) => i.id);
     const answered = likertIds.filter((itemId) => answers.get(itemId)?.numericValue != null).length;
     return { answered, total: likertIds.length };
-  }, [questionnaire, answers]);
+  }, [questionnaire, response, answers]);
 
   if (isLoading || !response || !questionnaire) {
     return <Spinner label={t('common.loading')} />;
@@ -91,7 +143,9 @@ export function ResponseFillPage() {
 
   const handleSubmit = async () => {
     if (timer.current) clearTimeout(timer.current);
+    if (profileTimer.current) clearTimeout(profileTimer.current);
     await flush();
+    await flushProfile();
     try {
       await submit.mutateAsync();
       setConfirmOpen(false);
@@ -103,6 +157,9 @@ export function ResponseFillPage() {
     }
   };
 
+  const form = questionnaire.forms.find((f) => f.id === response.formId);
+  const hasProfileStep = Boolean(profileSchema);
+
   return (
     <div className="max-w-4xl">
       <div className="mb-2">
@@ -112,7 +169,7 @@ export function ResponseFillPage() {
       </div>
       <PageHeader
         title={
-          <span className="flex items-center gap-3">
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             {response.questionnaireCode}
             <span className="font-mono text-lg text-neutral-600">{response.subjectCode}</span>
             <StatusTag tone={submitted ? 'gold' : 'neutral'}>
@@ -123,7 +180,7 @@ export function ResponseFillPage() {
         subtitle={
           <>
             {response.facilityCode && <span className="mr-3">{t('responses.facility')}: {response.facilityCode}</span>}
-            <span>{t(`responses.categories.${response.respondentCategory}`)}</span>
+            <span>{form?.name ?? t(`responses.categories.${response.respondentCategory}`)}</span>
           </>
         }
         actions={
@@ -142,7 +199,18 @@ export function ResponseFillPage() {
         </p>
       )}
 
-      {!submitted && (
+      {hasProfileStep && (
+        <div className="mb-5 flex gap-2">
+          <StepTab active={step === 'profile'} onClick={() => setStep('profile')}>
+            {t('responses.stepProfile')}
+          </StepTab>
+          <StepTab active={step === 'items'} onClick={() => setStep('items')}>
+            {t('responses.stepItems')}
+          </StepTab>
+        </div>
+      )}
+
+      {!submitted && step === 'items' && (
         <div className="mb-5 rounded-xl border border-neutral-200 bg-white px-4 py-3 shadow-sm">
           <div className="mb-1.5 flex items-center justify-between text-sm">
             <span className="font-semibold text-neutral-700">
@@ -166,18 +234,32 @@ export function ResponseFillPage() {
         </div>
       )}
 
-      {submitted && scores && scores.length > 0 && <ScoresPanel scores={scores} scaleMax={questionnaire.scaleMax} />}
+      {submitted && scores && scores.length > 0 && step === 'items' && (
+        <ScoresPanel scores={scores} scaleMax={questionnaire.scaleMax} />
+      )}
 
       {error && !submitted && saveState !== 'error' && (
         <p className="mb-4 rounded-lg bg-error-surface px-3 py-2 text-sm font-medium text-error">{error}</p>
       )}
 
-      <QuestionnaireContainer
-        questionnaire={questionnaire}
-        answers={answers}
-        onAnswer={handleAnswer}
-        readOnly={readOnly}
-      />
+      {step === 'profile' && profileSchema ? (
+        <>
+          <ProfileForm schema={profileSchema} value={profile} onChange={handleProfileChange} readOnly={readOnly} />
+          <div className="mt-5 flex justify-end">
+            <Button onClick={() => { setStep('items'); window.scrollTo({ top: 0 }); }}>
+              {t('responses.continueToItems')}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <QuestionnaireContainer
+          questionnaire={questionnaire}
+          formId={response.formId}
+          answers={answers}
+          onAnswer={handleAnswer}
+          readOnly={readOnly}
+        />
+      )}
 
       <ConfirmDialog
         title={t('responses.submit')}
@@ -191,7 +273,25 @@ export function ResponseFillPage() {
   );
 }
 
-/** Area means as horizontal bars on the blue scale (S-33). */
+function StepTab({ active, onClick, children }: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+        active ? 'bg-blue-600 text-white' : 'bg-white text-neutral-600 border border-neutral-200 hover:bg-blue-50'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Area means as horizontal bars on the blue scale (per-response S-33 panel). */
 function ScoresPanel({ scores, scaleMax }: { scores: AreaScore[]; scaleMax: number }) {
   const { t } = useTranslation();
   return (
@@ -201,12 +301,12 @@ function ScoresPanel({ scores, scaleMax }: { scores: AreaScore[]; scaleMax: numb
         {scores.map((score) => {
           const mean = Number(score.meanValue);
           return (
-            <li key={score.areaId} className="flex items-center gap-3">
+            <li key={score.areaId} className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="w-10 shrink-0 font-mono text-xs font-bold text-blue-600">{score.areaCode}</span>
-              <span className="w-56 shrink-0 truncate text-sm text-neutral-700" title={score.areaName}>
+              <span className="min-w-0 flex-1 truncate text-sm text-neutral-700 sm:w-56 sm:flex-none" title={score.areaName}>
                 {score.areaName}
               </span>
-              <div className="h-4 flex-1 overflow-hidden rounded-full bg-blue-50">
+              <div className="order-last h-4 grow basis-full overflow-hidden rounded-full bg-blue-50 sm:order-none sm:basis-0">
                 <div className="flex h-full items-center justify-end rounded-full bg-blue-600 pr-1.5"
                   style={{ width: `${(mean / scaleMax) * 100}%` }}>
                 </div>

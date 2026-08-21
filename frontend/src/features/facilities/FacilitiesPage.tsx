@@ -9,7 +9,9 @@ import { DataTable, type Column } from '../../components/DataTable';
 import { StatusTag } from '../../components/StatusTag';
 import { useAuth } from '../../lib/auth';
 import { downloadFile } from '../../lib/api';
-import { ACTIVITIES, FACILITY_TYPES, useFacilities, type Facility, type FacilityFilters } from './api';
+import {
+  ACTIVITIES, FACILITY_SUBTYPES, FACILITY_TYPES, useFacilities, type Facility, type FacilityFilters,
+} from './api';
 import { FacilityFormModal } from './FacilityFormModal';
 
 export function FacilitiesPage() {
@@ -28,7 +30,15 @@ export function FacilitiesPage() {
     {
       key: 'facilityType',
       header: t('facilities.type'),
-      render: (f) => <StatusTag tone="info">{f.facilityType}</StatusTag>,
+      render: (f) => <StatusTag tone="info">{t(`facilities.types.${f.facilityType}`)}</StatusTag>,
+    },
+    {
+      key: 'facilitySubtype',
+      header: t('facilities.subtype'),
+      render: (f) =>
+        f.facilitySubtype
+          ? <StatusTag tone="gold">{t(`facilities.subtypes.${f.facilitySubtype}`)}</StatusTag>
+          : '—',
     },
     { key: 'country', header: t('facilities.country'), render: (f) => f.country ?? '—' },
     { key: 'city', header: t('facilities.city'), render: (f) => f.city ?? '—' },
@@ -49,6 +59,7 @@ export function FacilitiesPage() {
     downloadFile('/facilities/export', {
       q: filters.q || undefined,
       type: filters.type || undefined,
+      subtype: filters.subtype || undefined,
       country: filters.country || undefined,
       city: filters.city || undefined,
       activity: filters.activity || undefined,
@@ -70,10 +81,17 @@ export function FacilitiesPage() {
         <input className={filterInputClass} placeholder={t('common.search')} value={filters.q ?? ''}
           onChange={(e) => setFilters({ ...filters, q: e.target.value, page: 0 })} />
         <select className={filterInputClass} value={filters.type ?? ''}
-          onChange={(e) => setFilters({ ...filters, type: e.target.value, page: 0 })}>
+          onChange={(e) => setFilters({ ...filters, type: e.target.value, subtype: '', page: 0 })}>
           <option value="">{t('facilities.type')}: {t('common.all')}</option>
           {FACILITY_TYPES.map((type) => (
-            <option key={type} value={type}>{type} — {t(`facilities.types.${type}`)}</option>
+            <option key={type} value={type}>{t(`facilities.typeNames.${type}`)}</option>
+          ))}
+        </select>
+        <select className={filterInputClass} value={filters.subtype ?? ''}
+          onChange={(e) => setFilters({ ...filters, subtype: e.target.value, page: 0 })}>
+          <option value="">{t('facilities.subtype')}: {t('common.all')}</option>
+          {FACILITY_SUBTYPES.map((subtype) => (
+            <option key={subtype} value={subtype}>{t(`facilities.subtypes.${subtype}`)}</option>
           ))}
         </select>
         <input className={filterInputClass} placeholder={t('facilities.country')} value={filters.country ?? ''}

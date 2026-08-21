@@ -12,16 +12,16 @@ export function Modal({ title, open, onClose, children, footer }: {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-3.5">
+      <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col rounded-xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-5 py-3.5">
           <h2 className="text-base font-bold text-blue-600">{title}</h2>
           <button type="button" onClick={onClose} aria-label="Close"
             className="rounded-md px-2 text-lg text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700">
             ×
           </button>
         </div>
-        <div className="px-5 py-4">{children}</div>
-        {footer && <div className="flex justify-end gap-2 border-t border-neutral-200 px-5 py-3">{footer}</div>}
+        <div className="overflow-y-auto px-5 py-4">{children}</div>
+        {footer && <div className="flex shrink-0 justify-end gap-2 border-t border-neutral-200 px-5 py-3">{footer}</div>}
       </div>
     </div>
   );

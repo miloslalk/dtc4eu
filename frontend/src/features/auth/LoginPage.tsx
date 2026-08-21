@@ -42,7 +42,7 @@ export function LoginPage() {
   });
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-neutral-50 p-4">
       <div className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-8 shadow-lg shadow-blue-600/5">
         <img src="/logo.png" alt="DTC4EU" className="mx-auto mb-4 size-24 object-contain" />
         <h1 className="text-center text-xl font-extrabold text-blue-600">{t('app.title')}</h1>
@@ -71,6 +71,7 @@ export function LoginPage() {
           </Button>
         </form>
       </div>
+      <img src="/eu-cofunded.png" alt="Co-funded by the European Union" className="h-10 w-auto" />
     </div>
   );
 }

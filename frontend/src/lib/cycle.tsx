@@ -7,8 +7,10 @@ import type { CycleInfo } from './types';
 
 /**
  * The selected annual cycle is an implicit filter on everything (spec §6):
- * it rides along as the X-Cycle-Id header via the api interceptor. Selection
- * defaults to the platform's current cycle and persists per browser.
+ * it rides along as the X-Cycle-Id header via the api interceptor. Cycles
+ * overlap (v0.2 register §8) so there is no platform-wide "current" cycle —
+ * selection defaults to the most recently started OPEN cycle and persists
+ * per browser.
  */
 interface CycleContextValue {
   cycles: CycleInfo[];
@@ -33,7 +35,8 @@ export function CycleProvider({ children }: { children: ReactNode }) {
   const selected = useMemo(() => {
     const storedId = cycleStore.get();
     const stored = cycles.find((c) => c.id === storedId);
-    return stored ?? cycles.find((c) => c.current) ?? null;
+    // the list arrives most-recently-started first
+    return stored ?? cycles.find((c) => c.status === 'OPEN') ?? cycles[0] ?? null;
   }, [cycles]);
 
   // Keep the header store in sync with the effective selection.

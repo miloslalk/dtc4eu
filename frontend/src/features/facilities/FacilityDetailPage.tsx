@@ -10,14 +10,17 @@ import { EmptyState } from '../../components/EmptyState';
 import { useAuth } from '../../lib/auth';
 import { useCycle } from '../../lib/cycle';
 import { apiErrorMessage } from '../../lib/api';
+import { FacilityScoresTab } from '../scoring/FacilityScoresTab';
 import {
-  ACTIVITIES, FACILITY_TYPES, MEMBER_CATEGORIES,
-  useAddMember, useFacilitatorPicker, useFacility, useMembers, useParticipation, usePutQcnc, usePutSag,
-  useQcnc, useRemoveMember, useSags, useSaveFacility, useSetParticipation,
-  type Activity, type Facility, type FacilityType, type MemberCategory,
+  ACTIVITIES, FACILITY_TYPES, MEMBER_CATEGORIES, STANDARD_TYPES, SUBTYPES_BY_TYPE,
+  useAddMember, useDeleteDocumentApplication, useDocumentApplications, useFacilitatorPicker, useFacility,
+  useFacilityHistory, useMembers, useParticipation, usePutQcnc, usePutSag, useQcnc, useRemoveMember, useSags,
+  useSaveDocumentApplication, useSaveFacility, useSetParticipation,
+  type Activity, type DocumentApplication, type Facility, type FacilityType, type MemberCategory,
+  type StandardType,
 } from './api';
 
-type Tab = 'overview' | 'participation' | 'members' | 'sag' | 'qcnc';
+type Tab = 'overview' | 'participation' | 'members' | 'scores' | 'sag' | 'qcnc';
 
 export function FacilityDetailPage() {
   const { t } = useTranslation();
@@ -34,6 +37,7 @@ export function FacilityDetailPage() {
     { key: 'overview', label: t('facilities.overview') },
     { key: 'participation', label: t('facilities.participation') },
     { key: 'members', label: t('facilities.members') },
+    { key: 'scores', label: t('facilities.scores') },
     { key: 'sag', label: t('facilities.sag') },
     { key: 'qcnc', label: t('facilities.qcnc') },
   ];
@@ -47,16 +51,19 @@ export function FacilityDetailPage() {
       </div>
       <PageHeader
         title={
-          <span className="flex items-center gap-3">
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             {facility.facilityCode}
-            <StatusTag tone="info">{facility.facilityType}</StatusTag>
+            <StatusTag tone="info">{t(`facilities.types.${facility.facilityType}`)}</StatusTag>
+            {facility.facilitySubtype && (
+              <StatusTag tone="gold">{t(`facilities.subtypes.${facility.facilitySubtype}`)}</StatusTag>
+            )}
             {!facility.active && <StatusTag tone="neutral">{t('common.inactive')}</StatusTag>}
           </span>
         }
         subtitle={facility.name}
       />
 
-      <div className="mb-5 flex gap-1 border-b border-neutral-200">
+      <div className="mb-5 flex gap-1 overflow-x-auto border-b border-neutral-200">
         {tabs.map(({ key, label }) => (
           <button
             key={key}
@@ -76,6 +83,7 @@ export function FacilityDetailPage() {
       {tab === 'overview' && <OverviewTab facility={facility} />}
       {tab === 'participation' && <ParticipationTab facilityId={facilityId} />}
       {tab === 'members' && <MembersTab facilityId={facilityId} />}
+      {tab === 'scores' && <FacilityScoresTab facilityId={facilityId} />}
       {tab === 'sag' && <SagTab facilityId={facilityId} />}
       {tab === 'qcnc' && <QcncTab facilityId={facilityId} />}
     </div>
@@ -100,6 +108,7 @@ function OverviewTab({ facility }: { facility: Facility }) {
         id: facility.id,
         payload: {
           facilityType: form.facilityType,
+          facilitySubtype: form.facilitySubtype ?? null,
           name: form.name,
           provider: form.provider || null,
           place: form.place || null,
@@ -117,17 +126,28 @@ function OverviewTab({ facility }: { facility: Facility }) {
 
   return (
     <div className="max-w-xl space-y-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-      <SelectField label={t('facilities.type')} value={form.facilityType} disabled={!canEdit}
-        onChange={(e) => setForm({ ...form, facilityType: e.target.value as FacilityType })}>
-        {FACILITY_TYPES.map((type) => (
-          <option key={type} value={type}>{type} — {t(`facilities.types.${type}`)}</option>
-        ))}
-      </SelectField>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <SelectField label={t('facilities.type')} value={form.facilityType} disabled={!canEdit}
+          onChange={(e) =>
+            setForm({ ...form, facilityType: e.target.value as FacilityType, facilitySubtype: null })}>
+          {FACILITY_TYPES.map((type) => (
+            <option key={type} value={type}>{t(`facilities.typeNames.${type}`)}</option>
+          ))}
+        </SelectField>
+        <SelectField label={t('facilities.subtype')} value={form.facilitySubtype ?? ''} disabled={!canEdit}
+          onChange={(e) =>
+            setForm({ ...form, facilitySubtype: e.target.value === '' ? null : e.target.value as Facility['facilitySubtype'] })}>
+          <option value="">—</option>
+          {SUBTYPES_BY_TYPE[form.facilityType].map((subtype) => (
+            <option key={subtype} value={subtype}>{t(`facilities.subtypes.${subtype}`)}</option>
+          ))}
+        </SelectField>
+      </div>
       <TextField label={t('facilities.name')} value={form.name} disabled={!canEdit}
         onChange={(e) => setForm({ ...form, name: e.target.value })} />
       <TextField label={t('facilities.provider')} value={form.provider ?? ''} disabled={!canEdit}
         onChange={(e) => setForm({ ...form, provider: e.target.value })} />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <TextField label={t('facilities.country')} value={form.country ?? ''} disabled={!canEdit}
           onChange={(e) => setForm({ ...form, country: e.target.value })} />
         <TextField label={t('facilities.city')} value={form.city ?? ''} disabled={!canEdit}
@@ -189,36 +209,235 @@ function ParticipationTab({ facilityId }: { facilityId: number }) {
   };
 
   return (
-    <div className="max-w-xl space-y-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-      <SelectField label={t('facilities.activity')} value={activity} disabled={!canWrite}
-        onChange={(e) => setActivity(e.target.value as Activity)}>
-        {ACTIVITIES.map((a) => (
-          <option key={a} value={a}>{t(`facilities.activities.${a}`)}</option>
-        ))}
-      </SelectField>
-
-      {isAdmin ? (
-        <SelectField label={t('facilities.internalFacilitator')} value={facilitatorId} disabled={!canWrite}
-          onChange={(e) => setFacilitatorId(e.target.value)}>
-          <option value="">—</option>
-          {(facilitators.data ?? []).map((u) => (
-            <option key={u.id} value={u.id}>{u.fullName} ({u.username})</option>
+    <div className="max-w-3xl space-y-6">
+      <div className="max-w-xl space-y-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+        <SelectField label={t('facilities.activity')} value={activity} disabled={!canWrite}
+          onChange={(e) => setActivity(e.target.value as Activity)}>
+          {ACTIVITIES.map((a) => (
+            <option key={a} value={a}>{t(`facilities.activities.${a}`)}</option>
           ))}
         </SelectField>
-      ) : (
-        <p className="text-sm text-neutral-600">
-          <span className="font-semibold">{t('facilities.internalFacilitator')}:</span>{' '}
-          {participation?.internalFacilitatorName ?? '—'}
-        </p>
-      )}
 
-      {message && <p className="text-sm font-medium text-neutral-600">{message}</p>}
-      {canWrite && (
-        <Button onClick={handleSave} loading={setParticipation.isPending}>
-          {t('facilities.setParticipation')}
-        </Button>
-      )}
+        {isAdmin ? (
+          <SelectField label={t('facilities.internalFacilitator')} value={facilitatorId} disabled={!canWrite}
+            onChange={(e) => setFacilitatorId(e.target.value)}>
+            <option value="">—</option>
+            {(facilitators.data ?? []).map((u) => (
+              <option key={u.id} value={u.id}>{u.fullName} ({u.username})</option>
+            ))}
+          </SelectField>
+        ) : (
+          <p className="text-sm text-neutral-600">
+            <span className="font-semibold">{t('facilities.internalFacilitator')}:</span>{' '}
+            {participation?.internalFacilitatorName ?? '—'}
+          </p>
+        )}
+
+        {message && <p className="text-sm font-medium text-neutral-600">{message}</p>}
+        {canWrite && (
+          <Button onClick={handleSave} loading={setParticipation.isPending}>
+            {t('facilities.setParticipation')}
+          </Button>
+        )}
+      </div>
+
+      <DocumentsSection facilityId={facilityId} />
+      <HistorySection facilityId={facilityId} />
     </div>
+  );
+}
+
+/** Quality documents applied in the selected cycle (v0.2 register §6, GPP/CGS/EEN). */
+function DocumentsSection({ facilityId }: { facilityId: number }) {
+  const { t } = useTranslation();
+  const { hasAnyRole } = useAuth();
+  const { readOnly } = useCycle();
+  const canWrite = !readOnly && hasAnyRole('ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'AUDIT_COORDINATOR');
+
+  const { data: documents } = useDocumentApplications(facilityId);
+  const save = useSaveDocumentApplication(facilityId);
+  const remove = useDeleteDocumentApplication(facilityId);
+
+  const [editing, setEditing] = useState<DocumentApplication | 'new' | null>(null);
+  const [form, setForm] = useState({ standardType: 'GPP' as StandardType, standardCode: '', serviceName: '', level: '' });
+  const [error, setError] = useState<string | null>(null);
+
+  const openEditor = (doc: DocumentApplication | 'new') => {
+    setEditing(doc);
+    setError(null);
+    setForm(doc === 'new'
+      ? { standardType: 'GPP', standardCode: '', serviceName: '', level: '' }
+      : {
+          standardType: doc.standardType,
+          standardCode: doc.standardCode ?? '',
+          serviceName: doc.serviceName ?? '',
+          level: doc.applicationLevelPct != null ? String(Number(doc.applicationLevelPct)) : '',
+        });
+  };
+
+  const handleSave = async () => {
+    try {
+      await save.mutateAsync({
+        id: editing === 'new' || editing === null ? null : editing.id,
+        payload: {
+          standardType: form.standardType,
+          standardCode: form.standardCode.trim() || null,
+          serviceName: form.serviceName.trim() || null,
+          applicationLevelPct: form.level === '' ? null : Number(form.level),
+        },
+      });
+      setEditing(null);
+    } catch (e) {
+      setError(apiErrorMessage(e));
+    }
+  };
+
+  return (
+    <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+      <header className="flex items-center justify-between border-b border-neutral-200 bg-blue-50 px-5 py-3">
+        <h2 className="text-sm font-bold text-blue-700">{t('facilities.documents.title')}</h2>
+        {canWrite && (
+          <Button variant="ghost" className="!px-2.5 !py-1 text-xs" onClick={() => openEditor('new')}>
+            {t('facilities.documents.add')}
+          </Button>
+        )}
+      </header>
+      <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-neutral-200 text-left text-xs font-semibold text-neutral-500">
+            <th className="px-4 py-2">{t('facilities.documents.type')}</th>
+            <th className="px-4 py-2">{t('facilities.documents.code')}</th>
+            <th className="px-4 py-2">{t('facilities.documents.serviceName')}</th>
+            <th className="px-4 py-2 text-right">{t('facilities.documents.applicationLevel')}</th>
+            {canWrite && <th className="w-28 px-4 py-2" />}
+          </tr>
+        </thead>
+        <tbody>
+          {(documents ?? []).map((doc) => (
+            <tr key={doc.id} className="border-b border-neutral-100 last:border-0">
+              <td className="px-4 py-2"><StatusTag tone="info">{doc.standardType}</StatusTag></td>
+              <td className="px-4 py-2 font-mono text-xs">{doc.standardCode ?? '—'}</td>
+              <td className="px-4 py-2">{doc.serviceName ?? '—'}</td>
+              <td className="px-4 py-2 text-right font-mono">
+                {doc.applicationLevelPct != null ? `${Number(doc.applicationLevelPct)} %` : '—'}
+              </td>
+              {canWrite && (
+                <td className="px-4 py-2 text-right">
+                  <button type="button" className="mr-2 text-xs font-medium text-azure-500 hover:underline"
+                    onClick={() => openEditor(doc)}>
+                    {t('common.edit')}
+                  </button>
+                  <button type="button" className="text-xs font-medium text-error hover:underline"
+                    onClick={() => remove.mutate(doc.id, { onError: (e) => alert(apiErrorMessage(e)) })}>
+                    {t('common.delete')}
+                  </button>
+                </td>
+              )}
+            </tr>
+          ))}
+          {(documents ?? []).length === 0 && (
+            <tr><td colSpan={canWrite ? 5 : 4} className="px-4 py-4 text-sm text-neutral-400">{t('common.empty')}</td></tr>
+          )}
+        </tbody>
+      </table>
+      </div>
+
+      {editing !== null && (
+        <div className="space-y-3 border-t border-neutral-200 bg-neutral-50 px-5 py-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <SelectField label={t('facilities.documents.type')} value={form.standardType}
+              onChange={(e) => setForm({ ...form, standardType: e.target.value as StandardType })}>
+              {STANDARD_TYPES.map((type) => (
+                <option key={type} value={type}>{t(`facilities.documents.types.${type}`)}</option>
+              ))}
+            </SelectField>
+            <TextField label={t('facilities.documents.code')} placeholder="GPP CT4-LC" value={form.standardCode}
+              onChange={(e) => setForm({ ...form, standardCode: e.target.value })} />
+            <TextField label={t('facilities.documents.serviceName')} value={form.serviceName}
+              onChange={(e) => setForm({ ...form, serviceName: e.target.value })} />
+            <TextField label={t('facilities.documents.applicationLevel')} type="number" value={form.level}
+              onChange={(e) => setForm({ ...form, level: e.target.value })} />
+          </div>
+          <p className="text-xs text-neutral-500">{t('facilities.documents.codeHint')}</p>
+          {error && <p className="text-sm font-medium text-error">{error}</p>}
+          <div className="flex gap-2">
+            <Button onClick={handleSave} loading={save.isPending}>{t('common.save')}</Button>
+            <Button variant="ghost" onClick={() => setEditing(null)}>{t('common.cancel')}</Button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** Accreditation history across cycles (v0.2 register §6): EP lists + document application levels. */
+function HistorySection({ facilityId }: { facilityId: number }) {
+  const { t } = useTranslation();
+  const { data: history } = useFacilityHistory(facilityId);
+  if (!history) return null;
+
+  const cycleName = (cycle: { cycleCode: string; sequenceNumber: number | null }) => {
+    const span = cycle.cycleCode.replace(/^(\d{4})-\d{2}(\d{2})$/, '$1-$2');
+    if (cycle.sequenceNumber == null) return span;
+    const n = cycle.sequenceNumber;
+    const suffix = n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10 > 3 ? 0 : n % 10];
+    return `${n}${suffix} ${span}`;
+  };
+
+  return (
+    <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+      <header className="border-b border-neutral-200 bg-blue-50 px-5 py-3">
+        <h2 className="text-sm font-bold text-blue-700">{t('facilities.history.title')}</h2>
+        <p className="mt-0.5 text-xs text-neutral-600">
+          {t('facilities.history.cyclesInProgramme', { count: history.cyclesInProgramme })}
+        </p>
+      </header>
+      {history.cycles.length === 0 ? (
+        <p className="px-5 py-4 text-sm text-neutral-400">{t('common.empty')}</p>
+      ) : (
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-neutral-200 text-left text-xs font-semibold text-neutral-500">
+              <th className="px-4 py-2">{t('facilities.history.cycle')}</th>
+              <th className="px-4 py-2">{t('facilities.history.activity')}</th>
+              <th className="px-4 py-2">{t('facilities.history.excellencePoints')}</th>
+              <th className="px-4 py-2">{t('facilities.history.documents')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {history.cycles.map((cycle) => (
+              <tr key={cycle.cycleId} className="border-b border-neutral-100 align-top last:border-0">
+                <td className="whitespace-nowrap px-4 py-2 font-semibold">{cycleName(cycle)}</td>
+                <td className="px-4 py-2">
+                  {cycle.activity ? t(`facilities.activities.${cycle.activity}`) : '—'}
+                </td>
+                <td className="px-4 py-2 font-mono text-xs">
+                  {Object.keys(cycle.excellencePointsByQuestionnaire).length === 0
+                    ? t('facilities.history.noEp')
+                    : Object.entries(cycle.excellencePointsByQuestionnaire).map(([code, points]) => (
+                        <div key={code}>
+                          <span className="font-bold text-blue-700">{code}:</span> {points.join('; ')}
+                        </div>
+                      ))}
+                </td>
+                <td className="px-4 py-2 text-xs">
+                  {cycle.documentApplications.length === 0 ? '—'
+                    : cycle.documentApplications.map((doc) => (
+                        <div key={doc.id} className="font-mono">
+                          {doc.standardCode ?? doc.standardType}
+                          {doc.applicationLevelPct != null && ` = ${Number(doc.applicationLevelPct)} %`}
+                        </div>
+                      ))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -233,7 +452,7 @@ function MembersTab({ facilityId }: { facilityId: number }) {
   const removeMember = useRemoveMember(facilityId);
 
   const [code, setCode] = useState('');
-  const [category, setCategory] = useState<MemberCategory>('USERS');
+  const [category, setCategory] = useState<MemberCategory>('USER');
   const [error, setError] = useState<string | null>(null);
 
   if (isLoading) return <Spinner label={t('common.loading')} />;
@@ -268,6 +487,7 @@ function MembersTab({ facilityId }: { facilityId: number }) {
 
       {members && members.length > 0 ? (
         <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="bg-blue-600 text-white">
@@ -295,6 +515,7 @@ function MembersTab({ facilityId }: { facilityId: number }) {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       ) : (
         <EmptyState message={t('common.empty')} />
@@ -399,7 +620,9 @@ function QcncTab({ facilityId }: { facilityId: number }) {
   return (
     <div className="max-w-xl space-y-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
       <p className="text-xs text-neutral-500">
-        The five QCNC quality areas are pending confirmation from the clinical specialist (spec §9).
+        Placeholder entry. The v0.2 register defines the full QCNC model (five clusters, letter-coded standards,
+        three administrations per cycle) — the schema carries it, but the standards catalogue text and the Phase 1
+        data-entry scope are pending from the client (register open question 12.2).
       </p>
       {(['Q1', 'Q2', 'Q3', 'Q4', 'Q5'] as const).map((key) => (
         <TextField key={key} label={key} value={answers[key]} disabled={!canWrite}

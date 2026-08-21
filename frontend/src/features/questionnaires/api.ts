@@ -2,13 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 
 export type ResponseType = 'LIKERT' | 'FREE_TEXT';
-export type AdministrationMode = 'INDIVIDUAL' | 'SELFEVAL_COLLECTIVE' | 'HETEROEVAL_DELEGATION';
-export type StakeholderCategory = 'USERS' | 'FAMILIARS' | 'PRACTITIONERS' | 'MANAGERS';
+export type AdministrationMode = 'INDIVIDUAL' | 'LONG_FORM' | 'DELEGATION';
+export type StakeholderCategory = 'USER' | 'FAMILY' | 'STAFF' | 'MANAGER';
 
-export const ADMINISTRATION_MODES: AdministrationMode[] = [
-  'INDIVIDUAL', 'SELFEVAL_COLLECTIVE', 'HETEROEVAL_DELEGATION',
-];
-export const STAKEHOLDER_CATEGORIES: StakeholderCategory[] = ['USERS', 'FAMILIARS', 'PRACTITIONERS', 'MANAGERS'];
+export const ADMINISTRATION_MODES: AdministrationMode[] = ['INDIVIDUAL', 'LONG_FORM', 'DELEGATION'];
+export const STAKEHOLDER_CATEGORIES: StakeholderCategory[] = ['USER', 'FAMILY', 'STAFF', 'MANAGER'];
 
 export interface QuestionnaireRow {
   id: number;
@@ -32,6 +30,8 @@ export interface Area {
 export interface Item {
   id: number;
   areaId: number | null;
+  formId: number | null;
+  itemLetter: string | null;
   itemCode: string;
   itemText: string;
   responseType: ResponseType;
@@ -40,16 +40,61 @@ export interface Item {
 
 export interface Form {
   id: number;
+  formCode: string | null;
   administrationMode: AdministrationMode;
   stakeholderCategory: StakeholderCategory | null;
   facilityType: 'TC' | 'GA' | 'SH' | null;
   name: string | null;
+  sortOrder: number | null;
+}
+
+export interface Anchor {
+  value: number;
+  label: string;
+}
+
+export interface FormAreaLabel {
+  formId: number;
+  areaId: number;
+  displayName: string;
 }
 
 export interface QuestionnaireDetail extends Omit<QuestionnaireRow, 'areaCount' | 'itemCount' | 'formCount'> {
   areas: Area[];
   items: Item[];
   forms: Form[];
+  anchors: Anchor[];
+  formAreaLabels: FormAreaLabel[];
+}
+
+/* Per-form profile-header schema (v0.2 register §2.4) */
+
+export interface ProfileFieldDef {
+  key: string;
+  label: string;
+  type: 'integer' | 'decimal' | 'text' | 'boolean' | 'enum' | 'group';
+  required?: boolean;
+  min?: number;
+  max?: number;
+  options?: string[];
+  repeat?: { mode: 'fixedRows'; rows: { key: string; label: string }[] } | { mode: 'list' };
+  fields?: ProfileFieldDef[];
+}
+
+export interface ProfileSchema {
+  form: string;
+  version: number;
+  sections: { key: string; label: string; fields: ProfileFieldDef[] }[];
+}
+
+export function useProfileSchema(questionnaireId: number, formId: number | null) {
+  return useQuery({
+    queryKey: ['questionnaires', questionnaireId, 'profile-schema', formId],
+    queryFn: async () =>
+      (await api.get<ProfileSchema>(`/questionnaires/${questionnaireId}/forms/${formId}/profile-schema`)).data,
+    enabled: questionnaireId > 0 && formId !== null,
+    retry: false, // 404 simply means the form has no profile step
+  });
 }
 
 export function useQuestionnaires() {
@@ -122,7 +167,10 @@ export function useSaveItem(questionnaireId: number) {
   return useMutation({
     mutationFn: async ({ itemId, payload }: {
       itemId: number | null;
-      payload: { areaId: number | null; itemCode: string; itemText: string; responseType: ResponseType; sortOrder: number | null };
+      payload: {
+        areaId: number | null; formId: number | null; itemLetter: string | null;
+        itemCode: string; itemText: string; responseType: ResponseType; sortOrder: number | null;
+      };
     }) =>
       itemId === null
         ? (await api.post(`/questionnaires/${questionnaireId}/items`, payload)).data
@@ -143,10 +191,12 @@ export function useAddForm(questionnaireId: number) {
   const invalidate = useInvalidate(questionnaireId);
   return useMutation({
     mutationFn: async (payload: {
+      formCode: string | null;
       administrationMode: AdministrationMode;
       stakeholderCategory: StakeholderCategory | null;
       facilityType: string | null;
       name: string | null;
+      sortOrder: number | null;
     }) => (await api.post(`/questionnaires/${questionnaireId}/forms`, payload)).data,
     onSuccess: invalidate,
   });

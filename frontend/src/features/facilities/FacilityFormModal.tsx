@@ -5,11 +5,12 @@ import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { SelectField, TextAreaField, TextField } from '../../components/fields';
 import { apiErrorMessage } from '../../lib/api';
-import { FACILITY_TYPES, useSaveFacility, type FacilityType } from './api';
+import { FACILITY_TYPES, SUBTYPES_BY_TYPE, useSaveFacility, type FacilitySubtype, type FacilityType } from './api';
 
 const empty = {
   facilityCode: '',
   facilityType: 'TC' as FacilityType,
+  facilitySubtype: '' as '' | FacilitySubtype,
   name: '',
   provider: '',
   place: '',
@@ -37,6 +38,7 @@ export function FacilityFormModal({ open, onClose }: { open: boolean; onClose: (
         payload: {
           facilityCode: form.facilityCode.trim(),
           facilityType: form.facilityType,
+          facilitySubtype: form.facilitySubtype || null,
           name: form.name.trim(),
           provider: form.provider || null,
           place: form.place || null,
@@ -69,17 +71,27 @@ export function FacilityFormModal({ open, onClose }: { open: boolean; onClose: (
       <div className="max-h-[65vh] space-y-4 overflow-y-auto pr-1">
         <TextField label={t('facilities.code')} required value={form.facilityCode}
           onChange={(e) => setForm({ ...form, facilityCode: e.target.value })} />
-        <SelectField label={t('facilities.type')} required value={form.facilityType}
-          onChange={(e) => setForm({ ...form, facilityType: e.target.value as FacilityType })}>
-          {FACILITY_TYPES.map((type) => (
-            <option key={type} value={type}>{type} — {t(`facilities.types.${type}`)}</option>
-          ))}
-        </SelectField>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <SelectField label={t('facilities.type')} required value={form.facilityType}
+            onChange={(e) =>
+              setForm({ ...form, facilityType: e.target.value as FacilityType, facilitySubtype: '' })}>
+            {FACILITY_TYPES.map((type) => (
+              <option key={type} value={type}>{t(`facilities.typeNames.${type}`)}</option>
+            ))}
+          </SelectField>
+          <SelectField label={t('facilities.subtype')} value={form.facilitySubtype}
+            onChange={(e) => setForm({ ...form, facilitySubtype: e.target.value as '' | FacilitySubtype })}>
+            <option value="">—</option>
+            {SUBTYPES_BY_TYPE[form.facilityType].map((subtype) => (
+              <option key={subtype} value={subtype}>{t(`facilities.subtypes.${subtype}`)}</option>
+            ))}
+          </SelectField>
+        </div>
         <TextField label={t('facilities.name')} required value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })} />
         <TextField label={t('facilities.provider')} value={form.provider}
           onChange={(e) => setForm({ ...form, provider: e.target.value })} />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <TextField label={t('facilities.country')} value={form.country}
             onChange={(e) => setForm({ ...form, country: e.target.value })} />
           <TextField label={t('facilities.city')} value={form.city}

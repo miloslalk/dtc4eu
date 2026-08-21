@@ -38,8 +38,8 @@ export interface UserFilters {
 }
 
 export const ALL_ROLES: RoleCode[] = [
-  'SUPER_ADMIN', 'ADMIN', 'RESEARCH_TEAM', 'COORDINATOR', 'INTERNAL_FACILITATOR',
-  'EVALUATOR', 'RESPONDENT', 'TRAINER', 'DTC_REPRESENTATIVE', 'POLICYMAKER',
+  'SUPER_ADMIN', 'ADMIN', 'RESEARCH_TEAM', 'UPPER_COORDINATOR', 'COORDINATOR', 'AUDIT_COORDINATOR',
+  'INTERNAL_FACILITATOR', 'EVALUATOR', 'RESPONDENT', 'TRAINER', 'DTC_REPRESENTATIVE', 'POLICYMAKER',
 ];
 
 export function useUsers(filters: UserFilters) {
@@ -86,7 +86,7 @@ export function useSaveUser() {
 export function useCreateCycle() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { code: string; startDate?: string; endDate?: string }) =>
+    mutationFn: async (payload: { code: string; startDate?: string; endDate?: string; sequenceNumber?: number }) =>
       (await api.post<CycleInfo>('/cycles', payload)).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cycles'] }),
   });
@@ -95,16 +95,11 @@ export function useCreateCycle() {
 export function useUpdateCycle() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, payload }: { id: number; payload: { startDate?: string; endDate?: string; status?: string } }) =>
+    mutationFn: async ({ id, payload }: {
+      id: number;
+      payload: { startDate?: string; endDate?: string; status?: string; sequenceNumber?: number };
+    }) =>
       (await api.put<CycleInfo>(`/cycles/${id}`, payload)).data,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cycles'] }),
-  });
-}
-
-export function useSetCurrentCycle() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: number) => (await api.post<CycleInfo>(`/cycles/${id}/set-current`)).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cycles'] }),
   });
 }

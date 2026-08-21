@@ -88,7 +88,7 @@ export function QuestionnairesPage() {
             onChange={(e) => setForm({ ...form, code: e.target.value })} />
           <TextField label={t('questionnaires.name')} required value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <TextField label="Min" type="number" value={form.scaleMin}
               onChange={(e) => setForm({ ...form, scaleMin: e.target.value })} />
             <TextField label="Max" type="number" value={form.scaleMax}
