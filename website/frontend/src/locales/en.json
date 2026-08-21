@@ -1,0 +1,69 @@
+{
+  "site": {
+    "skipToContent": "Skip to content",
+    "menu": "Menu",
+    "close": "Close",
+    "readMore": "Read more",
+    "backToNews": "Back to news",
+    "news": "News",
+    "noNews": "No news published yet.",
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "The page you are looking for does not exist or is not published.",
+    "backHome": "Back to the homepage",
+    "galleryEmpty": "Photos will appear here soon.",
+    "adminLink": "CMS",
+    "loading": "Loading…"
+  },
+  "contact": {
+    "name": "Name",
+    "email": "Email",
+    "subject": "Subject",
+    "message": "Message",
+    "send": "Send message",
+    "sending": "Sending…",
+    "sent": "Thank you — your message has been sent.",
+    "error": "Something went wrong. Please try again.",
+    "required": "This field is required",
+    "invalidEmail": "Enter a valid email address"
+  },
+  "admin": {
+    "title": "DTC4EU Website CMS",
+    "login": "Sign in",
+    "username": "Username",
+    "password": "Password",
+    "logout": "Log out",
+    "nav": {
+      "pages": "Pages",
+      "news": "News",
+      "media": "Media",
+      "galleries": "Galleries",
+      "inbox": "Inbox",
+      "settings": "Settings",
+      "users": "Users"
+    },
+    "common": {
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "confirmDelete": "Delete this item? This cannot be undone.",
+      "create": "Create",
+      "edit": "Edit",
+      "add": "Add",
+      "upload": "Upload",
+      "publish": "Publish",
+      "unpublish": "Unpublish",
+      "published": "Published",
+      "draft": "Draft",
+      "actions": "Actions",
+      "empty": "Nothing here yet.",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "duplicate": "Duplicate",
+      "remove": "Remove",
+      "viewPage": "View page",
+      "unsaved": "Unsaved changes"
+    }
+  }
+}

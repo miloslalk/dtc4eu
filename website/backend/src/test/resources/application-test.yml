@@ -1,0 +1,13 @@
+# Test profile: the datasource is provided by Testcontainers (@ServiceConnection).
+app:
+  jwt:
+    secret: dtc4eu-website-test-secret-key-not-for-prod-0123456789
+    access-ttl: 15m
+    refresh-ttl: 7d
+  storage:
+    endpoint: http://localhost:9000
+    bucket: dtc4eu-website-test
+    access-key: test
+    secret-key: test-secret
+  cors:
+    allowed-origins: http://localhost:5174

@@ -1,0 +1,200 @@
+/* Brand tokens are the single source of truth (dtc4eu-tokens.css, moved here
+   verbatim); Tailwind v4 maps them into utility classes below. */
+@import './tokens.css';
+@import 'tailwindcss';
+
+@theme inline {
+  --font-sans: 'Manrope Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+
+  /* Primary — DTC Blue */
+  --color-blue-50: var(--blue-50);
+  --color-blue-100: var(--blue-100);
+  --color-blue-200: var(--blue-200);
+  --color-blue-300: var(--blue-300);
+  --color-blue-400: var(--blue-400);
+  --color-blue-500: var(--blue-500);
+  --color-blue-600: var(--blue-600);
+  --color-blue-700: var(--blue-700);
+  --color-blue-800: var(--blue-800);
+  --color-blue-900: var(--blue-900);
+
+  /* Secondary — Inclusion Gold */
+  --color-gold-50: var(--gold-50);
+  --color-gold-100: var(--gold-100);
+  --color-gold-200: var(--gold-200);
+  --color-gold-300: var(--gold-300);
+  --color-gold-400: var(--gold-400);
+  --color-gold-500: var(--gold-500);
+  --color-gold-600: var(--gold-600);
+  --color-gold-700: var(--gold-700);
+  --color-gold-800: var(--gold-800);
+  --color-gold-900: var(--gold-900);
+
+  /* Accent — Bright Azure (links / info) */
+  --color-azure-50: var(--azure-50);
+  --color-azure-100: var(--azure-100);
+  --color-azure-200: var(--azure-200);
+  --color-azure-300: var(--azure-300);
+  --color-azure-400: var(--azure-400);
+  --color-azure-500: var(--azure-500);
+  --color-azure-600: var(--azure-600);
+  --color-azure-700: var(--azure-700);
+  --color-azure-800: var(--azure-800);
+  --color-azure-900: var(--azure-900);
+
+  /* Warm neutrals */
+  --color-neutral-50: var(--neutral-50);
+  --color-neutral-100: var(--neutral-100);
+  --color-neutral-200: var(--neutral-200);
+  --color-neutral-300: var(--neutral-300);
+  --color-neutral-400: var(--neutral-400);
+  --color-neutral-500: var(--neutral-500);
+  --color-neutral-600: var(--neutral-600);
+  --color-neutral-700: var(--neutral-700);
+  --color-neutral-800: var(--neutral-800);
+  --color-neutral-900: var(--neutral-900);
+
+  /* Semantic role colours (use these in components) */
+  --color-primary: var(--blue-600);
+  --color-primary-hover: var(--blue-700);
+  --color-secondary: var(--gold-500);
+  --color-secondary-hover: var(--gold-600);
+  --color-link: var(--azure-500);
+
+  --color-success: var(--success);
+  --color-success-surface: var(--success-surface);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-error: var(--error);
+  --color-error-surface: var(--error-surface);
+  --color-info: var(--info);
+  --color-info-surface: var(--info-surface);
+}
+
+body {
+  background-color: var(--bg-app);
+  color: var(--text-body);
+}
+
+/* ------------------------------------------------------------------ */
+/* Website-specific globals                                            */
+/* ------------------------------------------------------------------ */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* CMS rich-text content (sanitized server-side). Class applied by the
+   RichText/ImageText block renderers and news detail page. */
+.cms-prose {
+  line-height: 1.7;
+  color: var(--text-body);
+}
+.cms-prose p + p {
+  margin-top: 0.9em;
+}
+.cms-prose h2 {
+  margin: 1.4em 0 0.5em;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--blue-600);
+}
+.cms-prose h3 {
+  margin: 1.2em 0 0.4em;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--blue-700);
+}
+.cms-prose a {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.cms-prose a:hover {
+  color: var(--azure-600);
+}
+.cms-prose ul {
+  margin: 0.8em 0;
+  padding-left: 1.4em;
+  list-style: disc;
+}
+.cms-prose ol {
+  margin: 0.8em 0;
+  padding-left: 1.4em;
+  list-style: decimal;
+}
+.cms-prose li + li {
+  margin-top: 0.3em;
+}
+.cms-prose blockquote {
+  margin: 1em 0;
+  border-left: 3px solid var(--gold-500);
+  padding-left: 1em;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.cms-prose strong {
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+/* TipTap editor surface in the admin CMS */
+.tiptap {
+  min-height: 8rem;
+  outline: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Modern-look utilities (public site)                                 */
+/* ------------------------------------------------------------------ */
+
+/* Scroll-reveal: elements start slightly lowered/transparent and ease in */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.reveal-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Brand gradient headline text */
+.text-gradient {
+  background: linear-gradient(100deg, var(--blue-700) 15%, var(--blue-500) 55%, var(--azure-500) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Soft dotted grid backdrop for the hero */
+.bg-dots {
+  background-image: radial-gradient(var(--blue-200) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Slow ambient float for decorative blobs */
+@keyframes float-slow {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(12px, -18px, 0) scale(1.06); }
+}
+.animate-float-slow {
+  animation: float-slow 9s ease-in-out infinite;
+}
+.animate-float-slower {
+  animation: float-slow 14s ease-in-out infinite reverse;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .animate-float-slow,
+  .animate-float-slower {
+    animation: none;
+  }
+}
