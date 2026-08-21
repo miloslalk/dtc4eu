@@ -1,0 +1,131 @@
+# DTC4EU production stack — single-server deployment (see deploy/DEPLOY.md).
+# Run from the repo root:
+#   docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d --build
+name: dtc4eu-prod
+
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN}
+      PLATFORM_DOMAIN: ${PLATFORM_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - platform-api
+      - website-api
+    mem_limit: 256m
+
+  platform-api:
+    build:
+      context: ..
+      dockerfile: deploy/platform-api.Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/dtc4eu
+      DB_USERNAME: dtc4eu
+      DB_PASSWORD: ${PLATFORM_DB_PASSWORD}
+      JWT_SECRET: ${PLATFORM_JWT_SECRET}
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_BUCKET: dtc4eu
+      STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER}
+      STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      CORS_ALLOWED_ORIGINS: https://${PLATFORM_DOMAIN}
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/8080"]
+      interval: 20s
+      timeout: 5s
+      start_period: 90s
+      retries: 6
+    mem_limit: 1g
+
+  website-api:
+    build:
+      context: ..
+      dockerfile: deploy/website-api.Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/dtc4eu_website
+      DB_USERNAME: dtc4eu_website
+      DB_PASSWORD: ${WEBSITE_DB_PASSWORD}
+      JWT_SECRET: ${WEBSITE_JWT_SECRET}
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_BUCKET: dtc4eu-website
+      STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER}
+      STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      CORS_ALLOWED_ORIGINS: https://${SITE_DOMAIN},https://www.${SITE_DOMAIN}
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/8090"]
+      interval: 20s
+      timeout: 5s
+      start_period: 90s
+      retries: 6
+    mem_limit: 1g
+
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      PLATFORM_DB_PASSWORD: ${PLATFORM_DB_PASSWORD}
+      WEBSITE_DB_PASSWORD: ${WEBSITE_DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 768m
+
+  minio:
+    image: minio/minio
+    restart: unless-stopped
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - miniodata:/data
+    mem_limit: 512m
+
+  backup:
+    image: postgres:16
+    restart: unless-stopped
+    # one backup at container start, then every 24h
+    entrypoint: ["/bin/bash", "-c",
+      "while true; do /backup.sh >> /backups/backup.log 2>&1; sleep 86400; done"]
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+    volumes:
+      - ./backup.sh:/backup.sh:ro
+      - backups:/backups
+      - miniodata:/minio-data:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: 256m
+
+volumes:
+  pgdata:
+  miniodata:
+  caddy_data:
+  caddy_config:
+  backups:

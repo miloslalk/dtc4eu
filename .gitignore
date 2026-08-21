@@ -2,6 +2,9 @@
 backend/target/
 frontend/dist/
 frontend/node_modules/
+website/backend/target/
+website/frontend/dist/
+website/frontend/node_modules/
 
 # Environment / secrets
 .env
@@ -19,3 +22,4 @@ frontend/node_modules/
 
 # Logs
 *.log
+deploy/.env

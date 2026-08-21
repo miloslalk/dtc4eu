@@ -10,11 +10,19 @@ DTC4EU (Erasmus KA220 — Democratic Therapeutic Communities for Social Inclusio
 
 ## Current state
 
-Phase 1 is implemented on the `phase-1` branch: foundation (auth, users/roles/scope, cycles, `X-Cycle-Id` context), Module 1 (Facilities + participation/members/SAG/QCNC + CSV export), Module 2 (Ternas with the 3-facility and coordinator-count rules), Module 4 (questionnaire definitions, responses with autosave, submit → idempotent area-mean scoring, research CSV export), plus the branded React frontend for all of it.
+Phase 1 is implemented on the `phase-1` branch, **amended by the spec v0.2 client revision** (`docs/DTC4EU_Client_Revision_Change_Register_v0.2.md` — the authoritative changelog): foundation (auth, users/roles/scope, overlapping cycles, `X-Cycle-Id` context), Module 1 (Facilities with the 3-settings × 8-subtypes taxonomy + participation/members/SAG/QCNC + quality-document applications + accreditation history + CSV export), Module 2 (Ternas with the 3-facility and coordinator-count rules + benchmark/population analytics), Module 4 (six-form DTCRO item bank, per-form profile headers, responses with autosave, submit → per-response area means **and** the facility-cycle scoring engine of register §3: Quant-SPWP/SAWA grids, TAB.5 classifications, strength/weakness points, EP, summary table), plus the branded React frontend for all of it.
 
-Migrations: `V1` baseline (never edit) → `V2` roles + dev super-admin (`admin` / `Dtc4eu!Admin2026`, rotate in prod) → `V3` cycle 2026-2027 (current) → `V4` DTCRO placeholder content (9 areas / 45 items, texts clearly marked PLACEHOLDER pending the clinical specialist) → `V5` adds `questionnaire_responses.created_by` (needed for the RESPONDENT own-responses scope; deliberate additive schema change).
+Migrations: `V1` baseline (never edit) → `V2` roles + dev super-admin (`admin` / `Dtc4eu!Admin2026`, rotate in prod) → `V3` cycle 2026-2027 → `V4` DTCRO placeholder (superseded) → `V5` adds `questionnaire_responses.created_by` → `V6` six-form model + vocabulary renames (LONG_FORM/DELEGATION, USER/FAMILY/STAFF/MANAGER, anchors, form area labels) → `V7` **generated** DTCRO item-bank seed (216 verbatim items from `tools/dtcro_item_bank.csv` via `tools/generate_v7_item_bank.py`; destructively replaces the V4 placeholder) → `V8` facility scoring tables → `V9` taxonomy/overlapping cycles/new roles/GPP-CGS-EEN → `V10` QCNC carrier (three-administration model + empty standards catalogue).
 
-Structure notes that go beyond the spec: assigned terna coordinators are auto-granted `user_terna_access` scope; refresh tokens are stateless signed JWTs (schema has no token table); the "UI Screen & Flow spec" (S-xx) was not yet available — screens are derived from the build spec and should be reconciled when that document lands in the repo.
+Structure notes that go beyond the spec: assigned terna coordinators are auto-granted `user_terna_access` scope; refresh tokens are stateless signed JWTs (schema has no token table); per-form profile headers are declarative JSON resources under `backend/src/main/resources/profile-schemas/` validated by `ProfileValidationService` (required fields only at submit); the facility scoring engine (`eu.dtc4eu.scoring`) recomputes inline on every submit and via `POST /facilities/{id}/scores/recompute`; EP currently equals the item-level quantitative strength set and benchmark ties break by terna position (both flagged to the client); QCNC/GAS-Set data entry and the register's §12 open questions remain pending client input.
+
+## Public website + CMS (`website/`)
+
+`website/` is a **separate product** living beside the platform: the public DTC4EU marketing/info site plus its own standalone CMS. It shares only the design tokens (copied from `frontend/src/styles/tokens.css`) and the dev MinIO container (bucket `dtc4eu-website`). It has its **own database** (`website-db` compose service, port 5434, db `dtc4eu_website`, own Flyway chain), its **own admin users/auth** (roles ADMIN/EDITOR, dev login `webadmin` / `Dtc4eu!Web2026`), and its own ports: Spring Boot CMS API on **8090** (`website/backend`, base package `eu.dtc4eu.website`), one Vite app on **5174** (`website/frontend` — public site + code-split `/admin` CMS). Pages are free-form: ordered typed blocks (HERO, RICH_TEXT, CARDS, …) with JSONB payloads validated by `BlockValidationService`; rich-text HTML is sanitized server-side on write. Content is EN-only but every table carries a `locale` column. This is unrelated to the platform schema's Phase-3 "general platform" tables — never mix the two.
+
+## Deployment (`deploy/`)
+
+Production runs on a single Hetzner VPS via `deploy/docker-compose.prod.yml` (build from repo root with `--env-file deploy/.env`): Caddy (auto-HTTPS, serves both SPAs, proxies `/api` per vhost via `SITE_DOMAIN`/`PLATFORM_DOMAIN` env vars), both Spring APIs (prod profile, env-only config), one Postgres 16 with two databases (created by `deploy/initdb/`), internal-only MinIO, and a nightly backup container (`deploy/backup.sh`, 14-day rotation). Runbook: `deploy/DEPLOY.md`. Secrets template: `deploy/.env.example` — real `.env` is never committed.
 
 ## Scope guard — Phase 1 only
 
@@ -29,7 +37,7 @@ The schema defines all modules, but Phase 1 implements only: foundation (users/r
 - **Pseudonymous codes only** — subjects and facilities are identified by codes, never personal names.
 - **Role + data scope enforced on every data endpoint**, implemented as reusable JPA Specifications: `INTERNAL_FACILITATOR` → facilities in `user_facility_access`; `COORDINATOR` → ternas in `user_terna_access` + their member facilities; `RESPONDENT` → own responses; `RESEARCH_TEAM`/`ADMIN`/`SUPER_ADMIN` → all data in the cycle. Out-of-scope records return **404, not 403**.
 - **Enums are fixed by CHECK constraints in the schema** — mirror them exactly as Java enums (lists in spec §5).
-- Standard abbreviations are **PGP / DGC / NEE** (the Excel is authoritative), not the GPP/CGS/EEN found in some older documents.
+- Standard abbreviations are **GPP / CGS / EEN** (Good Practice Procedure / Community Group Setting / Enabling Environment Setting) per the spec v0.2 client revision (`docs/DTC4EU_Client_Revision_Change_Register_v0.2.md`) — this **reverses** the earlier PGP/DGC/NEE convention from the first Excel data dictionary.
 - Log create/update/delete, login, submit, and export to `audit_logs`.
 
 ## Conventions (details in spec §4)
@@ -50,4 +58,4 @@ Local dependencies run via `docker-compose.yml` (Postgres 16 on 5432, MinIO on 9
 
 ## Open questions — do not invent answers
 
-Spec §9 lists unresolved inputs; the DTCRO/MHSRO item content (45 items / 9 areas) is critical-path for T4/T5. Where blocked, stub clearly-labeled placeholder data and keep building the container — never fabricate clinical content as if real.
+Spec §9 lists unresolved inputs. The DTCRO item content arrived with spec v0.2 (six forms / 216 items, seeded verbatim from `tools/dtcro_item_bank.csv` — including the client's typos; clinical content is never edited or invented). Where still blocked (QCNC catalogue text, GAS-Set structure, register §12 questions), stub clearly-labeled placeholder data and keep building the container — never fabricate clinical content as if real.
