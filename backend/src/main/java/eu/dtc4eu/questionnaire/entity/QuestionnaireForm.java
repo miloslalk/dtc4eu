@@ -21,9 +21,9 @@ import lombok.Setter;
 @NoArgsConstructor
 public class QuestionnaireForm {
 
-    public enum AdministrationMode { INDIVIDUAL, SELFEVAL_COLLECTIVE, HETEROEVAL_DELEGATION }
+    public enum AdministrationMode { INDIVIDUAL, LONG_FORM, DELEGATION }
 
-    public enum StakeholderCategory { USERS, FAMILIARS, PRACTITIONERS, MANAGERS }
+    public enum StakeholderCategory { USER, FAMILY, STAFF, MANAGER }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,4 +46,11 @@ public class QuestionnaireForm {
 
     @Column(length = 150)
     private String name;
+
+    /** Stable code identifying the form within its questionnaire (USER, FAMILY, STAFF, MANAGER, LONG_FORM, DELEGATION for DTCRO). */
+    @Column(name = "form_code", length = 20)
+    private String formCode;
+
+    @Column(name = "sort_order")
+    private Integer sortOrder;
 }

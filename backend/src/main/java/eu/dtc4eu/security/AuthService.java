@@ -81,10 +81,11 @@ public class AuthService {
         ScopeInfo scope = new ScopeInfo(
                 facilityAccessRepository.findFacilityIdsByUserId(user.getId()),
                 ternaAccessRepository.findTernaIdsByUserId(user.getId()));
-        CycleInfo currentCycle = cycleRepository.findByCurrentTrue()
-                .map(c -> new CycleInfo(c.getId(), c.getCode(), c.getStatus().name(), c.isCurrent()))
+        CycleInfo defaultCycle = cycleRepository
+                .findFirstByStatusOrderByStartDateDescIdDesc(eu.dtc4eu.cycle.entity.AnnualCycle.Status.OPEN)
+                .map(c -> new CycleInfo(c.getId(), c.getCode(), c.getStatus().name(), c.getSequenceNumber()))
                 .orElse(null);
-        return new MeResponse(userInfo(user), scope, currentCycle);
+        return new MeResponse(userInfo(user), scope, defaultCycle);
     }
 
     private TokenResponse tokensFor(User user) {

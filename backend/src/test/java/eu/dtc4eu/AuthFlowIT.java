@@ -74,10 +74,10 @@ class AuthFlowIT {
                 new HttpEntity<>(headers), Map.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        Map<?, ?> currentCycle = (Map<?, ?>) response.getBody().get("currentCycle");
-        assertThat(currentCycle).isNotNull();
-        assertThat(currentCycle.get("code")).isEqualTo("2026-2027");
-        assertThat(currentCycle.get("status")).isEqualTo("OPEN");
+        Map<?, ?> defaultCycle = (Map<?, ?>) response.getBody().get("defaultCycle");
+        assertThat(defaultCycle).isNotNull();
+        assertThat(defaultCycle.get("code")).isEqualTo("2026-2027");
+        assertThat(defaultCycle.get("status")).isEqualTo("OPEN");
     }
 
     @Test

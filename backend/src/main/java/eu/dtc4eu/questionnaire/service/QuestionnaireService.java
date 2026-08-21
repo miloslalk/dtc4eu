@@ -4,8 +4,10 @@ import eu.dtc4eu.audit.AuditService;
 import eu.dtc4eu.common.error.BadRequestException;
 import eu.dtc4eu.common.error.ConflictException;
 import eu.dtc4eu.common.error.NotFoundException;
+import eu.dtc4eu.questionnaire.dto.QuestionnaireDtos.AnchorDto;
 import eu.dtc4eu.questionnaire.dto.QuestionnaireDtos.AreaDto;
 import eu.dtc4eu.questionnaire.dto.QuestionnaireDtos.CreateQuestionnaireRequest;
+import eu.dtc4eu.questionnaire.dto.QuestionnaireDtos.FormAreaLabelDto;
 import eu.dtc4eu.questionnaire.dto.QuestionnaireDtos.FormDto;
 import eu.dtc4eu.questionnaire.dto.QuestionnaireDtos.ItemDto;
 import eu.dtc4eu.questionnaire.dto.QuestionnaireDtos.QuestionnaireDetailDto;
@@ -19,9 +21,11 @@ import eu.dtc4eu.questionnaire.entity.QuestionnaireArea;
 import eu.dtc4eu.questionnaire.entity.QuestionnaireForm;
 import eu.dtc4eu.questionnaire.entity.QuestionnaireItem;
 import eu.dtc4eu.questionnaire.repository.QuestionnaireAreaRepository;
+import eu.dtc4eu.questionnaire.repository.QuestionnaireFormAreaLabelRepository;
 import eu.dtc4eu.questionnaire.repository.QuestionnaireFormRepository;
 import eu.dtc4eu.questionnaire.repository.QuestionnaireItemRepository;
 import eu.dtc4eu.questionnaire.repository.QuestionnaireRepository;
+import eu.dtc4eu.questionnaire.repository.QuestionnaireScaleAnchorRepository;
 import eu.dtc4eu.security.AppUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -41,6 +45,9 @@ public class QuestionnaireService {
     private final QuestionnaireAreaRepository areaRepository;
     private final QuestionnaireItemRepository itemRepository;
     private final QuestionnaireFormRepository formRepository;
+    private final QuestionnaireScaleAnchorRepository anchorRepository;
+    private final QuestionnaireFormAreaLabelRepository formAreaLabelRepository;
+    private final ProfileSchemaService profileSchemaService;
     private final AuditService auditService;
 
     /* ------------------------------ questionnaires ------------------------------ */
@@ -59,11 +66,20 @@ public class QuestionnaireService {
     @Transactional(readOnly = true)
     public QuestionnaireDetailDto get(Long id) {
         Questionnaire questionnaire = find(id);
+        List<QuestionnaireForm> forms = formRepository.findByQuestionnaireIdOrderBySortOrderAscIdAsc(id);
+        List<FormAreaLabelDto> formAreaLabels = forms.isEmpty() ? List.of()
+                : formAreaLabelRepository.findByFormIdIn(forms.stream().map(QuestionnaireForm::getId).toList())
+                        .stream()
+                        .map(l -> new FormAreaLabelDto(l.getFormId(), l.getAreaId(), l.getDisplayName()))
+                        .toList();
         return new QuestionnaireDetailDto(questionnaire.getId(), questionnaire.getCode(), questionnaire.getName(),
                 questionnaire.getScaleMin(), questionnaire.getScaleMax(), questionnaire.isActive(),
                 areaRepository.findByQuestionnaireIdOrderBySortOrderAscIdAsc(id).stream().map(AreaDto::of).toList(),
                 itemRepository.findByQuestionnaireIdOrderBySortOrderAscIdAsc(id).stream().map(ItemDto::of).toList(),
-                formRepository.findByQuestionnaireIdOrderByIdAsc(id).stream().map(FormDto::of).toList());
+                forms.stream().map(FormDto::of).toList(),
+                anchorRepository.findByQuestionnaireIdOrderByValue(id).stream()
+                        .map(a -> new AnchorDto(a.getValue(), a.getLabel())).toList(),
+                formAreaLabels);
     }
 
     @Transactional
@@ -153,6 +169,7 @@ public class QuestionnaireService {
             throw new ConflictException("Item code already exists in this questionnaire");
         }
         validateItemArea(questionnaireId, request.areaId());
+        validateItemForm(questionnaireId, null, request);
         QuestionnaireItem item = new QuestionnaireItem();
         item.setQuestionnaireId(questionnaireId);
         applyItem(item, request);
@@ -169,6 +186,7 @@ public class QuestionnaireService {
             throw new ConflictException("Item code already exists in this questionnaire");
         }
         validateItemArea(questionnaireId, request.areaId());
+        validateItemForm(questionnaireId, itemId, request);
         applyItem(item, request);
         auditService.success(actor.getId(), "UPDATE_ITEM", "questionnaire", questionnaireId);
         return ItemDto.of(item);
@@ -191,12 +209,18 @@ public class QuestionnaireService {
     @Transactional
     public FormDto addForm(Long questionnaireId, SaveFormRequest request, AppUserDetails actor) {
         find(questionnaireId);
+        if (request.formCode() != null
+                && formRepository.existsByQuestionnaireIdAndFormCode(questionnaireId, request.formCode())) {
+            throw new ConflictException("Form code already exists in this questionnaire");
+        }
         QuestionnaireForm form = new QuestionnaireForm();
         form.setQuestionnaireId(questionnaireId);
+        form.setFormCode(request.formCode());
         form.setAdministrationMode(request.administrationMode());
         form.setStakeholderCategory(request.stakeholderCategory());
         form.setFacilityType(request.facilityType());
         form.setName(request.name());
+        form.setSortOrder(request.sortOrder());
         form = formRepository.save(form);
         auditService.success(actor.getId(), "ADD_FORM", "questionnaire", questionnaireId);
         return FormDto.of(form);
@@ -214,6 +238,19 @@ public class QuestionnaireService {
             throw new ConflictException("Form already has responses and cannot be deleted");
         }
         auditService.success(actor.getId(), "DELETE_FORM", "questionnaire", questionnaireId);
+    }
+
+    /* ----------------------------- profile schemas ------------------------------ */
+
+    /** The per-form profile-header definition (v0.2 register §2.4); 404 when the form has none. */
+    @Transactional(readOnly = true)
+    public com.fasterxml.jackson.databind.JsonNode getProfileSchema(Long questionnaireId, Long formId) {
+        Questionnaire questionnaire = find(questionnaireId);
+        QuestionnaireForm form = formRepository.findById(formId)
+                .filter(f -> Objects.equals(f.getQuestionnaireId(), questionnaireId))
+                .orElseThrow(() -> NotFoundException.of("Form", formId));
+        return profileSchemaService.find(questionnaire.getCode(), form.getFormCode())
+                .orElseThrow(() -> NotFoundException.of("Profile schema for form", formId));
     }
 
     /* --------------------------------- helpers --------------------------------- */
@@ -244,10 +281,40 @@ public class QuestionnaireService {
 
     private void applyItem(QuestionnaireItem item, SaveItemRequest request) {
         item.setAreaId(request.areaId());
+        item.setFormId(request.formId());
+        item.setItemLetter(request.itemLetter());
         item.setItemCode(request.itemCode());
         item.setItemText(request.itemText());
         item.setResponseType(request.responseType());
         item.setSortOrder(request.sortOrder());
+    }
+
+    /** Form-owned items carry a coordinate letter; the (form, area, letter) triple must be unique. */
+    private void validateItemForm(Long questionnaireId, Long currentItemId, SaveItemRequest request) {
+        if (request.formId() == null) {
+            return;
+        }
+        QuestionnaireForm form = formRepository.findById(request.formId())
+                .filter(f -> Objects.equals(f.getQuestionnaireId(), questionnaireId))
+                .orElseThrow(() -> new BadRequestException("Form does not belong to this questionnaire"));
+        if (request.itemLetter() != null && !request.itemLetter().matches("[a-e]")) {
+            throw new BadRequestException("Item letter must be a, b, c, d or e");
+        }
+        if (request.areaId() != null && request.itemLetter() != null) {
+            boolean taken = itemRepository
+                    .existsByFormIdAndAreaIdAndItemLetter(form.getId(), request.areaId(), request.itemLetter());
+            if (taken && (currentItemId == null || !isSameCoordinate(currentItemId, request))) {
+                throw new ConflictException("This form already has an item at that coordinate");
+            }
+        }
+    }
+
+    private boolean isSameCoordinate(Long itemId, SaveItemRequest request) {
+        return itemRepository.findById(itemId)
+                .filter(existing -> Objects.equals(existing.getFormId(), request.formId())
+                        && Objects.equals(existing.getAreaId(), request.areaId())
+                        && Objects.equals(existing.getItemLetter(), request.itemLetter()))
+                .isPresent();
     }
 
     private void validateScale(int scaleMin, int scaleMax) {

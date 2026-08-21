@@ -7,7 +7,9 @@ import java.util.List;
 
 public interface QuestionnaireFormRepository extends JpaRepository<QuestionnaireForm, Long> {
 
-    List<QuestionnaireForm> findByQuestionnaireIdOrderByIdAsc(Long questionnaireId);
+    List<QuestionnaireForm> findByQuestionnaireIdOrderBySortOrderAscIdAsc(Long questionnaireId);
+
+    boolean existsByQuestionnaireIdAndFormCode(Long questionnaireId, String formCode);
 
     long countByQuestionnaireId(Long questionnaireId);
 }

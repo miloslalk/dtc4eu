@@ -12,10 +12,11 @@ import java.util.Set;
 
 /**
  * Turns the caller's roles + access assignments into a {@link DataScope}
- * (spec §6):
- *  - SUPER_ADMIN / ADMIN / RESEARCH_TEAM → everything in the cycle
+ * (spec §6, amended by v0.2 register §9):
+ *  - SUPER_ADMIN / ADMIN / RESEARCH_TEAM / UPPER_COORDINATOR → everything
+ *    ("All Cycles, all Countries, all Ternas")
  *  - COORDINATOR → assigned ternas + their member facilities
- *  - INTERNAL_FACILITATOR → assigned facilities
+ *  - INTERNAL_FACILITATOR / EVALUATOR / AUDIT_COORDINATOR → assigned facilities
  *  - RESPONDENT (only) → own responses
  * Multiple roles union their scopes. Out-of-scope reads must surface as 404.
  */
@@ -28,14 +29,15 @@ public class DataScopeService {
 
     @Transactional(readOnly = true)
     public DataScope scopeOf(AppUserDetails principal) {
-        if (principal.hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN, Role.RESEARCH_TEAM)) {
+        if (principal.hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN, Role.RESEARCH_TEAM, Role.UPPER_COORDINATOR)) {
             return new DataScope(principal.getId(), true, Set.of(), Set.of(), false);
         }
 
         Set<Long> facilityIds = new HashSet<>();
         Set<Long> ternaIds = new HashSet<>();
 
-        if (principal.hasRole(Role.INTERNAL_FACILITATOR) || principal.hasRole(Role.EVALUATOR)) {
+        if (principal.hasRole(Role.INTERNAL_FACILITATOR) || principal.hasRole(Role.EVALUATOR)
+                || principal.hasRole(Role.AUDIT_COORDINATOR)) {
             facilityIds.addAll(facilityAccessRepository.findFacilityIdsByUserId(principal.getId()));
         }
         if (principal.hasRole(Role.COORDINATOR)) {

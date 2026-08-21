@@ -30,7 +30,7 @@ import java.util.Map;
 public class QuestionnaireResponse {
 
     public enum RespondentCategory {
-        USERS, FAMILIARS, PRACTITIONERS, MANAGERS, SELFEVAL_COLLECTIVE, HETEROEVAL_DELEGATION
+        USER, FAMILY, STAFF, MANAGER, LONG_FORM, DELEGATION
     }
 
     public enum Status { DRAFT, SUBMITTED }

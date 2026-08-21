@@ -1,0 +1,86 @@
+{
+  "form": "MANAGER",
+  "version": 1,
+  "sections": [
+    {
+      "key": "demographics",
+      "label": "About you",
+      "fields": [
+        { "key": "age", "label": "Age", "type": "integer", "min": 0, "max": 120, "required": true },
+        { "key": "gender", "label": "Gender", "type": "enum", "options": ["NB", "M", "F"], "required": true },
+        { "key": "managerial_role", "label": "Managerial role (to be confirmed: the six listed roles + other)", "type": "text" },
+        { "key": "years_worked", "label": "Years worked", "type": "decimal", "min": 0, "max": 100 },
+        { "key": "weekly_hours_worked", "label": "Weekly hours worked", "type": "decimal", "min": 0, "max": 168 }
+      ]
+    },
+    {
+      "key": "organisation",
+      "label": "Organisation",
+      "fields": [
+        {
+          "key": "admin_staff_composition",
+          "label": "Administrative staff composition by role",
+          "type": "group",
+          "repeat": { "mode": "list" },
+          "fields": [
+            { "key": "role", "label": "Role", "type": "text" },
+            { "key": "count", "label": "Count", "type": "integer", "min": 0, "max": 1000 }
+          ]
+        },
+        { "key": "delegate_participation", "label": "Delegate takes part in reflective coordination", "type": "boolean" },
+        { "key": "admin_meetings_with_representation", "label": "Administrative meetings with representation (to be confirmed: which representatives)", "type": "boolean" },
+        {
+          "key": "supervision",
+          "label": "Supervision",
+          "type": "group",
+          "fields": [
+            { "key": "provided", "label": "Provided", "type": "boolean" },
+            { "key": "targets", "label": "Supervision targets (to be confirmed)", "type": "text" }
+          ]
+        },
+        { "key": "inter_agency_planning_meetings", "label": "Inter-agency planning meetings", "type": "boolean" },
+        { "key": "accreditation_programmes", "label": "Takes part in accreditation programmes", "type": "boolean" },
+        { "key": "association_member", "label": "Member of scientific-professional associations", "type": "boolean" },
+        { "key": "funding_type", "label": "Funding type", "type": "enum", "options": ["PUBLIC", "PRIVATE"] }
+      ]
+    },
+    {
+      "key": "population",
+      "label": "Community population totals",
+      "fields": [
+        {
+          "key": "population_totals",
+          "label": "Totals with M/F split",
+          "type": "group",
+          "repeat": {
+            "mode": "fixedRows",
+            "rows": [
+              { "key": "clinical_social_staff", "label": "Clinical-social staff" },
+              { "key": "directorate", "label": "Directorate" },
+              { "key": "users", "label": "Users" },
+              { "key": "forensic_users", "label": "Forensic users" },
+              { "key": "non_eu_users", "label": "Non-EU users" }
+            ]
+          },
+          "fields": [
+            { "key": "count", "label": "Count", "type": "integer", "min": 0, "max": 10000 },
+            { "key": "male", "label": "M", "type": "integer", "min": 0, "max": 10000 },
+            { "key": "female", "label": "F", "type": "integer", "min": 0, "max": 10000 }
+          ]
+        },
+        {
+          "key": "clinical_social_staff_composition",
+          "label": "Clinical-social staff composition by role",
+          "type": "group",
+          "repeat": { "mode": "list" },
+          "fields": [
+            { "key": "role", "label": "Role", "type": "text" },
+            { "key": "count", "label": "Count", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "male", "label": "M", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "female", "label": "F", "type": "integer", "min": 0, "max": 1000 }
+          ]
+        }
+      ]
+    }
+  ]
+}

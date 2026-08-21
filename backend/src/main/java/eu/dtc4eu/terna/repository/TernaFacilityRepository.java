@@ -13,6 +13,8 @@ public interface TernaFacilityRepository extends JpaRepository<TernaFacility, Lo
 
     List<TernaFacility> findByTernaIdOrderByPositionAsc(Long ternaId);
 
+    List<TernaFacility> findByFacilityId(Long facilityId);
+
     List<TernaFacility> findByTernaIdIn(Collection<Long> ternaIds);
 
     /** Member rows of ternas in one cycle that involve a given facility (one-terna-per-cycle rule). */

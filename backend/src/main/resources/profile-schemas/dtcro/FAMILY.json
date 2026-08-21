@@ -1,0 +1,72 @@
+{
+  "form": "FAMILY",
+  "version": 1,
+  "sections": [
+    {
+      "key": "demographics",
+      "label": "About you",
+      "fields": [
+        { "key": "age", "label": "Age", "type": "integer", "min": 0, "max": 120, "required": true },
+        { "key": "sex", "label": "Sex", "type": "enum", "options": ["NB", "M", "F"], "required": true },
+        { "key": "relationship_type", "label": "Relationship to the community member (to be confirmed: type list)", "type": "text" },
+        { "key": "related_subject_id", "label": "SUBJECT ID of your relative (pseudonymous code)", "type": "text" },
+        { "key": "years_of_relationship", "label": "Years of relationship", "type": "decimal", "min": 0, "max": 100 },
+        { "key": "cohabits_with_relative", "label": "Living with your relative", "type": "boolean" }
+      ]
+    },
+    {
+      "key": "participation",
+      "label": "Participation in community life",
+      "fields": [
+        { "key": "weekly_hours_community_activities", "label": "Weekly hours in community activities", "type": "decimal", "min": 0, "max": 168 },
+        { "key": "weekly_hours_therapeutic_project", "label": "Weekly hours in your relative's therapeutic project", "type": "decimal", "min": 0, "max": 168 },
+        { "key": "other_family_participants", "label": "Other family members taking part", "type": "integer", "min": 0, "max": 50 },
+        {
+          "key": "activity_participation",
+          "label": "Participation by activity type (to be confirmed: the five activity types)",
+          "type": "group",
+          "repeat": {
+            "mode": "fixedRows",
+            "rows": [
+              { "key": "activity_1", "label": "Activity type 1 (to be confirmed)" },
+              { "key": "activity_2", "label": "Activity type 2 (to be confirmed)" },
+              { "key": "activity_3", "label": "Activity type 3 (to be confirmed)" },
+              { "key": "activity_4", "label": "Activity type 4 (to be confirmed)" },
+              { "key": "activity_5", "label": "Activity type 5 (to be confirmed)" }
+            ]
+          },
+          "fields": [
+            { "key": "participates", "label": "Takes part", "type": "boolean" },
+            { "key": "times", "label": "How many times", "type": "integer", "min": 0, "max": 1000 }
+          ]
+        },
+        {
+          "key": "multi_family_meetings",
+          "label": "Multi-family community meetings",
+          "type": "group",
+          "fields": [
+            { "key": "attends", "label": "Attends multi-family community meetings", "type": "boolean" },
+            { "key": "participants", "label": "Number of participants", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "frequency", "label": "Frequency", "type": "text" }
+          ]
+        },
+        {
+          "key": "key_worker_awareness",
+          "label": "Your relative's key worker",
+          "type": "group",
+          "fields": [
+            { "key": "knows_key_worker", "label": "Knows the key worker", "type": "boolean" },
+            { "key": "meeting_frequency", "label": "Meeting frequency", "type": "text" }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "residence",
+      "label": "Residence",
+      "fields": [
+        { "key": "residence_proximity", "label": "Residence proximity", "type": "enum", "options": ["MUNICIPALITY", "PROVINCE", "REGION"] }
+      ]
+    }
+  ]
+}

@@ -12,4 +12,7 @@ public interface FacilityMemberRepository extends JpaRepository<FacilityMember, 
                                                                                          Long annualCycleId);
 
     Optional<FacilityMember> findByMemberCodeAndAnnualCycleId(String memberCode, Long annualCycleId);
+
+    long countByFacilityIdAndAnnualCycleIdAndCategory(Long facilityId, Long annualCycleId,
+                                                      FacilityMember.Category category);
 }

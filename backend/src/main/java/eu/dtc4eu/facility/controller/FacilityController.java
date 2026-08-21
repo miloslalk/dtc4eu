@@ -52,10 +52,11 @@ public class FacilityController {
 
     private final FacilityService facilityService;
 
-    @Operation(summary = "List facilities (filters: q, type, country, city, activity-in-cycle, active)")
+    @Operation(summary = "List facilities (filters: q, setting, subtype, country, city, activity-in-cycle, active)")
     @GetMapping
     public PageResponse<FacilityDto> list(@RequestParam(required = false) String q,
                                           @RequestParam(required = false) Facility.FacilityType type,
+                                          @RequestParam(required = false) Facility.FacilitySubtype subtype,
                                           @RequestParam(required = false) String country,
                                           @RequestParam(required = false) String city,
                                           @RequestParam(required = false) FacilityCycleParticipation.Activity activity,
@@ -63,19 +64,20 @@ public class FacilityController {
                                           @ParameterObject @PageableDefault(size = 20, sort = "facilityCode",
                                                   direction = Sort.Direction.ASC) Pageable pageable,
                                           @AuthenticationPrincipal AppUserDetails principal) {
-        return facilityService.list(q, type, country, city, activity, active, pageable, principal);
+        return facilityService.list(q, type, subtype, country, city, activity, active, pageable, principal);
     }
 
     @Operation(summary = "CSV export of the filtered facility list")
     @GetMapping("/export")
     public ResponseEntity<String> exportCsv(@RequestParam(required = false) String q,
                                             @RequestParam(required = false) Facility.FacilityType type,
+                                            @RequestParam(required = false) Facility.FacilitySubtype subtype,
                                             @RequestParam(required = false) String country,
                                             @RequestParam(required = false) String city,
                                             @RequestParam(required = false) FacilityCycleParticipation.Activity activity,
                                             @RequestParam(required = false) Boolean active,
                                             @AuthenticationPrincipal AppUserDetails principal) {
-        String csv = facilityService.exportCsv(q, type, country, city, activity, active, principal);
+        String csv = facilityService.exportCsv(q, type, subtype, country, city, activity, active, principal);
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("text/csv"))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"facilities.csv\"")

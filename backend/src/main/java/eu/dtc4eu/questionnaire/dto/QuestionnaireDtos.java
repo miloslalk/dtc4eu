@@ -29,29 +29,37 @@ public final class QuestionnaireDtos {
         }
     }
 
-    public record ItemDto(Long id, Long areaId, String itemCode, String itemText,
-                          QuestionnaireItem.ResponseType responseType, Integer sortOrder) {
+    public record ItemDto(Long id, Long areaId, Long formId, String itemLetter, String itemCode,
+                          String itemText, QuestionnaireItem.ResponseType responseType, Integer sortOrder) {
 
         public static ItemDto of(QuestionnaireItem item) {
-            return new ItemDto(item.getId(), item.getAreaId(), item.getItemCode(), item.getItemText(),
-                    item.getResponseType(), item.getSortOrder());
+            return new ItemDto(item.getId(), item.getAreaId(), item.getFormId(), item.getItemLetter(),
+                    item.getItemCode(), item.getItemText(), item.getResponseType(), item.getSortOrder());
         }
     }
 
-    public record FormDto(Long id, QuestionnaireForm.AdministrationMode administrationMode,
+    public record FormDto(Long id, String formCode, QuestionnaireForm.AdministrationMode administrationMode,
                           QuestionnaireForm.StakeholderCategory stakeholderCategory,
-                          Facility.FacilityType facilityType, String name) {
+                          Facility.FacilityType facilityType, String name, Integer sortOrder) {
 
         public static FormDto of(QuestionnaireForm form) {
-            return new FormDto(form.getId(), form.getAdministrationMode(), form.getStakeholderCategory(),
-                    form.getFacilityType(), form.getName());
+            return new FormDto(form.getId(), form.getFormCode(), form.getAdministrationMode(),
+                    form.getStakeholderCategory(), form.getFacilityType(), form.getName(), form.getSortOrder());
         }
+    }
+
+    public record AnchorDto(Integer value, String label) {
+    }
+
+    /** Form-specific area header phrasing (v0.2 register §2.2 / open question 12.5). */
+    public record FormAreaLabelDto(Long formId, Long areaId, String displayName) {
     }
 
     /** Full definition — also consumed by the response-filling container (T5). */
     public record QuestionnaireDetailDto(Long id, String code, String name, int scaleMin, int scaleMax,
                                          boolean active, List<AreaDto> areas, List<ItemDto> items,
-                                         List<FormDto> forms) {
+                                         List<FormDto> forms, List<AnchorDto> anchors,
+                                         List<FormAreaLabelDto> formAreaLabels) {
     }
 
     public record CreateQuestionnaireRequest(
@@ -74,15 +82,19 @@ public final class QuestionnaireDtos {
     }
 
     public record SaveItemRequest(Long areaId,
+                                  Long formId,
+                                  @Size(max = 1) String itemLetter,
                                   @NotBlank @Size(max = 20) String itemCode,
                                   @NotBlank String itemText,
                                   @NotNull QuestionnaireItem.ResponseType responseType,
                                   Integer sortOrder) {
     }
 
-    public record SaveFormRequest(@NotNull QuestionnaireForm.AdministrationMode administrationMode,
+    public record SaveFormRequest(@Size(max = 20) String formCode,
+                                  @NotNull QuestionnaireForm.AdministrationMode administrationMode,
                                   QuestionnaireForm.StakeholderCategory stakeholderCategory,
                                   Facility.FacilityType facilityType,
-                                  @Size(max = 150) String name) {
+                                  @Size(max = 150) String name,
+                                  Integer sortOrder) {
     }
 }

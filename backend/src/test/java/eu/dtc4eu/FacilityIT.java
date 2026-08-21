@@ -127,15 +127,15 @@ class FacilityIT {
         HttpHeaders facilitator = headersOf("facilitatorA", "Facil1tatorA!");
         String base = "/api/v1/facilities/" + facilityAId + "/members";
 
-        for (String[] member : new String[][]{{"U-001", "USERS"}, {"FAM-001", "FAMILIARS"},
-                {"PRA-001", "PRACTITIONERS"}, {"MAN-001", "MANAGERS"}}) {
+        for (String[] member : new String[][]{{"U-001", "USER"}, {"FAM-001", "FAMILY"},
+                {"PRA-001", "STAFF"}, {"MAN-001", "MANAGER"}}) {
             ResponseEntity<Map> added = rest.exchange(base, HttpMethod.POST,
                     new HttpEntity<>(Map.of("memberCode", member[0], "category", member[1]), facilitator), Map.class);
             assertThat(added.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         }
 
         ResponseEntity<Map> duplicate = rest.exchange(base, HttpMethod.POST,
-                new HttpEntity<>(Map.of("memberCode", "U-001", "category", "USERS"), facilitator), Map.class);
+                new HttpEntity<>(Map.of("memberCode", "U-001", "category", "USER"), facilitator), Map.class);
         assertThat(duplicate.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
 
         ResponseEntity<List> members = rest.exchange(base, HttpMethod.GET, new HttpEntity<>(facilitator), List.class);

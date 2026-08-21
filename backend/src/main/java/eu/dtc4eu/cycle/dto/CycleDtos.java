@@ -12,20 +12,22 @@ public final class CycleDtos {
     }
 
     public record CycleDto(Long id, String code, LocalDate startDate, LocalDate endDate, String status,
-                           boolean current) {
+                           Integer sequenceNumber) {
 
         public static CycleDto of(AnnualCycle cycle) {
             return new CycleDto(cycle.getId(), cycle.getCode(), cycle.getStartDate(), cycle.getEndDate(),
-                    cycle.getStatus().name(), cycle.isCurrent());
+                    cycle.getStatus().name(), cycle.getSequenceNumber());
         }
     }
 
     public record CreateCycleRequest(
             @NotBlank @Pattern(regexp = "\\d{4}-\\d{4}", message = "must look like 2026-2027") String code,
             LocalDate startDate,
-            LocalDate endDate) {
+            LocalDate endDate,
+            Integer sequenceNumber) {
     }
 
-    public record UpdateCycleRequest(LocalDate startDate, LocalDate endDate, AnnualCycle.Status status) {
+    public record UpdateCycleRequest(LocalDate startDate, LocalDate endDate, AnnualCycle.Status status,
+                                     Integer sequenceNumber) {
     }
 }

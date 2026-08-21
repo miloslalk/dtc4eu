@@ -124,17 +124,19 @@ The full schema is `V1__baseline_schema.sql` (44 tables, validated against Postg
 - **Questionnaire engine + Module 4:** `questionnaires, questionnaire_areas, questionnaire_items, questionnaire_forms, questionnaire_responses, questionnaire_response_items, response_area_scores`
 - **Support:** `files, audit_logs`
 
-Enum values are fixed by CHECK constraints in the schema — mirror them as Java enums:
-- facility_type: `TC, GA, SH`
+Enum values are fixed by CHECK constraints in the schema — mirror them as Java enums. **Amended by spec v0.2** (`docs/DTC4EU_Client_Revision_Change_Register_v0.2.md`, applied by migrations V6–V10):
+- facility_type (= the *setting*): `TC, GA, SH` (displayed as DTC-TC / DTC-GA / SH); facility_subtype: `RTC, STC, DAY_TC, DOUBLE_GA, SIMPLE_GA, COUPLE_GA, SUPPORTED_APARTMENTS, HOME_CARE` (paired with the setting)
 - activity: `VISITING_TERNA, QUALITY_AUDIT, TRAINING_PAUSE`
-- member category: `USERS, FAMILIARS, PRACTITIONERS, MANAGERS`
+- member category: `USER, FAMILY, STAFF, MANAGER`
 - terna_type: `TCS, GAS, SHS`
-- respondent_category: `USERS, FAMILIARS, PRACTITIONERS, MANAGERS, SELFEVAL_COLLECTIVE, HETEROEVAL_DELEGATION`
-- administration_mode: `INDIVIDUAL, SELFEVAL_COLLECTIVE, HETEROEVAL_DELEGATION`
-- cycle status: `OPEN, CLOSED, ARCHIVED`
+- respondent_category: `USER, FAMILY, STAFF, MANAGER, LONG_FORM, DELEGATION`
+- administration_mode: `INDIVIDUAL, LONG_FORM, DELEGATION`
+- cycle status: `OPEN, CLOSED, ARCHIVED` (annual cycles span 16 months, Sep 1 → Dec 31 of the following year, and **adjacent cycles overlap** — there is no single "current" cycle; every request selects its cycle explicitly)
 - response status: `DRAFT, SUBMITTED`
+- standard_type (quality documents): `GPP, CGS, EEN`
+- DTCRO items are **per-form**: six forms (`USER, FAMILY, STAFF, MANAGER, LONG_FORM, DELEGATION`) over a shared coordinate grid (area 1–9 × letter a–e); cross-form aggregation joins on the coordinate.
 
-Add `V2__seed_roles.sql` seeding the ten roles and one super-admin, and `V3__seed_cycle.sql` creating cycle `2026-2027` as current.
+Add `V2__seed_roles.sql` seeding the roles and one super-admin, and `V3__seed_cycle.sql` creating cycle `2026-2027` (V9 later extends it to the 16-month span and removes the "current" flag).
 
 ---
 
@@ -211,14 +213,15 @@ Do not build (schema exists, but no endpoints/UI yet): Module 3 Audits, Module 5
 
 Treat these as inputs, not assumptions. Where blocked, stub with placeholder data and keep building the container.
 
-1. **DTCRO/MHSRO item content** (45 items / 9 areas) + Likert anchor labels — **critical path** for T4/T5.
-2. Set Analysis Grid structure (variants A–D) and QCNC's five areas / code meanings.
+1. ~~**DTCRO/MHSRO item content** (45 items / 9 areas) + Likert anchor labels~~ — **RESOLVED by spec v0.2**: six-form item bank (216 items, `tools/dtcro_item_bank.csv`, seeded by V7) with anchors 1 Not at all / 2 A little / 3 A lot / 4 Very much.
+2. Set Analysis Grid structure and QCNC standards catalogue **content** (the v0.2 register defines the QCNC model — five clusters, letter codes, three administrations, mandatory Q1 standards — carried by V10; the catalogue text itself is still pending).
 3. Whether respondents self-complete remotely or via a facilitator (affects T5 access model).
-4. Confirmation of facility types beyond TC/GA/SH, if any.
+4. ~~Confirmation of facility types beyond TC/GA/SH~~ — **RESOLVED by spec v0.2**: 3 settings × 8 subtypes.
 5. Data-retention period and consent/withdrawal workflow (GDPR/KVKK).
 6. Confirmed interface languages + who supplies translations.
+7. Spec v0.2 register §12 open questions (document-code suffixes, QCNC/GAS-Set Phase 1 scope, schedule OK/NO marks, VIVACOM EP entry, per-form area-name display policy).
 
-> The standard-name inconsistency in the written docs (GPP/CGS/EEN) is resolved: the Excel — authoritative — uses **PGP / DGC / NEE**, which is what the schema uses.
+> **Naming (reversed in spec v0.2):** quality-document types are **GPP / CGS / EEN** (Good Practice Procedure / Community Group Setting / Enabling Environment Setting), per the client's corrected July 2026 document set and annotated prototype. The earlier PGP/DGC/NEE convention from the first Excel data dictionary is obsolete.
 
 ---
 

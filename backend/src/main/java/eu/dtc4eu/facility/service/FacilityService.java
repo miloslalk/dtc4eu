@@ -70,13 +70,22 @@ public class FacilityService {
 
     /* ------------------------------- facilities ------------------------------- */
 
+    /** v0.2 register §7: a subtype must belong to its setting (RTC/STC/DAY_TC ↔ TC, …). */
+    private void validateSubtype(Facility.FacilityType type, Facility.FacilitySubtype subtype) {
+        if (subtype != null && subtype.setting() != type) {
+            throw new eu.dtc4eu.common.error.BadRequestException(
+                    "Subtype " + subtype + " does not belong to setting " + type);
+        }
+    }
+
     @Transactional(readOnly = true)
-    public PageResponse<FacilityDto> list(String q, Facility.FacilityType type, String country, String city,
+    public PageResponse<FacilityDto> list(String q, Facility.FacilityType type, Facility.FacilitySubtype subtype,
+                                          String country, String city,
                                           FacilityCycleParticipation.Activity activity, Boolean active,
                                           Pageable pageable, AppUserDetails principal) {
         DataScope scope = dataScopeService.scopeOf(principal);
         Page<Facility> page = facilityRepository.findAll(
-                specification(q, type, country, city, activity, active, scope), pageable);
+                specification(q, type, subtype, country, city, activity, active, scope), pageable);
         Map<Long, FacilityCycleParticipation> participations = participationsFor(page.getContent());
         Map<Long, String> facilitatorNames = facilitatorNames(participations);
         return PageResponse.of(page, f -> toDto(f, participations, facilitatorNames));
@@ -94,9 +103,11 @@ public class FacilityService {
         if (facilityRepository.existsByFacilityCode(request.facilityCode())) {
             throw new ConflictException("Facility code already exists");
         }
+        validateSubtype(request.facilityType(), request.facilitySubtype());
         Facility facility = new Facility();
         facility.setFacilityCode(request.facilityCode());
         facility.setFacilityType(request.facilityType());
+        facility.setFacilitySubtype(request.facilitySubtype());
         facility.setName(request.name());
         facility.setProvider(request.provider());
         facility.setPlace(request.place());
@@ -111,7 +122,9 @@ public class FacilityService {
     @Transactional
     public FacilityDto update(Long id, UpdateFacilityRequest request, AppUserDetails actor) {
         Facility facility = findInScope(id, actor);
+        validateSubtype(request.facilityType(), request.facilitySubtype());
         facility.setFacilityType(request.facilityType());
+        facility.setFacilitySubtype(request.facilitySubtype());
         facility.setName(request.name());
         facility.setProvider(request.provider());
         facility.setPlace(request.place());
@@ -127,23 +140,24 @@ public class FacilityService {
     }
 
     @Transactional(readOnly = true)
-    public String exportCsv(String q, Facility.FacilityType type, String country, String city,
+    public String exportCsv(String q, Facility.FacilityType type, Facility.FacilitySubtype subtype,
+                            String country, String city,
                             FacilityCycleParticipation.Activity activity, Boolean active,
                             AppUserDetails principal) {
         DataScope scope = dataScopeService.scopeOf(principal);
         List<Facility> facilities = facilityRepository.findAll(
-                specification(q, type, country, city, activity, active, scope),
+                specification(q, type, subtype, country, city, activity, active, scope),
                 Sort.by("facilityCode"));
         Map<Long, FacilityCycleParticipation> participations = participationsFor(facilities);
         Map<Long, String> facilitatorNames = facilitatorNames(participations);
 
         CsvWriter csv = new CsvWriter()
-                .row("facility_code", "type", "name", "provider", "place", "country", "city", "active",
+                .row("facility_code", "setting", "subtype", "name", "provider", "place", "country", "city", "active",
                         "activity", "internal_facilitator");
         for (Facility f : facilities) {
             FacilityCycleParticipation p = participations.get(f.getId());
-            csv.row(f.getFacilityCode(), f.getFacilityType(), f.getName(), f.getProvider(), f.getPlace(),
-                    f.getCountry(), f.getCity(), f.isActive(),
+            csv.row(f.getFacilityCode(), f.getFacilityType(), f.getFacilitySubtype(), f.getName(), f.getProvider(),
+                    f.getPlace(), f.getCountry(), f.getCity(), f.isActive(),
                     p != null ? p.getActivity() : null,
                     p != null && p.getInternalFacilitatorId() != null
                             ? facilitatorNames.get(p.getInternalFacilitatorId()) : null);
@@ -298,7 +312,8 @@ public class FacilityService {
                 .orElseThrow(() -> NotFoundException.of("Facility", id));
     }
 
-    private Specification<Facility> specification(String q, Facility.FacilityType type, String country, String city,
+    private Specification<Facility> specification(String q, Facility.FacilityType type,
+                                                  Facility.FacilitySubtype subtype, String country, String city,
                                                   FacilityCycleParticipation.Activity activity, Boolean active,
                                                   DataScope scope) {
         return (root, query, cb) -> {
@@ -318,6 +333,9 @@ public class FacilityService {
             }
             if (type != null) {
                 predicates.add(cb.equal(root.get("facilityType"), type));
+            }
+            if (subtype != null) {
+                predicates.add(cb.equal(root.get("facilitySubtype"), subtype));
             }
             if (country != null && !country.isBlank()) {
                 predicates.add(cb.like(cb.lower(root.get("country")), "%" + country.trim().toLowerCase() + "%"));

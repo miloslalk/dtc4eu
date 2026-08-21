@@ -7,7 +7,8 @@ import java.util.Optional;
 
 public interface AnnualCycleRepository extends JpaRepository<AnnualCycle, Long> {
 
-    Optional<AnnualCycle> findByCurrentTrue();
+    /** Deterministic fallback when no cycle is selected explicitly: the most recently started OPEN cycle. */
+    Optional<AnnualCycle> findFirstByStatusOrderByStartDateDescIdDesc(AnnualCycle.Status status);
 
     Optional<AnnualCycle> findByCode(String code);
 

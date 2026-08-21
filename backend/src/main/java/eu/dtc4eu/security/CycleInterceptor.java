@@ -38,7 +38,9 @@ public class CycleInterceptor implements HandlerInterceptor {
                     .orElseThrow(() -> new BadRequestException("Unknown cycle: " + cycleId));
             cycleContext.set(cycle);
         } else {
-            cycleRepository.findByCurrentTrue().ifPresent(cycleContext::set);
+            // overlapping cycles have no "current" flag; fall back deterministically
+            cycleRepository.findFirstByStatusOrderByStartDateDescIdDesc(AnnualCycle.Status.OPEN)
+                    .ifPresent(cycleContext::set);
         }
         return true;
     }

@@ -32,6 +32,13 @@ public class QuestionnaireItem {
     @Column(name = "area_id")
     private Long areaId;
 
+    /** Owning form; the coordinate (area, item_letter) is the cross-form aggregation key. */
+    @Column(name = "form_id")
+    private Long formId;
+
+    @Column(name = "item_letter", length = 1)
+    private String itemLetter;
+
     @Column(name = "item_code", nullable = false, length = 20)
     private String itemCode;
 

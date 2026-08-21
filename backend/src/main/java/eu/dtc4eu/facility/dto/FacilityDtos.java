@@ -18,13 +18,15 @@ public final class FacilityDtos {
     }
 
     /** List/detail row; activity + facilitator reflect the selected cycle. */
-    public record FacilityDto(Long id, String facilityCode, Facility.FacilityType facilityType, String name,
+    public record FacilityDto(Long id, String facilityCode, Facility.FacilityType facilityType,
+                              Facility.FacilitySubtype facilitySubtype, String name,
                               String provider, String place, String country, String city, String address,
                               boolean active, FacilityCycleParticipation.Activity activity,
                               Long internalFacilitatorId, String internalFacilitatorName) {
 
         public static FacilityDto of(Facility f, FacilityCycleParticipation participation, String facilitatorName) {
-            return new FacilityDto(f.getId(), f.getFacilityCode(), f.getFacilityType(), f.getName(), f.getProvider(),
+            return new FacilityDto(f.getId(), f.getFacilityCode(), f.getFacilityType(), f.getFacilitySubtype(),
+                    f.getName(), f.getProvider(),
                     f.getPlace(), f.getCountry(), f.getCity(), f.getAddress(), f.isActive(),
                     participation != null ? participation.getActivity() : null,
                     participation != null ? participation.getInternalFacilitatorId() : null,
@@ -35,6 +37,7 @@ public final class FacilityDtos {
     public record CreateFacilityRequest(
             @NotBlank @Size(max = 40) String facilityCode,
             @NotNull Facility.FacilityType facilityType,
+            Facility.FacilitySubtype facilitySubtype,
             @NotBlank @Size(max = 200) String name,
             @Size(max = 255) String provider,
             @Size(max = 200) String place,
@@ -45,6 +48,7 @@ public final class FacilityDtos {
 
     public record UpdateFacilityRequest(
             @NotNull Facility.FacilityType facilityType,
+            Facility.FacilitySubtype facilitySubtype,
             @NotBlank @Size(max = 200) String name,
             @Size(max = 255) String provider,
             @Size(max = 200) String place,

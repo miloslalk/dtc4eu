@@ -10,6 +10,8 @@ public interface QuestionnaireResponseItemRepository extends JpaRepository<Quest
 
     List<QuestionnaireResponseItem> findByResponseId(Long responseId);
 
+    List<QuestionnaireResponseItem> findByResponseIdIn(java.util.Collection<Long> responseIds);
+
     Optional<QuestionnaireResponseItem> findByResponseIdAndItemId(Long responseId, Long itemId);
 
     long countByResponseIdAndNumericValueNotNull(Long responseId);

@@ -1,0 +1,121 @@
+{
+  "form": "LONG_FORM",
+  "version": 1,
+  "sections": [
+    {
+      "key": "evaluator_group",
+      "label": "Evaluator group (working-group ID is the response's subject code; the community is the linked facility)",
+      "fields": [
+        {
+          "key": "group_size",
+          "label": "Evaluator group size by gender",
+          "type": "group",
+          "fields": [
+            { "key": "total", "label": "Total", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "male", "label": "M", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "female", "label": "F", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "nonbinary", "label": "NB", "type": "integer", "min": 0, "max": 1000 }
+          ]
+        },
+        {
+          "key": "group_composition",
+          "label": "Evaluator group composition by role, with gender split",
+          "type": "group",
+          "repeat": {
+            "mode": "fixedRows",
+            "rows": [
+              { "key": "coordinators", "label": "Coordinators" },
+              { "key": "staff", "label": "Staff" },
+              { "key": "users", "label": "Users" },
+              { "key": "family_members", "label": "Family members" },
+              { "key": "managers", "label": "Managers" },
+              { "key": "other_stakeholders", "label": "Other stakeholders" }
+            ]
+          },
+          "fields": [
+            { "key": "count", "label": "Count", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "male", "label": "M", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "female", "label": "F", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "nonbinary", "label": "NB", "type": "integer", "min": 0, "max": 1000 }
+          ]
+        },
+        {
+          "key": "members_not_belonging",
+          "label": "Members of the group NOT belonging to the community, by role and gender",
+          "type": "group",
+          "repeat": {
+            "mode": "fixedRows",
+            "rows": [
+              { "key": "coordinators", "label": "Coordinators" },
+              { "key": "staff", "label": "Staff" },
+              { "key": "users", "label": "Users" },
+              { "key": "family_members", "label": "Family members" },
+              { "key": "managers", "label": "Managers" },
+              { "key": "other_stakeholders", "label": "Other stakeholders" }
+            ]
+          },
+          "fields": [
+            { "key": "count", "label": "Count", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "male", "label": "M", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "female", "label": "F", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "nonbinary", "label": "NB", "type": "integer", "min": 0, "max": 1000 }
+          ]
+        },
+        { "key": "process_duration_hours", "label": "Duration of the preliminary evaluation process (hours)", "type": "decimal", "min": 0, "max": 1000 }
+      ]
+    },
+    {
+      "key": "preliminary_activities",
+      "label": "Preliminary activities carried out",
+      "fields": [
+        {
+          "key": "activities",
+          "label": "Activities",
+          "type": "group",
+          "repeat": {
+            "mode": "fixedRows",
+            "rows": [
+              { "key": "meetings_admin_staff", "label": "Meetings with administrative staff" },
+              { "key": "meetings_clinical_social_staff", "label": "Meetings with clinical-social staff" },
+              { "key": "community_meeting", "label": "Community meeting" },
+              { "key": "multi_family_community_meeting", "label": "Multi-family community meeting" },
+              { "key": "documentation_review", "label": "Documentation review" },
+              { "key": "separate_category_interviews", "label": "Separate category interviews (staff / users / family / managers)" }
+            ]
+          },
+          "fields": [
+            { "key": "carried_out", "label": "Carried out", "type": "boolean" }
+          ]
+        },
+        { "key": "rating_procedure", "label": "Rating procedure used (to be confirmed: the six listed modes)", "type": "text" }
+      ]
+    },
+    {
+      "key": "community_statistics",
+      "label": "Community statistics",
+      "fields": [
+        {
+          "key": "statistics",
+          "label": "Counts with M/F/NB split",
+          "type": "group",
+          "repeat": {
+            "mode": "fixedRows",
+            "rows": [
+              { "key": "staff", "label": "Staff" },
+              { "key": "coordination_team", "label": "Coordination team" },
+              { "key": "users_total", "label": "Users (total)" },
+              { "key": "users_forensic", "label": "Users (forensic)" },
+              { "key": "users_non_eu", "label": "Users (non-EU)" }
+            ]
+          },
+          "fields": [
+            { "key": "count", "label": "Count", "type": "integer", "min": 0, "max": 10000 },
+            { "key": "male", "label": "M", "type": "integer", "min": 0, "max": 10000 },
+            { "key": "female", "label": "F", "type": "integer", "min": 0, "max": 10000 },
+            { "key": "nonbinary", "label": "NB", "type": "integer", "min": 0, "max": 10000 }
+          ]
+        }
+      ]
+    }
+  ]
+}

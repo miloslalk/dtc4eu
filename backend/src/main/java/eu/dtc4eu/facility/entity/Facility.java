@@ -22,7 +22,25 @@ import java.time.OffsetDateTime;
 @NoArgsConstructor
 public class Facility {
 
+    /** The SETTING per the v0.2 register §7 taxonomy — displayed as DTC-TC / DTC-GA / SH. */
     public enum FacilityType { TC, GA, SH }
+
+    /** The 8 facility subtypes (v0.2 register §7), each pairing with one setting. */
+    public enum FacilitySubtype {
+        RTC(FacilityType.TC), STC(FacilityType.TC), DAY_TC(FacilityType.TC),
+        DOUBLE_GA(FacilityType.GA), SIMPLE_GA(FacilityType.GA), COUPLE_GA(FacilityType.GA),
+        SUPPORTED_APARTMENTS(FacilityType.SH), HOME_CARE(FacilityType.SH);
+
+        private final FacilityType setting;
+
+        FacilitySubtype(FacilityType setting) {
+            this.setting = setting;
+        }
+
+        public FacilityType setting() {
+            return setting;
+        }
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,6 +52,10 @@ public class Facility {
     @Enumerated(EnumType.STRING)
     @Column(name = "facility_type", nullable = false, length = 10)
     private FacilityType facilityType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "facility_subtype", length = 30)
+    private FacilitySubtype facilitySubtype;
 
     @Column(nullable = false, length = 200)
     private String name;

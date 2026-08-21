@@ -17,7 +17,10 @@ import java.time.OffsetDateTime;
 
 /**
  * Annual evaluation cycle — every data-collection record is scoped to one
- * (spec golden rule). CLOSED/ARCHIVED cycles are read-only.
+ * (spec golden rule). CLOSED/ARCHIVED cycles are read-only. A cycle spans
+ * 16 months (Sep 1 → Dec 31 of the following year) and ADJACENT CYCLES
+ * OVERLAP (v0.2 register §8) — there is no single "current" cycle; every
+ * request selects its cycle explicitly via X-Cycle-Id.
  */
 @Entity
 @Table(name = "annual_cycles")
@@ -41,8 +44,9 @@ public class AnnualCycle {
     @Column(name = "end_date")
     private LocalDate endDate;
 
-    @Column(name = "is_current", nullable = false)
-    private boolean current;
+    /** Ordinal of the cycle in the accreditation programme; feeds the "1st 2023-24"-style label. */
+    @Column(name = "sequence_number")
+    private Integer sequenceNumber;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

@@ -1,0 +1,102 @@
+{
+  "form": "USER",
+  "version": 1,
+  "sections": [
+    {
+      "key": "demographics",
+      "label": "About you",
+      "fields": [
+        { "key": "age", "label": "Age", "type": "integer", "min": 0, "max": 120, "required": true },
+        { "key": "sex", "label": "Sex", "type": "enum", "options": ["NB", "M", "F"], "required": true },
+        { "key": "education_level", "label": "Education level (to be confirmed: level list)", "type": "text" },
+        { "key": "profession", "label": "Profession", "type": "text" },
+        { "key": "work_experience_sheltered", "label": "Sheltered work experience", "type": "boolean" },
+        { "key": "work_experience_competitive", "label": "Competitive work experience", "type": "boolean" }
+      ]
+    },
+    {
+      "key": "community_life",
+      "label": "Life in the community",
+      "fields": [
+        { "key": "years_in_community", "label": "Years in the community", "type": "decimal", "min": 0, "max": 100 },
+        { "key": "hours_per_week_in_community", "label": "Hours per week in the community", "type": "decimal", "min": 0, "max": 168 },
+        { "key": "single_room", "label": "Single room", "type": "boolean" },
+        { "key": "room_sharing_count", "label": "Number of people sharing the room", "type": "integer", "min": 0, "max": 50 },
+        {
+          "key": "work_activity",
+          "label": "Current work activity",
+          "type": "group",
+          "fields": [
+            { "key": "sheltered", "label": "Sheltered work activity", "type": "boolean" },
+            { "key": "unsheltered", "label": "Unsheltered work activity", "type": "boolean" }
+          ]
+        },
+        {
+          "key": "community_involvement",
+          "label": "Involvement in community work",
+          "type": "group",
+          "fields": [
+            { "key": "planning", "label": "Community planning work", "type": "boolean" },
+            { "key": "development", "label": "Community development work", "type": "boolean" },
+            { "key": "evaluation", "label": "Community evaluation work", "type": "boolean" }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "therapy",
+      "label": "Therapy sessions per month",
+      "fields": [
+        {
+          "key": "therapy_sessions_monthly",
+          "label": "Monthly therapy sessions by type",
+          "type": "group",
+          "repeat": {
+            "mode": "fixedRows",
+            "rows": [
+              { "key": "individual", "label": "Individual therapy" },
+              { "key": "small_group", "label": "Small group therapy" },
+              { "key": "community_group", "label": "Community group therapy" },
+              { "key": "family", "label": "Family therapy" },
+              { "key": "multi_family", "label": "Multi-family therapy" },
+              { "key": "personalised_planning_activity_group", "label": "Personalised therapeutic planning activity group" },
+              { "key": "other", "label": "Other" }
+            ]
+          },
+          "fields": [
+            { "key": "sessions_per_month", "label": "Sessions per month", "type": "integer", "min": 0, "max": 100 }
+          ]
+        },
+        {
+          "key": "self_help_groups",
+          "label": "Self-help groups",
+          "type": "group",
+          "fields": [
+            { "key": "exists", "label": "Self-help groups exist", "type": "boolean" },
+            { "key": "participants", "label": "Number of participants", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "leader", "label": "Group leader (to be confirmed: role or code)", "type": "text" },
+            { "key": "frequency", "label": "Frequency", "type": "text" }
+          ]
+        },
+        {
+          "key": "key_worker",
+          "label": "Key worker",
+          "type": "group",
+          "fields": [
+            { "key": "exists", "label": "Has a key worker", "type": "boolean" },
+            { "key": "freely_chosen", "label": "Freely chosen", "type": "boolean" },
+            { "key": "reference_operator_id", "label": "Reference operator ID (pseudonymous code)", "type": "text" },
+            { "key": "meeting_frequency", "label": "Meeting frequency", "type": "text" }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "residence",
+      "label": "Residence",
+      "fields": [
+        { "key": "residence_proximity", "label": "Residence proximity", "type": "enum", "options": ["MUNICIPALITY", "PROVINCE", "REGION"] }
+      ]
+    }
+  ]
+}

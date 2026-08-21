@@ -13,4 +13,7 @@ public interface FacilityCycleParticipationRepository extends JpaRepository<Faci
 
     List<FacilityCycleParticipation> findByAnnualCycleIdAndFacilityIdIn(Long annualCycleId,
                                                                         Collection<Long> facilityIds);
+
+    /** Cross-cycle view for the accreditation-history screen (v0.2 register §6). */
+    List<FacilityCycleParticipation> findByFacilityId(Long facilityId);
 }

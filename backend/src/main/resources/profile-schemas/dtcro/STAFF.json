@@ -1,0 +1,132 @@
+{
+  "form": "STAFF",
+  "version": 1,
+  "sections": [
+    {
+      "key": "demographics",
+      "label": "About you",
+      "fields": [
+        { "key": "age", "label": "Age", "type": "integer", "min": 0, "max": 120, "required": true },
+        { "key": "sex", "label": "Sex", "type": "enum", "options": ["NB", "M", "F"], "required": true },
+        { "key": "professional_role", "label": "Professional role (to be confirmed: the seven listed roles + other)", "type": "text" },
+        { "key": "years_worked", "label": "Years worked in the community", "type": "decimal", "min": 0, "max": 100 },
+        { "key": "weekly_hours_worked", "label": "Weekly hours worked", "type": "decimal", "min": 0, "max": 168 }
+      ]
+    },
+    {
+      "key": "staff_structure",
+      "label": "Staff structure",
+      "fields": [
+        {
+          "key": "staff_composition",
+          "label": "Staff composition by role",
+          "type": "group",
+          "repeat": { "mode": "list" },
+          "fields": [
+            { "key": "role", "label": "Role", "type": "text" },
+            { "key": "count", "label": "Count", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "male", "label": "M", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "female", "label": "F", "type": "integer", "min": 0, "max": 1000 }
+          ]
+        },
+        {
+          "key": "directorate_team",
+          "label": "Directorate team",
+          "type": "group",
+          "fields": [
+            { "key": "size", "label": "Team size", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "male", "label": "M", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "female", "label": "F", "type": "integer", "min": 0, "max": 1000 }
+          ]
+        },
+        {
+          "key": "full_staff_meetings",
+          "label": "Full staff meetings",
+          "type": "group",
+          "fields": [
+            { "key": "held", "label": "Held", "type": "boolean" },
+            { "key": "participants", "label": "Participants", "type": "integer", "min": 0, "max": 1000 },
+            { "key": "frequency", "label": "Frequency", "type": "text" }
+          ]
+        },
+        { "key": "admin_delegate_in_reflective_coordination", "label": "Administrative-staff delegate takes part in reflective coordination", "type": "boolean" },
+        {
+          "key": "admin_meetings_with_representatives",
+          "label": "Administrative meetings with representatives of…",
+          "type": "group",
+          "repeat": {
+            "mode": "fixedRows",
+            "rows": [
+              { "key": "operators", "label": "Operators" },
+              { "key": "users", "label": "Users" },
+              { "key": "family", "label": "Family members" }
+            ]
+          },
+          "fields": [
+            { "key": "held", "label": "Held", "type": "boolean" }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "supervision_and_networks",
+      "label": "Supervision and professional networks",
+      "fields": [
+        {
+          "key": "clinical_supervision",
+          "label": "Clinical supervision",
+          "type": "group",
+          "fields": [
+            { "key": "provided", "label": "Provided", "type": "boolean" },
+            { "key": "frequency", "label": "Frequency", "type": "text" }
+          ]
+        },
+        {
+          "key": "clinical_supervision_targets",
+          "label": "Clinical supervision target groups (to be confirmed: the five groups)",
+          "type": "group",
+          "repeat": {
+            "mode": "fixedRows",
+            "rows": [
+              { "key": "group_1", "label": "Target group 1 (to be confirmed)" },
+              { "key": "group_2", "label": "Target group 2 (to be confirmed)" },
+              { "key": "group_3", "label": "Target group 3 (to be confirmed)" },
+              { "key": "group_4", "label": "Target group 4 (to be confirmed)" },
+              { "key": "group_5", "label": "Target group 5 (to be confirmed)" }
+            ]
+          },
+          "fields": [
+            { "key": "covered", "label": "Covered", "type": "boolean" }
+          ]
+        },
+        { "key": "peer_accreditation_participation", "label": "Takes part in peer accreditation programmes", "type": "boolean" },
+        { "key": "scientific_association_member", "label": "Member of scientific-professional associations", "type": "boolean" },
+        { "key": "funding_type", "label": "Funding type", "type": "enum", "options": ["PUBLIC", "PRIVATE"] }
+      ]
+    },
+    {
+      "key": "user_population",
+      "label": "User population",
+      "fields": [
+        {
+          "key": "user_counts",
+          "label": "User counts",
+          "type": "group",
+          "repeat": {
+            "mode": "fixedRows",
+            "rows": [
+              { "key": "total", "label": "Total users" },
+              { "key": "forensic", "label": "Forensic users" },
+              { "key": "non_eu", "label": "Non-EU users" }
+            ]
+          },
+          "fields": [
+            { "key": "count", "label": "Count", "type": "integer", "min": 0, "max": 10000 },
+            { "key": "male", "label": "M", "type": "integer", "min": 0, "max": 10000 },
+            { "key": "female", "label": "F", "type": "integer", "min": 0, "max": 10000 }
+          ]
+        }
+      ]
+    }
+  ]
+}

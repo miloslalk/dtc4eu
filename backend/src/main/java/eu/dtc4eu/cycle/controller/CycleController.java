@@ -51,18 +51,11 @@ public class CycleController {
         return cycleService.create(request, actor);
     }
 
-    @Operation(summary = "Update dates or status (admin); closed/archived cycles become read-only")
+    @Operation(summary = "Update dates, status or sequence (admin); closed/archived cycles become read-only")
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     public CycleDto update(@PathVariable Long id, @Valid @RequestBody UpdateCycleRequest request,
                            @AuthenticationPrincipal AppUserDetails actor) {
         return cycleService.update(id, request, actor);
-    }
-
-    @Operation(summary = "Make this the platform-wide current cycle (admin)")
-    @PostMapping("/{id}/set-current")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
-    public CycleDto setCurrent(@PathVariable Long id, @AuthenticationPrincipal AppUserDetails actor) {
-        return cycleService.setCurrent(id, actor);
     }
 }

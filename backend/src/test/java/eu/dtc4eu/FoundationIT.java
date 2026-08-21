@@ -92,32 +92,25 @@ class FoundationIT {
 
     @Test
     @Order(3)
-    void adminCreatesCycleAndSetsItCurrent() {
+    void cyclesOverlapWithoutASingleCurrentOne() {
+        // v0.2 register §8: adjacent 16-month cycles overlap; no "current" flag exists
         ResponseEntity<Map> created = rest.exchange("/api/v1/cycles", HttpMethod.POST,
-                new HttpEntity<>(Map.of("code", "2027-2028", "startDate", "2027-09-01", "endDate", "2028-08-31"),
-                        adminHeaders()), Map.class);
+                new HttpEntity<>(Map.of("code", "2027-2028", "startDate", "2027-09-01", "endDate", "2028-12-31",
+                        "sequenceNumber", 2), adminHeaders()), Map.class);
         assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(created.getBody().get("current")).isEqualTo(false);
+        assertThat(created.getBody().get("sequenceNumber")).isEqualTo(2);
+        assertThat(created.getBody().get("status")).isEqualTo("OPEN");
+        assertThat(created.getBody()).doesNotContainKey("current");
 
-        Number cycleId = (Number) created.getBody().get("id");
-        ResponseEntity<Map> setCurrent = rest.exchange("/api/v1/cycles/" + cycleId + "/set-current",
-                HttpMethod.POST, new HttpEntity<>(adminHeaders()), Map.class);
-        assertThat(setCurrent.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(setCurrent.getBody().get("current")).isEqualTo(true);
-
-        // exactly one current cycle: the seeded 2026-2027 is no longer current
+        // both cycles stay OPEN concurrently and both are selectable
         ResponseEntity<List> all = rest.exchange("/api/v1/cycles", HttpMethod.GET,
                 new HttpEntity<>(adminHeaders()), List.class);
-        long currentCount = ((List<Map<String, Object>>) all.getBody()).stream()
-                .filter(c -> Boolean.TRUE.equals(c.get("current"))).count();
-        assertThat(currentCount).isEqualTo(1);
-
-        // switch back so later tests keep using the seeded cycle
         List<Map<String, Object>> cycles = all.getBody();
-        Number seeded = (Number) cycles.stream().filter(c -> "2026-2027".equals(c.get("code"))).findFirst()
-                .orElseThrow().get("id");
-        rest.exchange("/api/v1/cycles/" + seeded + "/set-current", HttpMethod.POST,
-                new HttpEntity<>(adminHeaders()), Map.class);
+        long openCount = cycles.stream().filter(c -> "OPEN".equals(c.get("status"))).count();
+        assertThat(openCount).isEqualTo(2);
+        assertThat(cycles.stream().map(c -> c.get("code"))).contains("2026-2027", "2027-2028");
+        // most recently started first (feeds the selector default)
+        assertThat(cycles.get(0).get("code")).isEqualTo("2027-2028");
     }
 
     @Test

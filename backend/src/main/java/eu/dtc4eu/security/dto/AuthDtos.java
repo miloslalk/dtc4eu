@@ -27,9 +27,10 @@ public final class AuthDtos {
     public record ScopeInfo(List<Long> facilityIds, List<Long> ternaIds) {
     }
 
-    public record CycleInfo(Long id, String code, String status, boolean current) {
+    public record CycleInfo(Long id, String code, String status, Integer sequenceNumber) {
     }
 
-    public record MeResponse(UserInfo user, ScopeInfo scope, CycleInfo currentCycle) {
+    /** defaultCycle: the most recently started OPEN cycle — a selector default only; cycles overlap (v0.2 §8). */
+    public record MeResponse(UserInfo user, ScopeInfo scope, CycleInfo defaultCycle) {
     }
 }

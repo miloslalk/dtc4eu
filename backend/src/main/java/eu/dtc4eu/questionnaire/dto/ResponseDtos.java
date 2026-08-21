@@ -32,15 +32,21 @@ public final class ResponseDtos {
                                     QuestionnaireResponse.RespondentCategory respondentCategory,
                                     QuestionnaireForm.AdministrationMode administrationMode,
                                     QuestionnaireResponse.Status status, OffsetDateTime submittedAt,
+                                    Map<String, Object> profileSnapshot,
                                     List<ResponseItemDto> items, long answeredLikert, long totalLikert) {
     }
 
+    /**
+     * formId is required when the questionnaire defines forms (the six DTCRO
+     * forms); respondent category and administration mode are then derived
+     * from the form. respondentCategory is only read for form-less questionnaires.
+     */
     public record CreateResponseRequest(
             @NotNull Long questionnaireId,
             Long formId,
             Long facilityId,
             @NotBlank @Size(max = 40) String subjectCode,
-            @NotNull QuestionnaireResponse.RespondentCategory respondentCategory,
+            QuestionnaireResponse.RespondentCategory respondentCategory,
             QuestionnaireForm.AdministrationMode administrationMode,
             Map<String, Object> profileSnapshot) {
     }
@@ -48,7 +54,7 @@ public final class ResponseDtos {
     public record UpdateResponseRequest(
             @NotBlank @Size(max = 40) String subjectCode,
             Long facilityId,
-            @NotNull QuestionnaireResponse.RespondentCategory respondentCategory,
+            QuestionnaireResponse.RespondentCategory respondentCategory,
             QuestionnaireForm.AdministrationMode administrationMode,
             Map<String, Object> profileSnapshot) {
     }

@@ -50,10 +50,16 @@ public class QuestionnaireController {
         return questionnaireService.list();
     }
 
-    @Operation(summary = "Full definition: scale bounds, areas, items, forms")
+    @Operation(summary = "Full definition: scale bounds, areas, items, forms, anchors")
     @GetMapping("/{id}")
     public QuestionnaireDetailDto get(@PathVariable Long id) {
         return questionnaireService.get(id);
+    }
+
+    @Operation(summary = "Per-form profile-header definition (v0.2 register §2.4)")
+    @GetMapping("/{id}/forms/{formId}/profile-schema")
+    public com.fasterxml.jackson.databind.JsonNode profileSchema(@PathVariable Long id, @PathVariable Long formId) {
+        return questionnaireService.getProfileSchema(id, formId);
     }
 
     @PostMapping

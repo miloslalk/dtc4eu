@@ -17,11 +17,13 @@ import lombok.Setter;
 @NoArgsConstructor
 public class Role {
 
-    /** Role codes seeded by V2 (see schema comment on the roles table). */
+    /** Role codes seeded by V2 (see schema comment on the roles table) + V9 (spec v0.2 register §9). */
     public static final String SUPER_ADMIN = "SUPER_ADMIN";
     public static final String ADMIN = "ADMIN";
     public static final String RESEARCH_TEAM = "RESEARCH_TEAM";
+    public static final String UPPER_COORDINATOR = "UPPER_COORDINATOR";
     public static final String COORDINATOR = "COORDINATOR";
+    public static final String AUDIT_COORDINATOR = "AUDIT_COORDINATOR";
     public static final String INTERNAL_FACILITATOR = "INTERNAL_FACILITATOR";
     public static final String EVALUATOR = "EVALUATOR";
     public static final String RESPONDENT = "RESPONDENT";

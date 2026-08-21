@@ -25,7 +25,9 @@ public class CycleService {
 
     @Transactional(readOnly = true)
     public List<CycleDto> list() {
-        return cycleRepository.findAll(Sort.by(Sort.Direction.DESC, "code")).stream().map(CycleDto::of).toList();
+        // overlapping cycles: most recently started first (the register removed the "current" flag)
+        return cycleRepository.findAll(Sort.by(Sort.Direction.DESC, "startDate", "code")).stream()
+                .map(CycleDto::of).toList();
     }
 
     @Transactional(readOnly = true)
@@ -42,8 +44,7 @@ public class CycleService {
         cycle.setCode(request.code());
         cycle.setStartDate(request.startDate());
         cycle.setEndDate(request.endDate());
-        // the very first cycle automatically becomes current
-        cycle.setCurrent(cycleRepository.count() == 0);
+        cycle.setSequenceNumber(request.sequenceNumber());
         cycle = cycleRepository.save(cycle);
         auditService.success(actor.getId(), "CREATE", "annual_cycle", cycle.getId());
         return CycleDto.of(cycle);
@@ -59,24 +60,12 @@ public class CycleService {
             cycle.setEndDate(request.endDate());
         }
         if (request.status() != null) {
-            if (cycle.isCurrent() && request.status() == AnnualCycle.Status.ARCHIVED) {
-                throw new ConflictException("The current cycle cannot be archived; set another cycle current first");
-            }
             cycle.setStatus(request.status());
         }
-        auditService.success(actor.getId(), "UPDATE", "annual_cycle", cycle.getId());
-        return CycleDto.of(cycle);
-    }
-
-    @Transactional
-    public CycleDto setCurrent(Long id, AppUserDetails actor) {
-        AnnualCycle cycle = find(id);
-        if (cycle.getStatus() == AnnualCycle.Status.ARCHIVED) {
-            throw new ConflictException("An archived cycle cannot be made current");
+        if (request.sequenceNumber() != null) {
+            cycle.setSequenceNumber(request.sequenceNumber());
         }
-        cycleRepository.findByCurrentTrue().ifPresent(previous -> previous.setCurrent(false));
-        cycle.setCurrent(true);
-        auditService.success(actor.getId(), "SET_CURRENT", "annual_cycle", cycle.getId());
+        auditService.success(actor.getId(), "UPDATE", "annual_cycle", cycle.getId());
         return CycleDto.of(cycle);
     }
 

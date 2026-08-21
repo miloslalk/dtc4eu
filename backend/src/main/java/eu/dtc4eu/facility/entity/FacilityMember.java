@@ -23,7 +23,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class FacilityMember {
 
-    public enum Category { USERS, FAMILIARS, PRACTITIONERS, MANAGERS }
+    public enum Category { USER, FAMILY, STAFF, MANAGER }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

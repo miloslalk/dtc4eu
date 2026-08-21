@@ -70,6 +70,9 @@ public class ResponseService {
     private final QuestionnaireFormRepository formRepository;
     private final FacilityRepository facilityRepository;
     private final ScoringService scoringService;
+    private final eu.dtc4eu.scoring.service.FacilityScoringService facilityScoringService;
+    private final ProfileSchemaService profileSchemaService;
+    private final ProfileValidationService profileValidationService;
     private final DataScopeService dataScopeService;
     private final CycleContext cycleContext;
     private final AuditService auditService;
@@ -142,6 +145,12 @@ public class ResponseService {
             form = formRepository.findById(request.formId())
                     .filter(f -> f.getQuestionnaireId().equals(questionnaire.getId()))
                     .orElseThrow(() -> new BadRequestException("Form does not belong to this questionnaire"));
+        } else if (formRepository.countByQuestionnaireId(questionnaire.getId()) > 0) {
+            throw new BadRequestException("Questionnaire " + questionnaire.getCode()
+                    + " is administered through forms — formId is required");
+        }
+        if (form == null && request.respondentCategory() == null) {
+            throw new BadRequestException("respondentCategory is required for form-less questionnaires");
         }
 
         DataScope scope = dataScopeService.scopeOf(actor);
@@ -151,15 +160,17 @@ public class ResponseService {
                     .orElseThrow(() -> NotFoundException.of("Facility", request.facilityId()));
         }
 
+        validateProfile(form, questionnaire.getCode(), request.profileSnapshot(), false);
+
         QuestionnaireResponse response = new QuestionnaireResponse();
         response.setQuestionnaireId(questionnaire.getId());
         response.setFormId(form != null ? form.getId() : null);
         response.setAnnualCycleId(cycleId);
         response.setFacilityId(request.facilityId());
         response.setSubjectCode(request.subjectCode());
-        response.setRespondentCategory(request.respondentCategory());
-        response.setAdministrationMode(request.administrationMode() != null ? request.administrationMode()
-                : form != null ? form.getAdministrationMode() : null);
+        response.setRespondentCategory(form != null ? categoryOf(form) : request.respondentCategory());
+        response.setAdministrationMode(form != null ? form.getAdministrationMode()
+                : request.administrationMode());
         response.setProfileSnapshot(request.profileSnapshot());
         response.setCreatedBy(actor.getId());
         response = responseRepository.save(response);
@@ -182,11 +193,15 @@ public class ResponseService {
         }
         response.setFacilityId(request.facilityId());
         response.setSubjectCode(request.subjectCode());
-        response.setRespondentCategory(request.respondentCategory());
-        if (request.administrationMode() != null) {
+        if (response.getFormId() == null && request.respondentCategory() != null) {
+            // form-bound responses keep the category derived from their form
+            response.setRespondentCategory(request.respondentCategory());
+        }
+        if (response.getFormId() == null && request.administrationMode() != null) {
             response.setAdministrationMode(request.administrationMode());
         }
         if (request.profileSnapshot() != null) {
+            validateProfileOf(response, request.profileSnapshot(), false);
             response.setProfileSnapshot(request.profileSnapshot());
         }
         auditService.success(actor.getId(), "UPDATE", "questionnaire_response", response.getId());
@@ -201,15 +216,15 @@ public class ResponseService {
         cycleContext.requireWritable();
 
         Questionnaire questionnaire = questionnaireRepository.findById(response.getQuestionnaireId()).orElseThrow();
-        Map<Long, QuestionnaireItem> definition = itemRepository
-                .findByQuestionnaireIdOrderBySortOrderAscIdAsc(questionnaire.getId()).stream()
+        Map<Long, QuestionnaireItem> definition = definitionItems(response).stream()
                 .collect(Collectors.toMap(QuestionnaireItem::getId, Function.identity()));
 
         for (ItemAnswer answer : request.items()) {
             QuestionnaireItem item = definition.get(answer.itemId());
             if (item == null) {
-                throw new BadRequestException("Item " + answer.itemId() + " does not belong to questionnaire "
-                        + questionnaire.getCode());
+                throw new BadRequestException("Item " + answer.itemId() + " does not belong to "
+                        + (response.getFormId() != null ? "this response's form" : "questionnaire "
+                        + questionnaire.getCode()));
             }
             if (item.getResponseType() == QuestionnaireItem.ResponseType.LIKERT) {
                 Integer value = answer.numericValue();
@@ -236,7 +251,7 @@ public class ResponseService {
             responseItemRepository.save(row);
         }
 
-        long total = likertItemCount(questionnaire.getId());
+        long total = requiredLikertCount(response);
         long answered = responseItemRepository.countByResponseIdAndNumericValueNotNull(response.getId());
         return new SaveItemsResult(answered, total, response.getStatus());
     }
@@ -248,16 +263,23 @@ public class ResponseService {
         requireDraft(response);
         cycleContext.requireWritable();
 
-        long total = likertItemCount(response.getQuestionnaireId());
+        long total = requiredLikertCount(response);
         long answered = responseItemRepository.countByResponseIdAndNumericValueNotNull(response.getId());
         if (answered < total) {
             throw new BadRequestException("Cannot submit: " + (total - answered)
                     + " required Likert item(s) not answered");
         }
+        validateProfileOf(response, response.getProfileSnapshot(), true);
 
         response.setStatus(QuestionnaireResponse.Status.SUBMITTED);
         response.setSubmittedAt(OffsetDateTime.now());
+        responseRepository.saveAndFlush(response);
         scoringService.computeScores(response.getId(), response.getQuestionnaireId());
+        if (response.getFacilityId() != null) {
+            // facility-cycle aggregates (register §3) stay as fresh as the last submit
+            facilityScoringService.recompute(response.getFacilityId(), response.getAnnualCycleId(),
+                    response.getQuestionnaireId());
+        }
         auditService.success(actor.getId(), "SUBMIT", "questionnaire_response", response.getId(),
                 Map.of("answered", answered, "total", total));
         return getScores(id, actor);
@@ -278,10 +300,13 @@ public class ResponseService {
                 .collect(Collectors.toMap(Questionnaire::getId, Questionnaire::getCode));
         Map<Long, String> facilityCodes = facilityRepository.findAll().stream()
                 .collect(Collectors.toMap(Facility::getId, Facility::getFacilityCode));
+        Map<Long, String> formCodes = formRepository.findAll().stream()
+                .filter(f -> f.getFormCode() != null)
+                .collect(Collectors.toMap(QuestionnaireForm::getId, QuestionnaireForm::getFormCode));
 
-        CsvWriter csv = new CsvWriter().row("response_id", "questionnaire", "facility_code", "subject_code",
-                "respondent_category", "status", "submitted_at", "item_code", "area_code", "numeric_value",
-                "text_value");
+        CsvWriter csv = new CsvWriter().row("response_id", "questionnaire", "form_code", "facility_code",
+                "subject_code", "respondent_category", "status", "submitted_at", "item_code", "area_code",
+                "item_letter", "numeric_value", "text_value");
 
         for (QuestionnaireResponse response : responses) {
             Map<Long, QuestionnaireItem> items = itemRepository
@@ -294,10 +319,12 @@ public class ResponseService {
                 QuestionnaireItem item = items.get(answer.getItemId());
                 QuestionnaireArea area = item != null && item.getAreaId() != null ? areas.get(item.getAreaId()) : null;
                 csv.row(response.getId(), questionnaireCodes.get(response.getQuestionnaireId()),
+                        response.getFormId() != null ? formCodes.get(response.getFormId()) : null,
                         response.getFacilityId() != null ? facilityCodes.get(response.getFacilityId()) : null,
                         response.getSubjectCode(), response.getRespondentCategory(), response.getStatus(),
                         response.getSubmittedAt(), item != null ? item.getItemCode() : answer.getItemId(),
-                        area != null ? area.getAreaCode() : null, answer.getNumericValue(), answer.getTextValue());
+                        area != null ? area.getAreaCode() : null, item != null ? item.getItemLetter() : null,
+                        answer.getNumericValue(), answer.getTextValue());
             }
         }
         auditService.success(principal.getId(), "EXPORT", "questionnaire_response", null,
@@ -307,10 +334,55 @@ public class ResponseService {
 
     /* --------------------------------- internals -------------------------------- */
 
-    private long likertItemCount(Long questionnaireId) {
-        return itemRepository.findByQuestionnaireIdOrderBySortOrderAscIdAsc(questionnaireId).stream()
+    /** The item definition of a response: its form's items when form-bound, otherwise the whole questionnaire. */
+    private List<QuestionnaireItem> definitionItems(QuestionnaireResponse response) {
+        return response.getFormId() != null
+                ? itemRepository.findByFormIdOrderBySortOrderAscIdAsc(response.getFormId())
+                : itemRepository.findByQuestionnaireIdOrderBySortOrderAscIdAsc(response.getQuestionnaireId());
+    }
+
+    private long requiredLikertCount(QuestionnaireResponse response) {
+        if (response.getFormId() != null) {
+            return itemRepository.countByFormIdAndResponseType(response.getFormId(),
+                    QuestionnaireItem.ResponseType.LIKERT);
+        }
+        return itemRepository.findByQuestionnaireIdOrderBySortOrderAscIdAsc(response.getQuestionnaireId()).stream()
                 .filter(item -> item.getResponseType() == QuestionnaireItem.ResponseType.LIKERT)
                 .count();
+    }
+
+    /** Validate a profile snapshot against the response form's schema; forms without a schema skip validation. */
+    private void validateProfileOf(QuestionnaireResponse response, Map<String, Object> profile, boolean strict) {
+        if (response.getFormId() == null) {
+            return;
+        }
+        QuestionnaireForm form = formRepository.findById(response.getFormId()).orElse(null);
+        String questionnaireCode = questionnaireRepository.findById(response.getQuestionnaireId())
+                .map(Questionnaire::getCode).orElse(null);
+        validateProfile(form, questionnaireCode, profile, strict);
+    }
+
+    private void validateProfile(QuestionnaireForm form, String questionnaireCode,
+                                 Map<String, Object> profile, boolean strict) {
+        if (form == null || form.getFormCode() == null || questionnaireCode == null) {
+            return;
+        }
+        profileSchemaService.find(questionnaireCode, form.getFormCode())
+                .ifPresent(schema -> profileValidationService.validate(profile, schema, strict));
+    }
+
+    /** A form fixes the respondent category: its stakeholder category, or the collective mode itself. */
+    private QuestionnaireResponse.RespondentCategory categoryOf(QuestionnaireForm form) {
+        return switch (form.getAdministrationMode()) {
+            case LONG_FORM -> QuestionnaireResponse.RespondentCategory.LONG_FORM;
+            case DELEGATION -> QuestionnaireResponse.RespondentCategory.DELEGATION;
+            case INDIVIDUAL -> {
+                if (form.getStakeholderCategory() == null) {
+                    throw new BadRequestException("Individual form has no stakeholder category");
+                }
+                yield QuestionnaireResponse.RespondentCategory.valueOf(form.getStakeholderCategory().name());
+            }
+        };
     }
 
     private void requireDraft(QuestionnaireResponse response) {
@@ -373,11 +445,11 @@ public class ResponseService {
         List<ResponseItemDto> items = responseItemRepository.findByResponseId(response.getId()).stream()
                 .map(item -> new ResponseItemDto(item.getItemId(), item.getNumericValue(), item.getTextValue()))
                 .toList();
-        long total = likertItemCount(questionnaire.getId());
+        long total = requiredLikertCount(response);
         long answered = responseItemRepository.countByResponseIdAndNumericValueNotNull(response.getId());
         return new ResponseDetailDto(response.getId(), questionnaire.getId(), questionnaire.getCode(),
                 response.getFormId(), response.getFacilityId(), facilityCode, response.getSubjectCode(),
                 response.getRespondentCategory(), response.getAdministrationMode(), response.getStatus(),
-                response.getSubmittedAt(), items, answered, total);
+                response.getSubmittedAt(), response.getProfileSnapshot(), items, answered, total);
     }
 }
