@@ -56,8 +56,10 @@ export function UserFormModal({ open, userId, onClose }: Props) {
     }
   }, [open, isEdit, detail]);
 
+  // coordinators: the pool they may build ternas from; respondents: the facilities they answer for
   const needsFacilityScope = form.roles.includes('INTERNAL_FACILITATOR') || form.roles.includes('EVALUATOR')
-    || form.roles.includes('AUDIT_COORDINATOR');
+    || form.roles.includes('AUDIT_COORDINATOR') || form.roles.includes('COORDINATOR')
+    || form.roles.includes('RESPONDENT');
   const needsTernaScope = form.roles.includes('COORDINATOR');
   const facilities = useFacilityPicker(open && needsFacilityScope);
   const ternas = useTernaPicker(open && needsTernaScope);

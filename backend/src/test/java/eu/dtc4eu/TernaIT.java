@@ -67,9 +67,10 @@ class TernaIT {
                             "name", "Terna Test Facility " + i), admin()), Map.class);
             facilityIds.add(((Number) created.getBody().get("id")).longValue());
         }
+        // coord1 builds ternas, so an admin assigns it the facility pool it may build from
         ResponseEntity<Map> c1 = rest.exchange("/api/v1/users", HttpMethod.POST, new HttpEntity<>(Map.of(
                 "username", "coord1", "fullName", "Coordinator One", "password", "Coord1nator!",
-                "roles", List.of("COORDINATOR")), admin()), Map.class);
+                "roles", List.of("COORDINATOR"), "facilityIds", facilityIds), admin()), Map.class);
         ResponseEntity<Map> c2 = rest.exchange("/api/v1/users", HttpMethod.POST, new HttpEntity<>(Map.of(
                 "username", "coord2", "fullName", "Coordinator Two", "password", "Coord2nator!",
                 "roles", List.of("COORDINATOR")), admin()), Map.class);
@@ -194,6 +195,76 @@ class TernaIT {
         assertThat(((Number) withFacilitator.get("internalFacilitatorId")).longValue())
                 .isEqualTo(facilitatorId.longValue());
         assertThat(withFacilitator.get("internalFacilitatorName")).isEqualTo("Facilitator T3");
+    }
+
+    /**
+     * Security audit: listing facilities on a terna auto-grants the listed
+     * coordinators scope over them, so a coordinator may only build from the
+     * facility pool an admin assigned them — otherwise it could grant itself
+     * access to any facility's data.
+     */
+    @Test
+    @Order(7)
+    void coordinatorCannotBuildATernaFromFacilitiesOutsideItsPool() {
+        List<Long> unassigned = createFacilities("T3-F7", "T3-F8", "T3-F9");
+        ResponseEntity<Map> created = rest.exchange("/api/v1/users", HttpMethod.POST, new HttpEntity<>(Map.of(
+                "username", "coord-nopool", "fullName", "Coordinator Without Pool", "password", "CoordNoPool1!",
+                "roles", List.of("COORDINATOR")), admin()), Map.class);
+        assertThat(created.getStatusCode()).as(String.valueOf(created.getBody())).isEqualTo(HttpStatus.CREATED);
+        Long noPoolCoordinatorId = ((Number) created.getBody().get("id")).longValue();
+        HttpHeaders coordinator = headersOf("coord-nopool", "CoordNoPool1!");
+
+        ResponseEntity<Map> grab = rest.exchange("/api/v1/ternas", HttpMethod.POST,
+                new HttpEntity<>(payload("T4", "GAS", unassigned, List.of(noPoolCoordinatorId)), coordinator), Map.class);
+        assertThat(grab.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+
+        // and the attempt granted nothing
+        ResponseEntity<Map> read = rest.exchange("/api/v1/facilities/" + unassigned.get(0), HttpMethod.GET,
+                new HttpEntity<>(coordinator), Map.class);
+        assertThat(read.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @Order(8)
+    void coordinatorMustCoordinateTheTernaItBuilds() {
+        List<Long> pool = createFacilities("T3-F10", "T3-F11", "T3-F12");
+        rest.exchange("/api/v1/users", HttpMethod.POST, new HttpEntity<>(Map.of(
+                "username", "coord-pool", "fullName", "Coordinator With Pool", "password", "CoordPool1!",
+                "roles", List.of("COORDINATOR"), "facilityIds", pool), admin()), Map.class);
+
+        ResponseEntity<Map> forSomeoneElse = rest.exchange("/api/v1/ternas", HttpMethod.POST,
+                new HttpEntity<>(payload("T5", "GAS", pool, List.of(coordinator2Id)),
+                        headersOf("coord-pool", "CoordPool1!")), Map.class);
+        assertThat(forSomeoneElse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat((String) forSomeoneElse.getBody().get("message")).contains("coordinator");
+    }
+
+    @Test
+    @Order(9)
+    @SuppressWarnings("unchecked")
+    void coordinatorCannotSwapAnUnassignedFacilityIntoItsOwnTerna() {
+        HttpHeaders coordinator = headersOf("coord1", "Coord1nator!");
+        ResponseEntity<Map> ternas = rest.exchange("/api/v1/ternas", HttpMethod.GET,
+                new HttpEntity<>(coordinator), Map.class);
+        Map<String, Object> t1 = ((List<Map<String, Object>>) ternas.getBody().get("content")).stream()
+                .filter(t -> "T1".equals(t.get("ternaCode"))).findFirst().orElseThrow();
+        Long outsidePool = createFacilities("T3-F13").get(0);
+
+        ResponseEntity<Map> swapped = rest.exchange("/api/v1/ternas/" + t1.get("id"), HttpMethod.PUT,
+                new HttpEntity<>(payload("T1", "TCS", List.of(facilityIds.get(0), facilityIds.get(1), outsidePool),
+                        List.of(coordinator1Id, coordinator2Id)), coordinator), Map.class);
+        assertThat(swapped.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    private List<Long> createFacilities(String... codes) {
+        List<Long> ids = new java.util.ArrayList<>();
+        for (String code : codes) {
+            ResponseEntity<Map> created = rest.exchange("/api/v1/facilities", HttpMethod.POST,
+                    new HttpEntity<>(Map.of("facilityCode", code, "facilityType", "GA",
+                            "name", "Terna Test Facility " + code), admin()), Map.class);
+            ids.add(((Number) created.getBody().get("id")).longValue());
+        }
+        return ids;
     }
 
     private Map<String, Object> payload(String code, String type, List<Long> facilities, List<Long> coordinators) {

@@ -304,4 +304,73 @@ class ResponseFlowIT {
                 new HttpEntity<>(headersOf("t5facilitator", "T5facilPass!")), String.class);
         assertThat(forbidden.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
+
+    /**
+     * Security audit: submitting a response recomputes the facility's scores,
+     * so respondents may only answer for facilities an admin bound them to,
+     * and accounts with no scope at all cannot open responses.
+     */
+    @Test
+    @Order(7)
+    void respondentCannotOpenAResponseForAFacilityItIsNotBoundTo() {
+        ResponseEntity<Map> unbound = rest.exchange("/api/v1/responses", HttpMethod.POST, new HttpEntity<>(Map.of(
+                "questionnaireId", dtcroId, "formId", userFormId, "facilityId", facilityId,
+                "subjectCode", "SUBJ-UNBOUND"), headersOf("t5respondent", "T5respPass!")), Map.class);
+        assertThat(unbound.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @Order(8)
+    void respondentBoundToAFacilityCanOpenAResponseForIt() {
+        rest.exchange("/api/v1/users", HttpMethod.POST, new HttpEntity<>(Map.of(
+                "username", "t5bound", "fullName", "T5 Bound Respondent", "password", "T5boundPass!",
+                "roles", List.of("RESPONDENT"), "facilityIds", List.of(facilityId)), admin()), Map.class);
+        HttpHeaders bound = headersOf("t5bound", "T5boundPass!");
+
+        ResponseEntity<Map> created = rest.exchange("/api/v1/responses", HttpMethod.POST, new HttpEntity<>(Map.of(
+                "questionnaireId", dtcroId, "formId", userFormId, "facilityId", facilityId,
+                "subjectCode", "SUBJ-BOUND"), bound), Map.class);
+        assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+        // binding lets them answer for the facility, not read its data
+        ResponseEntity<Map> facility = rest.exchange("/api/v1/facilities/" + facilityId, HttpMethod.GET,
+                new HttpEntity<>(bound), Map.class);
+        assertThat(facility.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        ResponseEntity<Map> foreign = rest.exchange("/api/v1/responses/" + responseId, HttpMethod.GET,
+                new HttpEntity<>(bound), Map.class);
+        assertThat(foreign.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @Order(9)
+    void accountWithoutScopeCannotOpenResponses() {
+        rest.exchange("/api/v1/users", HttpMethod.POST, new HttpEntity<>(Map.of(
+                "username", "t5trainer", "fullName", "T5 Trainer", "password", "T5trainPass!",
+                "roles", List.of("TRAINER")), admin()), Map.class);
+        HttpHeaders trainer = headersOf("t5trainer", "T5trainPass!");
+
+        ResponseEntity<Map> withFacility = rest.exchange("/api/v1/responses", HttpMethod.POST,
+                new HttpEntity<>(Map.of("questionnaireId", dtcroId, "formId", userFormId,
+                        "facilityId", facilityId, "subjectCode", "SUBJ-TRAINER"), trainer), Map.class);
+        assertThat(withFacility.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+
+        ResponseEntity<Map> withoutFacility = rest.exchange("/api/v1/responses", HttpMethod.POST,
+                new HttpEntity<>(Map.of("questionnaireId", dtcroId, "formId", userFormId,
+                        "subjectCode", "SUBJ-TRAINER"), trainer), Map.class);
+        assertThat(withoutFacility.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    @Order(10)
+    @SuppressWarnings("unchecked")
+    void respondentCannotMoveADraftToAFacilityItIsNotBoundTo() {
+        HttpHeaders respondent = headersOf("t5respondent", "T5respPass!");
+        ResponseEntity<Map> own = rest.exchange("/api/v1/responses", HttpMethod.GET,
+                new HttpEntity<>(respondent), Map.class);
+        Map<String, Object> draft = ((List<Map<String, Object>>) own.getBody().get("content")).get(0);
+
+        ResponseEntity<Map> moved = rest.exchange("/api/v1/responses/" + draft.get("id"), HttpMethod.PUT,
+                new HttpEntity<>(Map.of("subjectCode", "SUBJ-SELF", "facilityId", facilityId), respondent), Map.class);
+        assertThat(moved.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
 }

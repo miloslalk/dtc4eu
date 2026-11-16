@@ -53,8 +53,8 @@ the new value here in the same change.
 
 | Metric | Today | Direction | Source |
 |--------|-------|-----------|--------|
-| Backend line coverage | 78.04% | must not fall | `backend/target/site/jacoco/jacoco.xml` |
-| Backend branch coverage | 61.86% | must not fall | same |
+| Backend line coverage | 78.41% | must not fall | `backend/target/site/jacoco/jacoco.xml` |
+| Backend branch coverage | 63.15% | must not fall | same |
 | Bundle: platform JS (gzip) | 163556 bytes | must not grow | `frontend/.size-limit.json` |
 | Bundle: public site JS (gzip) | 137238 bytes | must not grow | `website/frontend/.size-limit.json` |
 | Bundle: CMS admin JS (gzip) | 118183 bytes | must not grow | `website/frontend/.size-limit.json` |
