@@ -24,3 +24,6 @@ website/frontend/node_modules/
 *.log
 deploy/.env
 tools/*.zip
+
+# Office lock files
+~$*
