@@ -57,12 +57,8 @@ export function AppShell() {
             navOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
       >
-        <div className="flex items-center gap-3 px-4 py-4">
-          <img src="/logo.png" alt="DTC4EU" className="size-10 rounded-lg bg-white object-contain p-0.5" />
-          <div className="leading-tight">
-            <div className="text-base font-extrabold tracking-wide">DTC4EU</div>
-            <div className="text-[11px] text-blue-100">Erasmus+ KA220</div>
-          </div>
+        <div className="flex items-center px-4 py-4">
+          <img src="/logo.png" alt="DTC4EU" className="size-20 rounded-xl bg-white object-contain p-1" />
           <button
             type="button"
             onClick={() => setNavOpen(false)}

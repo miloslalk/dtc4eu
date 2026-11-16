@@ -48,13 +48,9 @@ export function SiteShell() {
           scrolled ? 'shadow-lg shadow-blue-600/5' : ''
         }`}
       >
-        <Container className="flex items-center gap-4 py-3">
-          <Link to="/" className="group flex items-center gap-3" onClick={() => setMenuOpen(false)}>
-            <img src="/logo.png" alt="" className="size-11 object-contain transition-transform duration-300 group-hover:scale-105" />
-            <span className="leading-tight">
-              <span className="block text-lg font-extrabold tracking-tight text-blue-700">DTC4EU</span>
-              <span className="block text-[11px] font-semibold uppercase tracking-wider text-neutral-500">Erasmus+ KA220</span>
-            </span>
+        <Container className="flex items-center gap-4 py-2">
+          <Link to="/" className="group flex items-center" onClick={() => setMenuOpen(false)}>
+            <img src="/logo.png" alt="DTC4EU" className="size-20 object-contain transition-transform duration-300 group-hover:scale-105" />
           </Link>
 
           <nav className="ml-auto hidden items-center gap-1 lg:flex" aria-label="Main">
