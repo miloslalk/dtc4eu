@@ -37,20 +37,18 @@ public class DataScopeService {
 
         Set<Long> facilityIds = new HashSet<>();
         Set<Long> ternaIds = new HashSet<>();
-        boolean respondent = principal.hasRole(Role.RESPONDENT);
-        Set<Long> respondentFacilityIds = Set.of();
 
-        if (principal.hasRole(Role.INTERNAL_FACILITATOR) || principal.hasRole(Role.EVALUATOR)
-                || principal.hasRole(Role.AUDIT_COORDINATOR) || principal.hasRole(Role.COORDINATOR)) {
+        if (principal.hasAnyRole(Role.INTERNAL_FACILITATOR, Role.EVALUATOR, Role.AUDIT_COORDINATOR, Role.COORDINATOR)) {
             facilityIds.addAll(facilityAccessRepository.findFacilityIdsByUserId(principal.getId()));
         }
         if (principal.hasRole(Role.COORDINATOR)) {
             ternaIds.addAll(ternaAccessRepository.findTernaIdsByUserId(principal.getId()));
             facilityIds.addAll(ternaAccessRepository.findCoordinatorFacilityIds(principal.getId()));
         }
-        if (respondent) {
-            respondentFacilityIds = Set.copyOf(facilityAccessRepository.findFacilityIdsByUserId(principal.getId()));
-        }
+        boolean respondent = principal.hasRole(Role.RESPONDENT);
+        Set<Long> respondentFacilityIds = respondent
+                ? Set.copyOf(facilityAccessRepository.findFacilityIdsByUserId(principal.getId()))
+                : Set.of();
 
         boolean respondentOnly = facilityIds.isEmpty() && ternaIds.isEmpty();
         return new DataScope(principal.getId(), false, Set.copyOf(facilityIds), Set.copyOf(ternaIds),
