@@ -22,7 +22,7 @@ Structure notes that go beyond the spec: assigned terna coordinators are auto-gr
 
 ## Deployment (`deploy/`)
 
-Production runs on a single Hetzner VPS via `deploy/docker-compose.prod.yml` (build from repo root with `--env-file deploy/.env`): Caddy (auto-HTTPS, serves both SPAs, proxies `/api` per vhost via `SITE_DOMAIN`/`PLATFORM_DOMAIN` env vars), both Spring APIs (prod profile, env-only config), one Postgres 16 with two databases (created by `deploy/initdb/`), internal-only MinIO, and a nightly backup container (`deploy/backup.sh`, 14-day rotation). Runbook: `deploy/DEPLOY.md`. Secrets template: `deploy/.env.example` — real `.env` is never committed.
+Production runs on a single Aruba Cloud VPS (VPS O4A8, Italian DC; domain `dtc4.eu`, platform on `platform.dtc4.eu`) via `deploy/docker-compose.prod.yml` (build from repo root with `--env-file deploy/.env`): Caddy (auto-HTTPS, serves both SPAs, proxies `/api` per vhost via `SITE_DOMAIN`/`PLATFORM_DOMAIN` env vars), both Spring APIs (prod profile, env-only config), one Postgres 16 with two databases (created by `deploy/initdb/`), internal-only MinIO, and a nightly backup container (`deploy/backup.sh`, 14-day rotation). Runbook: `deploy/DEPLOY.md`. Secrets template: `deploy/.env.example` — real `.env` is never committed.
 
 ## Scope guard — Phase 2 in progress
 
