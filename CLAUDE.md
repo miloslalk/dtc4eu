@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 DTC4EU (Erasmus KA220 — Democratic Therapeutic Communities for Social Inclusion): a platform for running annual quality-evaluation cycles across therapeutic-community facilities. Stack: Java 17 / Spring Boot 3.3.x / Maven backend, PostgreSQL 16 + Flyway, JWT (jjwt) security, MinIO/S3 storage; React 18 + TypeScript + Vite frontend.
 
+**Read `CONSTRAINTS.md` before writing code. Do not weaken it to make a change pass.** Run `npm run check:fast` after edits and `npm run check:task` (≈ 70 s, Docker must be running) before handing work back.
+
 **`DTC4EU_BUILD_SPEC.md` is the source of truth.** It defines the stack, conventions, endpoints, business rules, and the ordered Phase 1 build plan (T0–T6) with acceptance criteria. Read it before building anything. Its companion `V1__baseline_schema.sql` is the authoritative database schema (44 tables, PostgreSQL 16), destined for `backend/src/main/resources/db/migration/`.
 
 ## Current state

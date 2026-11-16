@@ -1,0 +1,4 @@
+#
+#Mon Nov 16 14:38:48 CET 2026
+no\ classes\ that\ reside\ in\ a\ package\ '..service..'\ should\ depend\ on\ classes\ that\ reside\ in\ a\ package\ '..controller..'=ef9e5b18-ce73-467a-bf44-121de88e9539
+slices\ matching\ 'eu.dtc4eu.(*)..'\ should\ be\ free\ of\ cycles=d728713f-3c55-4966-8e58-fe9cdae115a2

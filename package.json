@@ -1,0 +1,16 @@
+{
+  "name": "dtc4eu-checks",
+  "private": true,
+  "description": "Check runner for CONSTRAINTS.md (scripts only; each app keeps its own package.json / pom.xml)",
+  "scripts": {
+    "check:fast": "node scripts/floor-guard.mjs --base HEAD && bash scripts/secrets-diff.sh && npm --prefix frontend run -s typecheck && npm --prefix website/frontend run -s typecheck",
+    "check:backend": "cd backend && ./mvnw -q clean verify '-Dtest=!ArchitectureTest' -Dsurefire.failIfNoSpecifiedTests=false",
+    "check:arch": "cd backend && ./mvnw -q surefire:test -Dtest=ArchitectureTest",
+    "check:diff-coverage": "pipx run --spec diff-cover==11.0.2 diff-cover backend/target/site/jacoco/jacoco.xml --compare-branch=HEAD --src-roots backend/src/main/java --include-untracked --fail-under=80",
+    "check:security": "semgrep scan --quiet --config p/default --strict --json --metrics=off --exclude 'backend/src/main/resources/db/migration/V2__seed_roles.sql' --exclude 'website/backend/src/main/resources/db/migration/V2__seed_placeholder_content.sql' -o semgrep-results.json . && node scripts/quality-gate.mjs semgrep semgrep-results.json",
+    "check:deps": "osv-scanner scan source -r --config osv-scanner.toml --format json . > osv-results.json; [ $? -le 1 ] && node scripts/quality-gate.mjs osv osv-results.json",
+    "check:bundles": "npm --prefix frontend run -s build && npm --prefix website/frontend run -s build && node scripts/ratchet.mjs frontend && node scripts/ratchet.mjs website",
+    "check:task": "npm run -s check:fast && npm run -s check:backend && bash scripts/soft-gate.sh 2026-11-30 npm run -s check:arch && bash scripts/soft-gate.sh 2026-11-30 npm run -s check:diff-coverage && bash scripts/soft-gate.sh 2026-11-30 node scripts/ratchet.mjs backend && bash scripts/soft-gate.sh 2026-11-30 npm run -s check:security",
+    "check:full": "npm run -s check:task && node scripts/floor-guard.mjs --base origin/main && gitleaks git . -c .gitleaks.toml --redact --no-banner && npm run -s check:deps && bash scripts/soft-gate.sh 2026-11-30 npm run -s check:bundles"
+  }
+}

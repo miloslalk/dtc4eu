@@ -27,3 +27,8 @@ tools/*.zip
 
 # Office lock files
 ~$*
+
+# Check reports (CONSTRAINTS.md)
+semgrep-results.json
+osv-results.json
+node_modules/
