@@ -186,7 +186,10 @@
       "types": {
         "ORGANIZATIONAL_STRUCTURAL": "Organizational-structural",
         "COMMUNITY_FUNCTIONAL": "Community-functional"
-      }
+      },
+      "score": "Score (1–4)",
+      "noScore": "–",
+      "meanScore": "Mean score (TAB.5)"
     },
     "gasset": {
       "intro": "Structured GAS-Set (Setting Analysis Grid) — sections A–N transcribed verbatim from the 2026 corrected edition. Saved automatically while you type; Section N (per-user clinical data) is visible only to clinical-access roles.",

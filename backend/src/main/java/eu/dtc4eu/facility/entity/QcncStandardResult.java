@@ -36,6 +36,10 @@ public class QcncStandardResult {
     @Column(nullable = false, length = 2)
     private Conformity conformity;
 
+    /** Expert-feedback 1–4 score; the board derives the TAB.5 classification from the administrations' mean. */
+    @Column
+    private Integer score;
+
     @Column
     private String note;
 }

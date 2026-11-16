@@ -19,6 +19,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -204,5 +206,93 @@ class FacilityIT {
         ResponseEntity<Map> read = rest.exchange("/api/v1/facilities/" + facilityAId, HttpMethod.GET,
                 new HttpEntity<>(headers), Map.class);
         assertThat(read.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    /**
+     * Expert feedback (prototype annotations): each QCNC mark carries a 1–4
+     * score; the board reports the mean across administrations with its TAB.5
+     * classification — the intermediate band only exists through that mean.
+     */
+    @Test
+    @Order(8)
+    @SuppressWarnings("unchecked")
+    void qcncStandardScoresProduceMeanAndClassification() {
+        ResponseEntity<Map> board = rest.exchange("/api/v1/facilities/" + facilityAId + "/qcnc-standards",
+                HttpMethod.GET, new HttpEntity<>(admin()), Map.class);
+        assertThat(board.getStatusCode()).isEqualTo(HttpStatus.OK);
+        List<Map<String, Object>> standards = (List<Map<String, Object>>) board.getBody().get("standards");
+        assertThat(standards).isNotEmpty(); // V11 catalogue
+        Number standardId = (Number) standards.get(0).get("id");
+
+        HttpHeaders facilitator = headersOf("facilitatorA", "Facil1tatorA!");
+        ResponseEntity<Map> self = rest.exchange(
+                "/api/v1/facilities/" + facilityAId + "/qcnc-standards/INTERNAL_FACILITATOR", HttpMethod.PUT,
+                new HttpEntity<>(Map.of("results", List.of(Map.of(
+                        "standardId", standardId, "conformity", "C", "score", 4))), facilitator), Map.class);
+        assertThat(self.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        ResponseEntity<Map> own = rest.exchange(
+                "/api/v1/facilities/" + facilityAId + "/qcnc-standards/TERNA_COORDINATOR_OWN", HttpMethod.PUT,
+                new HttpEntity<>(Map.of("results", List.of(Map.of(
+                        "standardId", standardId, "conformity", "NC", "score", 1))), admin()), Map.class);
+        assertThat(own.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        // mean(4, 1) = 2.500 → INTERMEDIATE
+        List<Map<String, Object>> scores = (List<Map<String, Object>>) own.getBody().get("standardScores");
+        Map<String, Object> row = scores.stream()
+                .filter(s -> ((Number) s.get("standardId")).longValue() == standardId.longValue())
+                .findFirst().orElseThrow();
+        assertThat(new BigDecimal(String.valueOf(row.get("meanScore")))).isEqualByComparingTo("2.5");
+        assertThat(row.get("classification")).isEqualTo("INTERMEDIATE");
+
+        // scores outside 1–4 are rejected by validation
+        ResponseEntity<Map> invalid = rest.exchange(
+                "/api/v1/facilities/" + facilityAId + "/qcnc-standards/INTERNAL_FACILITATOR", HttpMethod.PUT,
+                new HttpEntity<>(Map.of("results", List.of(Map.of(
+                        "standardId", standardId, "conformity", "C", "score", 5))), facilitator), Map.class);
+        assertThat(invalid.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Clearing a score (null) stores null and drops that administration from
+     * the skip-missing mean; a standard with marks but no scores has no mean.
+     * Builds on @Order(8): standard 0 scored 4 (facilitator) and 1 (coordinator).
+     */
+    @Test
+    @Order(9)
+    @SuppressWarnings("unchecked")
+    void qcncClearedScoreLeavesTheMean() {
+        ResponseEntity<Map> board = rest.exchange("/api/v1/facilities/" + facilityAId + "/qcnc-standards",
+                HttpMethod.GET, new HttpEntity<>(admin()), Map.class);
+        List<Map<String, Object>> standards = (List<Map<String, Object>>) board.getBody().get("standards");
+        long scoredId = ((Number) standards.get(0).get("id")).longValue();
+        long unscoredId = ((Number) standards.get(1).get("id")).longValue();
+
+        Map<String, Object> cleared = new HashMap<>();
+        cleared.put("standardId", scoredId);
+        cleared.put("conformity", "C");
+        cleared.put("score", null);
+        ResponseEntity<Map> saved = rest.exchange(
+                "/api/v1/facilities/" + facilityAId + "/qcnc-standards/INTERNAL_FACILITATOR", HttpMethod.PUT,
+                new HttpEntity<>(Map.of("results", List.of(cleared,
+                        Map.of("standardId", unscoredId, "conformity", "NC"))),
+                        headersOf("facilitatorA", "Facil1tatorA!")), Map.class);
+        assertThat(saved.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        Map<String, Object> facilitatorColumn = ((List<Map<String, Object>>) saved.getBody().get("administrations"))
+                .stream().filter(a -> "INTERNAL_FACILITATOR".equals(a.get("administrationType")))
+                .findFirst().orElseThrow();
+        assertThat((Map<String, Object>) facilitatorColumn.get("conformityByStandard"))
+                .containsKeys(String.valueOf(scoredId), String.valueOf(unscoredId));
+        assertThat((Map<String, Object>) facilitatorColumn.get("scoreByStandard")).isEmpty();
+
+        // only the coordinator's 1 remains → mean 1.000, CRITICAL; the unscored standard has no row
+        List<Map<String, Object>> scores = (List<Map<String, Object>>) saved.getBody().get("standardScores");
+        assertThat(scores).noneMatch(s -> ((Number) s.get("standardId")).longValue() == unscoredId);
+        Map<String, Object> row = scores.stream()
+                .filter(s -> ((Number) s.get("standardId")).longValue() == scoredId)
+                .findFirst().orElseThrow();
+        assertThat(new BigDecimal(String.valueOf(row.get("meanScore")))).isEqualByComparingTo("1");
+        assertThat(row.get("classification")).isEqualTo("CRITICAL");
     }
 }

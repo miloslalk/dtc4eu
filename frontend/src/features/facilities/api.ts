@@ -245,11 +245,20 @@ export interface QcncAdministration {
   administeredByName: string | null;
   updatedAt: string | null;
   conformityByStandard: Record<number, 'C' | 'NC'>;
+  scoreByStandard: Record<number, number>;
+}
+
+/** Mean of the administrations' 1–4 scores for one standard, classified per TAB.5 (expert feedback). */
+export interface QcncStandardScore {
+  standardId: number;
+  meanScore: number;
+  classification: 'CRITICAL' | 'INTERMEDIATE' | 'EFFICACY' | null;
 }
 
 export interface QcncBoard {
   standards: QcncStandard[];
   administrations: QcncAdministration[];
+  standardScores: QcncStandardScore[];
   strengthStandardIds: number[];
   weaknessStandardIds: number[];
 }
@@ -266,7 +275,7 @@ export function useSaveQcncResults(facilityId: number) {
   return useMutation({
     mutationFn: async ({ administrationType, results }: {
       administrationType: QcncAdministrationType;
-      results: { standardId: number; conformity: 'C' | 'NC' }[];
+      results: { standardId: number; conformity: 'C' | 'NC'; score?: number | null }[];
     }) =>
       (await api.put<QcncBoard>(`/facilities/${facilityId}/qcnc-standards/${administrationType}`, { results })).data,
     onSuccess: () =>

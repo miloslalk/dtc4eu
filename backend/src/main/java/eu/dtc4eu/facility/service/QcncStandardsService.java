@@ -5,6 +5,8 @@ import eu.dtc4eu.facility.dto.QcncDtos.AdministrationDto;
 import eu.dtc4eu.facility.dto.QcncDtos.QcncBoardDto;
 import eu.dtc4eu.facility.dto.QcncDtos.SaveResultsRequest;
 import eu.dtc4eu.facility.dto.QcncDtos.StandardDto;
+import eu.dtc4eu.facility.dto.QcncDtos.StandardScoreDto;
+import eu.dtc4eu.scoring.entity.Classification;
 import eu.dtc4eu.facility.entity.QcncAssessment;
 import eu.dtc4eu.facility.entity.QcncStandard;
 import eu.dtc4eu.facility.entity.QcncStandardResult;
@@ -19,6 +21,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -32,6 +36,8 @@ import java.util.stream.Collectors;
  * The C/NC board of the three QCNC administrations per facility+cycle
  * (internal facilitator self-assessment, terna coordinator's own, terna
  * coordinator for the visiting delegation), over the seeded V11 catalogue.
+ * Each mark also carries an expert-feedback 1–4 score (V13); the board reports
+ * the per-standard mean across administrations with its TAB.5 classification.
  *
  * Meta lists per the expert feedback ("Meta-area of Strengths/weakness in
  * all three QCNC questionnaires administered") are computed at STANDARD
@@ -68,21 +74,49 @@ public class QcncStandardsService {
 
         Map<QcncAssessment.AdministrationType, AdministrationDto> administrations =
                 new EnumMap<>(QcncAssessment.AdministrationType.class);
+        Map<Long, List<Integer>> collectedScores = new LinkedHashMap<>();
         for (QcncAssessment assessment : assessments) {
-            Map<Long, String> conformityByStandard = resultsByAssessment
-                    .getOrDefault(assessment.getId(), List.of()).stream()
-                    .collect(Collectors.toMap(QcncStandardResult::getStandardId,
-                            r -> r.getConformity().name(), (a, b) -> a, LinkedHashMap::new));
+            Map<Long, String> conformityByStandard = new LinkedHashMap<>();
+            Map<Long, Integer> scoreByStandard = new LinkedHashMap<>();
+            for (QcncStandardResult result : resultsByAssessment.getOrDefault(assessment.getId(), List.of())) {
+                conformityByStandard.putIfAbsent(result.getStandardId(), result.getConformity().name());
+                if (result.getScore() != null) {
+                    scoreByStandard.putIfAbsent(result.getStandardId(), result.getScore());
+                    collectedScores.computeIfAbsent(result.getStandardId(), k -> new ArrayList<>())
+                            .add(result.getScore());
+                }
+            }
             administrations.put(assessment.getAdministrationType(), new AdministrationDto(
                     assessment.getAdministrationType(),
                     assessment.getAdministeredBy(),
                     userName(assessment.getAdministeredBy()),
                     assessment.getUpdatedAt(),
-                    conformityByStandard));
+                    conformityByStandard,
+                    scoreByStandard));
         }
 
         return new QcncBoardDto(standards, administrations.values().stream().toList(),
+                standardScores(standards, collectedScores),
                 metaList(administrations, "C"), metaList(administrations, "NC"));
+    }
+
+    /**
+     * Expert feedback: the per-standard score reported by the board is the mean
+     * of the 1–4 scores over the administrations that scored it (skip-missing,
+     * like every other mean in the platform), classified per TAB.5 — the
+     * intermediate band 2&lt;M&lt;3 is only reachable through this mean.
+     */
+    private List<StandardScoreDto> standardScores(List<StandardDto> standards,
+                                                  Map<Long, List<Integer>> collectedScores) {
+        return standards.stream()
+                .filter(standard -> collectedScores.containsKey(standard.id()))
+                .map(standard -> {
+                    List<Integer> values = collectedScores.get(standard.id());
+                    BigDecimal mean = BigDecimal.valueOf(values.stream().mapToInt(Integer::intValue).sum())
+                            .divide(BigDecimal.valueOf(values.size()), 3, RoundingMode.HALF_UP);
+                    return new StandardScoreDto(standard.id(), mean, Classification.of(mean));
+                })
+                .toList();
     }
 
     /** Standards with the given mark in ALL THREE administrations (empty until all three exist). */
@@ -137,6 +171,7 @@ public class QcncStandardsService {
             result.setAssessmentId(assessment.getId());
             result.setStandardId(entry.standardId());
             result.setConformity(entry.conformity());
+            result.setScore(entry.score());
             result.setNote(entry.note());
             replacement.add(result);
         }
