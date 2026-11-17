@@ -9,6 +9,9 @@ import {
   ALL_ROLES, useFacilityPicker, useSaveUser, useTernaPicker, useUserDetail, type UserPayload,
 } from './api';
 
+// coordinators: the pool they may build ternas from; respondents: the facilities they answer for
+const FACILITY_SCOPED_ROLES: RoleCode[] = ['INTERNAL_FACILITATOR', 'EVALUATOR', 'AUDIT_COORDINATOR', 'COORDINATOR', 'RESPONDENT'];
+
 interface Props {
   open: boolean;
   userId: number | null; // null = create
@@ -56,8 +59,7 @@ export function UserFormModal({ open, userId, onClose }: Props) {
     }
   }, [open, isEdit, detail]);
 
-  const needsFacilityScope = form.roles.includes('INTERNAL_FACILITATOR') || form.roles.includes('EVALUATOR')
-    || form.roles.includes('AUDIT_COORDINATOR');
+  const needsFacilityScope = FACILITY_SCOPED_ROLES.some((role) => form.roles.includes(role));
   const needsTernaScope = form.roles.includes('COORDINATOR');
   const facilities = useFacilityPicker(open && needsFacilityScope);
   const ternas = useTernaPicker(open && needsTernaScope);
