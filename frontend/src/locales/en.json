@@ -461,7 +461,7 @@
     "passwordHint": "Leave empty to keep the current password",
     "scopeFacilities": "Facility scope",
     "scopeTernas": "Terna scope",
-    "scopeHint": "Internal facilitators, evaluators and audit coordinators see only their facilities; terna coordinators only their ternas",
+    "scopeHint": "Internal facilitators, evaluators and audit coordinators see only their facilities. Terna coordinators see their ternas and build new ternas only from the facilities ticked here. Respondents can answer questionnaires only for the facilities ticked here, without seeing their data.",
     "cyclesTitle": "Annual cycles",
     "newCycle": "New cycle",
     "cycleCode": "Cycle code",

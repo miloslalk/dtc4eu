@@ -15,9 +15,11 @@ import java.util.Set;
  * (spec §6, amended by v0.2 register §9):
  *  - SUPER_ADMIN / ADMIN / RESEARCH_TEAM / UPPER_COORDINATOR → everything
  *    ("All Cycles, all Countries, all Ternas")
- *  - COORDINATOR → assigned ternas + their member facilities
+ *  - COORDINATOR → assigned ternas + their member facilities, plus the
+ *    admin-assigned facility pool it may build ternas from
  *  - INTERNAL_FACILITATOR / EVALUATOR / AUDIT_COORDINATOR → assigned facilities
- *  - RESPONDENT (only) → own responses
+ *  - RESPONDENT (only) → own responses; its assigned facilities are the ones
+ *    it may answer for ({@code respondentFacilityIds}), not read
  * Multiple roles union their scopes. Out-of-scope reads must surface as 404.
  */
 @Service
@@ -30,22 +32,30 @@ public class DataScopeService {
     @Transactional(readOnly = true)
     public DataScope scopeOf(AppUserDetails principal) {
         if (principal.hasAnyRole(Role.SUPER_ADMIN, Role.ADMIN, Role.RESEARCH_TEAM, Role.UPPER_COORDINATOR)) {
-            return new DataScope(principal.getId(), true, Set.of(), Set.of(), false);
+            return new DataScope(principal.getId(), true, Set.of(), Set.of(), false, Set.of(), false);
         }
 
         Set<Long> facilityIds = new HashSet<>();
         Set<Long> ternaIds = new HashSet<>();
 
-        if (principal.hasRole(Role.INTERNAL_FACILITATOR) || principal.hasRole(Role.EVALUATOR)
-                || principal.hasRole(Role.AUDIT_COORDINATOR)) {
-            facilityIds.addAll(facilityAccessRepository.findFacilityIdsByUserId(principal.getId()));
+        boolean scoped = principal.hasAnyRole(Role.INTERNAL_FACILITATOR, Role.EVALUATOR, Role.AUDIT_COORDINATOR,
+                Role.COORDINATOR);
+        boolean respondent = principal.hasRole(Role.RESPONDENT);
+        // one lookup serves both uses (and keeps the frozen security↔user cycle unchanged)
+        Set<Long> assigned = scoped || respondent
+                ? Set.copyOf(facilityAccessRepository.findFacilityIdsByUserId(principal.getId()))
+                : Set.of();
+        if (scoped) {
+            facilityIds.addAll(assigned);
         }
         if (principal.hasRole(Role.COORDINATOR)) {
             ternaIds.addAll(ternaAccessRepository.findTernaIdsByUserId(principal.getId()));
             facilityIds.addAll(ternaAccessRepository.findCoordinatorFacilityIds(principal.getId()));
         }
+        Set<Long> respondentFacilityIds = respondent ? assigned : Set.of();
 
         boolean respondentOnly = facilityIds.isEmpty() && ternaIds.isEmpty();
-        return new DataScope(principal.getId(), false, Set.copyOf(facilityIds), Set.copyOf(ternaIds), respondentOnly);
+        return new DataScope(principal.getId(), false, Set.copyOf(facilityIds), Set.copyOf(ternaIds),
+                respondent, respondentFacilityIds, respondentOnly);
     }
 }

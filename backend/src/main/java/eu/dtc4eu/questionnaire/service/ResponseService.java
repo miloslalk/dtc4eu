@@ -41,6 +41,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -153,11 +154,15 @@ public class ResponseService {
             throw new BadRequestException("respondentCategory is required for form-less questionnaires");
         }
 
+        // submitting recomputes the facility's scores: only facilities in scope, or those a
+        // respondent is bound to; accounts with no scope at all cannot open responses
         DataScope scope = dataScopeService.scopeOf(actor);
         if (request.facilityId() != null) {
             facilityRepository.findById(request.facilityId())
-                    .filter(f -> scope.canSeeFacility(f.getId()) || scope.respondentOnly())
+                    .filter(f -> scope.canRespondFor(f.getId()))
                     .orElseThrow(() -> NotFoundException.of("Facility", request.facilityId()));
+        } else if (!scope.canOpenResponses()) {
+            throw new AccessDeniedException("No facility scope to open responses for");
         }
 
         validateProfile(form, questionnaire.getCode(), request.profileSnapshot(), false);
@@ -188,7 +193,7 @@ public class ResponseService {
         if (request.facilityId() != null && !Objects.equals(request.facilityId(), response.getFacilityId())) {
             DataScope scope = dataScopeService.scopeOf(actor);
             facilityRepository.findById(request.facilityId())
-                    .filter(f -> scope.canSeeFacility(f.getId()) || scope.respondentOnly())
+                    .filter(f -> scope.canRespondFor(f.getId()))
                     .orElseThrow(() -> NotFoundException.of("Facility", request.facilityId()));
         }
         response.setFacilityId(request.facilityId());

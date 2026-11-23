@@ -67,3 +67,17 @@ Local dependencies run via `docker-compose.yml` (Postgres 16 on 5432, MinIO on 9
 ## Open questions — do not invent answers
 
 Spec §9 lists unresolved inputs. The DTCRO item content arrived with spec v0.2 (six forms / 216 items, seeded verbatim from `tools/dtcro_item_bank.csv` — including the client's typos; clinical content is never edited or invented). Where still blocked (QCNC catalogue text, GAS-Set structure, register §12 questions), stub clearly-labeled placeholder data and keep building the container — never fabricate clinical content as if real.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues in `miloslalk/dtc4eu`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The default five: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: a root `GLOSSARY.md` plus `docs/adr/`, both created when first needed. See `docs/agents/domain.md`.

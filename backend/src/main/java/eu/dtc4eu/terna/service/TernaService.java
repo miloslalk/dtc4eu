@@ -131,6 +131,7 @@ public class TernaService {
     @Transactional
     public TernaDto create(SaveTernaRequest request, AppUserDetails actor) {
         Long cycleId = cycleContext.requireWritable().getId();
+        requireBuildRights(request, actor);
         ternaRepository.findByTernaCodeAndAnnualCycleId(request.ternaCode(), cycleId).ifPresent(existing -> {
             throw new ConflictException("Terna " + request.ternaCode() + " already exists in this cycle");
         });
@@ -150,6 +151,7 @@ public class TernaService {
     public TernaDto update(Long id, SaveTernaRequest request, AppUserDetails actor) {
         Terna terna = findInScope(id, actor);
         cycleContext.requireWritable();
+        requireBuildRights(request, actor);
 
         Set<Long> previousCoordinators = ternaCoordinatorRepository.findByTernaId(terna.getId()).stream()
                 .map(TernaCoordinator::getCoordinatorId).collect(Collectors.toSet());
@@ -283,6 +285,27 @@ public class TernaService {
                 return visit;
             }).toList();
             visitDateRepository.saveAll(visits);
+        }
+    }
+
+    /**
+     * Listing a facility on a terna grants its coordinators scope over it, so a
+     * caller without full scope builds only from facilities it already sees (its
+     * admin-assigned pool and its own ternas' members) and must coordinate the
+     * terna itself. Unseen facilities surface as 404, like any out-of-scope read.
+     */
+    private void requireBuildRights(SaveTernaRequest request, AppUserDetails actor) {
+        DataScope scope = dataScopeService.scopeOf(actor);
+        if (scope.all()) {
+            return;
+        }
+        for (Long facilityId : request.facilityIds()) {
+            if (!scope.canSeeFacility(facilityId)) {
+                throw NotFoundException.of("Facility", facilityId);
+            }
+        }
+        if (!request.coordinatorIds().contains(actor.getId())) {
+            throw new BadRequestException("A coordinator can only build a terna it coordinates itself");
         }
     }
 
