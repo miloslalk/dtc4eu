@@ -24,6 +24,8 @@ export interface UserPayload {
   fullName: string;
   preferredLang?: string;
   password?: string;
+  /** with a password: temporary, the user must replace it at first login (X4) */
+  mustChangePassword?: boolean;
   active?: boolean;
   roles: RoleCode[];
   facilityIds: number[];
@@ -86,7 +88,7 @@ export function useSaveUser() {
 export function useCreateCycle() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { code: string; startDate?: string; endDate?: string; sequenceNumber?: number }) =>
+    mutationFn: async (payload: { code: string; startDate?: string; endDate?: string }) =>
       (await api.post<CycleInfo>('/cycles', payload)).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cycles'] }),
   });
@@ -97,7 +99,7 @@ export function useUpdateCycle() {
   return useMutation({
     mutationFn: async ({ id, payload }: {
       id: number;
-      payload: { startDate?: string; endDate?: string; status?: string; sequenceNumber?: number };
+      payload: { startDate?: string; endDate?: string; status?: string; isDefault?: boolean };
     }) =>
       (await api.put<CycleInfo>(`/cycles/${id}`, payload)).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cycles'] }),
@@ -110,6 +112,8 @@ export interface PickerFacility {
   id: number;
   facilityCode: string;
   name: string;
+  /** the selected cycle's Internal Facilitator */
+  internalFacilitatorId: number | null;
 }
 
 export interface PickerTerna {

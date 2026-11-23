@@ -47,6 +47,10 @@ public class User {
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
+    /** Set for temporary passwords; the user can only change their password until it is cleared (V16). */
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 

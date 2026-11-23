@@ -15,4 +15,6 @@ public interface QuestionnaireResponseItemRepository extends JpaRepository<Quest
     Optional<QuestionnaireResponseItem> findByResponseIdAndItemId(Long responseId, Long itemId);
 
     long countByResponseIdAndNumericValueNotNull(Long responseId);
+
+    boolean existsByItemId(Long itemId);
 }

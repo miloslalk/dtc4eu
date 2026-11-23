@@ -174,6 +174,12 @@ public class FacilityController {
 
     /* qcnc — standards board (expert-feedback C/NC entry over the V11 catalogue) */
 
+    @Operation(summary = "The QCNC standards catalogue alone, for previewing the form without a facility")
+    @GetMapping("/qcnc-standards/catalogue")
+    public List<QcncDtos.StandardDto> qcncCatalogue() {
+        return qcncStandardsService.catalogue();
+    }
+
     @Operation(summary = "QCNC board: catalogue + the three administrations' C/NC marks + meta lists")
     @GetMapping("/{id}/qcnc-standards")
     public QcncDtos.QcncBoardDto qcncBoard(@PathVariable Long id,

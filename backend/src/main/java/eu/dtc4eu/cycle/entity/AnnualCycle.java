@@ -48,6 +48,10 @@ public class AnnualCycle {
     @Column(name = "sequence_number")
     private Integer sequenceNumber;
 
+    /** Optional admin-chosen landing cycle for first visits (V16, Simone's Q1); at most one. */
+    @Column(name = "is_default", nullable = false)
+    private boolean defaultCycle;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Status status = Status.OPEN;

@@ -93,8 +93,9 @@ public class AuthService {
                 userInfo(user));
     }
 
+    /** mustChangePassword is filled in by AuthController (PasswordChangeGate) to keep this class's user-slice edges frozen. */
     private UserInfo userInfo(User user) {
         return new UserInfo(user.getId(), user.getUsername(), user.getFullName(), user.getEmail(),
-                user.getPreferredLang(), user.roleCodes());
+                user.getPreferredLang(), user.roleCodes(), false);
     }
 }

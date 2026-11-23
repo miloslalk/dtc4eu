@@ -332,6 +332,15 @@ public class ResponseService {
         return csv.build();
     }
 
+    /** The caller's in-scope responses for the filters, oldest first (shared by the research exports). */
+    @Transactional(readOnly = true)
+    public List<QuestionnaireResponse> scopedResponses(Long facilityId, Long questionnaireId,
+                                                       QuestionnaireResponse.RespondentCategory category,
+                                                       QuestionnaireResponse.Status status, AppUserDetails principal) {
+        return responseRepository.findAll(specification(facilityId, questionnaireId, category, status,
+                dataScopeService.scopeOf(principal)), Sort.by("id"));
+    }
+
     /* --------------------------------- internals -------------------------------- */
 
     /** The item definition of a response: its form's items when form-bound, otherwise the whole questionnaire. */

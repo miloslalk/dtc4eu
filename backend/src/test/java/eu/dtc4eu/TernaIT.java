@@ -63,7 +63,8 @@ class TernaIT {
     void setUpFacilitiesAndCoordinators() {
         for (int i = 1; i <= 4; i++) {
             ResponseEntity<Map> created = rest.exchange("/api/v1/facilities", HttpMethod.POST,
-                    new HttpEntity<>(Map.of("facilityCode", "T3-F" + i, "facilityType", "TC",
+                    // facility 4 is a group apartment: it later anchors the GAS terna of order 6
+                    new HttpEntity<>(Map.of("facilityCode", "T3-F" + i, "facilityType", i == 4 ? "GA" : "TC",
                             "name", "Terna Test Facility " + i), admin()), Map.class);
             facilityIds.add(((Number) created.getBody().get("id")).longValue());
         }
@@ -134,6 +135,26 @@ class TernaIT {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat((String) response.getBody().get("message")).contains("another terna in this cycle");
+    }
+
+    @Test
+    @Order(4)
+    void ternaFacilitiesMustMatchTheTernaSetting() {
+        // spec §3.3: a TCs terna links TC facilities only; facility 4 is a GA
+        List<Long> ids = new java.util.ArrayList<>();
+        for (int i = 7; i <= 8; i++) {
+            ResponseEntity<Map> created = rest.exchange("/api/v1/facilities", HttpMethod.POST,
+                    new HttpEntity<>(Map.of("facilityCode", "T3-F" + i, "facilityType", "TC",
+                            "name", "Terna Test Facility " + i), admin()), Map.class);
+            ids.add(((Number) created.getBody().get("id")).longValue());
+        }
+        ids.add(facilityIds.get(3));
+        Map<String, Object> mixed = payload("T9", "TCS", ids, List.of(coordinator1Id, coordinator2Id));
+        ResponseEntity<Map> response = rest.exchange("/api/v1/ternas", HttpMethod.POST,
+                new HttpEntity<>(mixed, admin()), Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat((String) response.getBody().get("message")).contains("T3-F4");
     }
 
     @Test

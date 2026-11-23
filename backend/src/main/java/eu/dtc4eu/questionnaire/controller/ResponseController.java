@@ -9,6 +9,9 @@ import eu.dtc4eu.questionnaire.dto.ResponseDtos.SaveItemsRequest;
 import eu.dtc4eu.questionnaire.dto.ResponseDtos.SaveItemsResult;
 import eu.dtc4eu.questionnaire.dto.ResponseDtos.UpdateResponseRequest;
 import eu.dtc4eu.questionnaire.entity.QuestionnaireResponse;
+import eu.dtc4eu.questionnaire.dto.ImportDtos.ImportReport;
+import eu.dtc4eu.questionnaire.service.ResearchExportService;
+import eu.dtc4eu.questionnaire.service.ResponseImportService;
 import eu.dtc4eu.questionnaire.service.ResponseService;
 import eu.dtc4eu.security.AppUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,6 +37,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 import java.util.List;
 
@@ -45,6 +52,11 @@ import java.util.List;
 public class ResponseController {
 
     private final ResponseService responseService;
+    private final ResponseImportService importService;
+    private final ResearchExportService researchExportService;
+
+    private static final String DATA_ENTRY =
+            "hasAnyRole('SUPER_ADMIN','ADMIN','UPPER_COORDINATOR','COORDINATOR','AUDIT_COORDINATOR','INTERNAL_FACILITATOR')";
 
     @Operation(summary = "List responses (filters: facility, questionnaire, category, status; cycle implicit)")
     @GetMapping
@@ -73,6 +85,50 @@ public class ResponseController {
                 .contentType(MediaType.parseMediaType("text/csv"))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"response-items.csv\"")
                 .body(csv);
+    }
+
+    @Operation(summary = "SPSS / R research export (REP-05, REP-07): zip with wide data CSV, codebook, "
+            + ".sps syntax and an R reader, for one questionnaire")
+    @GetMapping("/export/research")
+    @PreAuthorize("hasAnyRole('RESEARCH_TEAM','ADMIN','SUPER_ADMIN')")
+    public ResponseEntity<byte[]> exportResearch(@RequestParam Long questionnaireId,
+                                                 @RequestParam(required = false) Long facilityId,
+                                                 @RequestParam(required = false)
+                                                 QuestionnaireResponse.RespondentCategory category,
+                                                 @RequestParam(required = false) QuestionnaireResponse.Status status,
+                                                 @AuthenticationPrincipal AppUserDetails principal) {
+        ResearchExportService.ResearchBundle bundle = researchExportService.export(questionnaireId, facilityId,
+                category, status, principal);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/zip"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + bundle.fileName() + "\"")
+                .body(bundle.content());
+    }
+
+    @Operation(summary = "XLSX template for entering one form's paper questionnaires (spec COL-06)")
+    @GetMapping("/import/template")
+    @PreAuthorize(DATA_ENTRY)
+    public ResponseEntity<byte[]> importTemplate(@RequestParam Long questionnaireId, @RequestParam Long formId) {
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\""
+                        + importService.templateFileName(questionnaireId, formId) + "\"")
+                .body(importService.template(questionnaireId, formId));
+    }
+
+    @Operation(summary = "Validate (commit=false) or import (commit=true) a filled XLSX template; "
+            + "nothing is imported while any row is invalid")
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize(DATA_ENTRY)
+    public ImportReport importResponses(@RequestParam Long questionnaireId, @RequestParam Long formId,
+                                        @RequestParam Long facilityId,
+                                        @RequestParam(defaultValue = "false") boolean commit,
+                                        @RequestParam("file") MultipartFile file,
+                                        @AuthenticationPrincipal AppUserDetails actor) throws IOException {
+        try (InputStream in = file.getInputStream()) {
+            return importService.importFile(questionnaireId, formId, facilityId, in, commit, actor);
+        }
     }
 
     @GetMapping("/{id}")

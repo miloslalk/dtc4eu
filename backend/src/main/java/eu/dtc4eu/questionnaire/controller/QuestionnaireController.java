@@ -56,6 +56,12 @@ public class QuestionnaireController {
         return questionnaireService.get(id);
     }
 
+    @Operation(summary = "The GAS-Set form definition, for previewing it without a facility (FIX-LIST #5)")
+    @GetMapping("/instruments/gas-set/schema")
+    public com.fasterxml.jackson.databind.JsonNode gasSetSchema() {
+        return questionnaireService.getGasSetSchema();
+    }
+
     @Operation(summary = "Per-form profile-header definition (v0.2 register §2.4)")
     @GetMapping("/{id}/forms/{formId}/profile-schema")
     public com.fasterxml.jackson.databind.JsonNode profileSchema(@PathVariable Long id, @PathVariable Long formId) {

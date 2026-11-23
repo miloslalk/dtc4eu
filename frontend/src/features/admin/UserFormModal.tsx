@@ -3,7 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { Modal } from '../../components/Modal';
 import { Button } from '../../components/Button';
 import { TextField } from '../../components/fields';
+import { Link } from 'react-router-dom';
 import { apiErrorMessage } from '../../lib/api';
+import { useCycle } from '../../lib/cycle';
+import { cycleLabel } from '../../lib/types';
 import type { RoleCode } from '../../lib/types';
 import {
   ALL_ROLES, useFacilityPicker, useSaveUser, useTernaPicker, useUserDetail, type UserPayload,
@@ -21,6 +24,7 @@ const emptyForm = {
   email: '',
   preferredLang: 'en',
   password: '',
+  temporaryPassword: true,
   active: true,
   roles: [] as RoleCode[],
   facilityIds: [] as number[],
@@ -46,6 +50,7 @@ export function UserFormModal({ open, userId, onClose }: Props) {
         email: detail.email ?? '',
         preferredLang: detail.preferredLang,
         password: '',
+        temporaryPassword: true,
         active: detail.active,
         roles: detail.roles,
         facilityIds: detail.facilityIds,
@@ -85,7 +90,8 @@ export function UserFormModal({ open, userId, onClose }: Props) {
       email: form.email.trim() || null,
       fullName: form.fullName.trim(),
       preferredLang: form.preferredLang || 'en',
-      ...(form.password ? { password: form.password } : isEdit ? {} : { password: form.password }),
+      ...(form.password ? { password: form.password, mustChangePassword: form.temporaryPassword }
+        : isEdit ? {} : { password: form.password }),
       ...(isEdit ? { active: form.active } : {}),
       roles: form.roles,
       facilityIds: needsFacilityScope ? form.facilityIds : [],
@@ -128,6 +134,13 @@ export function UserFormModal({ open, userId, onClose }: Props) {
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
         />
+        {form.password && (
+          <label className="-mt-2 flex items-center gap-2 text-xs text-neutral-600">
+            <input type="checkbox" checked={form.temporaryPassword}
+              onChange={(e) => setForm({ ...form, temporaryPassword: e.target.checked })} />
+            {t('admin.temporaryPassword')}
+          </label>
+        )}
         {isEdit && (
           <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
             <input type="checkbox" checked={form.active}
@@ -151,6 +164,10 @@ export function UserFormModal({ open, userId, onClose }: Props) {
             ))}
           </div>
         </fieldset>
+
+        {isEdit && form.roles.includes('INTERNAL_FACILITATOR') && (
+          <FacilitatedFacilities userId={userId as number} facilities={facilities.data ?? []} onNavigate={onClose} />
+        )}
 
         {needsFacilityScope && (
           <fieldset>
@@ -196,5 +213,38 @@ export function UserFormModal({ open, userId, onClose }: Props) {
         {error && <p className="rounded-lg bg-error-surface px-3 py-2 text-sm font-medium text-error">{error}</p>}
       </div>
     </Modal>
+  );
+}
+
+/** Facilities this user facilitates in the selected cycle, with the way to assign more (Simone's feedback #4). */
+function FacilitatedFacilities({ userId, facilities, onNavigate }: {
+  userId: number;
+  facilities: { id: number; facilityCode: string; name: string; internalFacilitatorId: number | null }[];
+  onNavigate: () => void;
+}) {
+  const { t } = useTranslation();
+  const { selected } = useCycle();
+  const mine = facilities.filter((f) => f.internalFacilitatorId === userId);
+  return (
+    <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm">
+      <p className="text-xs font-semibold text-blue-700">
+        {t('admin.facilitates', { cycle: selected ? cycleLabel(selected) : '—' })}
+      </p>
+      {mine.length === 0
+        ? <p className="text-xs text-neutral-600">{t('admin.facilitatesNone')}</p>
+        : (
+          <ul className="mt-1 flex flex-wrap gap-1.5">
+            {mine.map((f) => (
+              <li key={f.id}>
+                <Link to={`/facilities/${f.id}?tab=participation`} onClick={onNavigate}
+                  className="rounded bg-white px-1.5 py-0.5 font-mono text-xs text-blue-700 hover:underline">
+                  {f.facilityCode}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      <p className="mt-1 text-[11px] text-neutral-500">{t('admin.facilitatesHint')}</p>
+    </div>
   );
 }

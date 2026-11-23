@@ -1,0 +1,14 @@
+# gitleaks config for CONSTRAINTS.md (Secrets row). Default rules plus one
+# narrow allowlist: profile-schema field identifiers ("key": "a6_furnishings_condition")
+# trip generic-api-key. regexTarget "match" means only that exact finding is
+# allowed — a real secret on the same line, or a non-snake_case key value,
+# is still reported (verified with planted controls when adopted).
+# Pass it explicitly (-c .gitleaks.toml): gitleaks looks for the file in the
+# scanned directory, not the working directory.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Profile-schema field keys are snake_case identifiers, not credentials"
+regexTarget = "match"
+regexes = ['''^"?key"\s*:\s*"[a-z0-9_]+"?$''']

@@ -18,7 +18,7 @@ import java.util.Objects;
  * components are skipped, never zero-filled; a value exists only if at least
  * one input exists. Intermediates carry scale 6; outputs are rounded to
  * 3 decimals HALF_UP (matching the per-response ScoringService convention)
- * and classified per TAB.5 with exact boundaries.
+ * and classified per TAB.5 with exact boundaries on the unrounded value.
  */
 public final class FacilityScoringEngine {
 
@@ -35,11 +35,17 @@ public final class FacilityScoringEngine {
     /** One row of the workbook: the source columns (U-I, F-I, S-I, M-I, Com, Del) plus the derived values. */
     public record Scores(BigDecimal userMean, BigDecimal familyMean, BigDecimal staffMean, BigDecimal managerMean,
                          BigDecimal averI, BigDecimal com, BigDecimal del, BigDecimal finalScore,
-                         Classification classification) {
+                         Classification classification, BigDecimal unroundedFinal) {
+
+        Scores classifiedBy(Classification.Bands bands) {
+            return new Scores(userMean, familyMean, staffMean, managerMean, averI, com, del, finalScore,
+                    Classification.of(unroundedFinal, bands), unroundedFinal);
+        }
     }
 
+    /** {@code unroundedOverall} keeps the full-precision mean so bands can be re-applied (spec §6.8). */
     public record Result(Map<Coordinate, Scores> items, Map<Long, Scores> areas,
-                         BigDecimal overall, Classification overallClassification) {
+                         BigDecimal overall, Classification overallClassification, BigDecimal unroundedOverall) {
     }
 
     /** Unrounded row used internally so area aggregation matches the workbook's full-precision chain. */
@@ -53,13 +59,14 @@ public final class FacilityScoringEngine {
      */
     public static Result compute(Map<RespondentCategory, List<Map<Coordinate, Integer>>> responses,
                                  Map<Long, List<Coordinate>> areaCoordinates) {
+        Classification.Bands bands = Classification.Bands.DTCRO;
         Map<Coordinate, Raw> rawItems = new LinkedHashMap<>();
         Map<Coordinate, Scores> items = new LinkedHashMap<>();
         for (List<Coordinate> coordinates : areaCoordinates.values()) {
             for (Coordinate coordinate : coordinates) {
                 Raw raw = itemRow(coordinate, responses);
                 rawItems.put(coordinate, raw);
-                items.put(coordinate, round(raw));
+                items.put(coordinate, round(raw, bands));
             }
         }
 
@@ -75,12 +82,12 @@ public final class FacilityScoringEngine {
             BigDecimal com = meanOfPresent(rows.stream().map(Raw::com).toList());
             BigDecimal del = meanOfPresent(rows.stream().map(Raw::del).toList());
             BigDecimal fin = meanOfPresent(Arrays.asList(averI, com, del));
-            areas.put(entry.getKey(), round(new Raw(u, f, s, m, averI, com, del, fin)));
+            areas.put(entry.getKey(), round(new Raw(u, f, s, m, averI, com, del, fin), bands));
             areaFinals.add(fin);
         }
 
-        BigDecimal overall = scale(meanOfPresent(areaFinals), OUTPUT_SCALE);
-        return new Result(items, areas, overall, Classification.of(overall));
+        BigDecimal overallRaw = meanOfPresent(areaFinals);
+        return new Result(items, areas, scale(overallRaw, OUTPUT_SCALE), Classification.of(overallRaw, bands), overallRaw);
     }
 
     private static Raw itemRow(Coordinate coordinate,
@@ -126,11 +133,26 @@ public final class FacilityScoringEngine {
         return sum.divide(BigDecimal.valueOf(present.size()), INTERMEDIATE_SCALE, RoundingMode.HALF_UP);
     }
 
-    private static Scores round(Raw raw) {
+    private static Scores round(Raw raw, Classification.Bands bands) {
         BigDecimal fin = scale(raw.fin(), OUTPUT_SCALE);
         return new Scores(scale(raw.u(), OUTPUT_SCALE), scale(raw.f(), OUTPUT_SCALE), scale(raw.s(), OUTPUT_SCALE),
                 scale(raw.m(), OUTPUT_SCALE), scale(raw.averI(), OUTPUT_SCALE), scale(raw.com(), OUTPUT_SCALE),
-                scale(raw.del(), OUTPUT_SCALE), fin, Classification.of(fin));
+                // bands apply to the unrounded value (spec §6.8): 2.9996 stays INTERMEDIATE
+                scale(raw.del(), OUTPUT_SCALE), fin, Classification.of(raw.fin(), bands), raw.fin());
+    }
+
+    /**
+     * Re-applies a questionnaire's own TAB.5 bands (V15) to a computed result; null bands leave it
+     * unclassified (e.g. ViVaCom until the client supplies its table). Kept separate from
+     * {@link #compute} so the band type does not widen the frozen scoring↔questionnaire signature.
+     */
+    public static Result classify(Result result, Classification.Bands bands) {
+        Map<Coordinate, Scores> items = new LinkedHashMap<>();
+        result.items().forEach((coordinate, scores) -> items.put(coordinate, scores.classifiedBy(bands)));
+        Map<Long, Scores> areas = new LinkedHashMap<>();
+        result.areas().forEach((areaId, scores) -> areas.put(areaId, scores.classifiedBy(bands)));
+        return new Result(items, areas, result.overall(), Classification.of(result.unroundedOverall(), bands),
+                result.unroundedOverall());
     }
 
     private static BigDecimal scale(BigDecimal value, int scale) {

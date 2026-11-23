@@ -94,6 +94,7 @@ public class UserAdminService {
         user.setFullName(request.fullName());
         user.setPreferredLang(request.preferredLang() != null ? request.preferredLang() : "en");
         user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setMustChangePassword(Boolean.TRUE.equals(request.mustChangePassword()));
         user.setRoles(resolveRoles(request.roles()));
         user = userRepository.save(user);
         replaceScope(user.getId(), request.facilityIds(), request.ternaIds());
@@ -121,6 +122,7 @@ public class UserAdminService {
         }
         if (request.password() != null && !request.password().isBlank()) {
             user.setPasswordHash(passwordEncoder.encode(request.password()));
+            user.setMustChangePassword(Boolean.TRUE.equals(request.mustChangePassword()));
         }
         user.setRoles(resolveRoles(request.roles()));
         replaceScope(user.getId(), request.facilityIds(), request.ternaIds());

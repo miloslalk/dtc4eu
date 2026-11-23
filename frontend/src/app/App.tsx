@@ -3,6 +3,7 @@ import { RequireAuth, RequireRole } from '../lib/auth';
 import { CycleProvider } from '../lib/cycle';
 import { AppShell } from './AppShell';
 import { LoginPage } from '../features/auth/LoginPage';
+import { ChangePasswordPage } from '../features/auth/ChangePasswordPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { UsersPage } from '../features/admin/UsersPage';
 import { CyclesPage } from '../features/admin/CyclesPage';
@@ -15,6 +16,8 @@ import { QuestionnairesPage } from '../features/questionnaires/QuestionnairesPag
 import { QuestionnaireDetailPage } from '../features/questionnaires/QuestionnaireDetailPage';
 import { ResponsesPage } from '../features/responses/ResponsesPage';
 import { ResponseFillPage } from '../features/responses/ResponseFillPage';
+import { RulesPage } from '../features/assignments/RulesPage';
+import { MyQuestionnairesPage } from '../features/assignments/MyQuestionnairesPage';
 
 export function App() {
   return (
@@ -54,6 +57,16 @@ export function App() {
         />
         <Route path="responses" element={<ResponsesPage />} />
         <Route path="responses/:id" element={<ResponseFillPage />} />
+        <Route path="my-questionnaires" element={<MyQuestionnairesPage />} />
+        <Route path="account/password" element={<ChangePasswordPage />} />
+        <Route
+          path="admin/rules"
+          element={
+            <RequireRole roles={['ADMIN', 'SUPER_ADMIN', 'UPPER_COORDINATOR']}>
+              <RulesPage />
+            </RequireRole>
+          }
+        />
         <Route
           path="admin/users"
           element={

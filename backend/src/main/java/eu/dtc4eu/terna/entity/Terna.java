@@ -55,6 +55,15 @@ public class Terna {
     @Column(name = "updated_at", insertable = false, updatable = false)
     private OffsetDateTime updatedAt;
 
+    /** The facility setting a terna of this type links (spec §3.3): TCS → TC, GAS → GA, SHS → SH. */
+    public String requiredSetting() {
+        return switch (ternaType) {
+            case TCS -> "TC";
+            case GAS -> "GA";
+            case SHS -> "SH";
+        };
+    }
+
     /** 2 coordinators for TCS ternas, 1 for GAS/SHS (spec T3). */
     public int requiredCoordinators() {
         return ternaType == TernaType.TCS ? 2 : 1;

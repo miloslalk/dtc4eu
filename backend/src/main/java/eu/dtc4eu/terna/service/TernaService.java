@@ -99,6 +99,13 @@ public class TernaService {
         Map<Long, User> users = userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(User::getId, Function.identity()));
 
+        Map<Long, List<VisitDateDto>> visitsByTerna = visitDateRepository.findByTernaIdIn(ternaIds).stream()
+                .sorted(java.util.Comparator.comparing(TernaVisitDate::getVisitOrder,
+                        java.util.Comparator.nullsLast(Integer::compareTo)))
+                .collect(Collectors.groupingBy(TernaVisitDate::getTernaId, java.util.LinkedHashMap::new,
+                        Collectors.mapping(v -> new VisitDateDto(v.getVisitOrder(), v.getVisitDate()),
+                                Collectors.toList())));
+
         return PageResponse.of(page, terna -> new TernaRowDto(
                 terna.getId(), terna.getTernaCode(), terna.getTernaType(),
                 terna.getFoundingMeetingDate(), terna.getFinalForumDate(),
@@ -110,7 +117,8 @@ public class TernaService {
                 coordinatorsByTerna.getOrDefault(terna.getId(), List.of()).stream()
                         .map(tc -> users.containsKey(tc.getCoordinatorId())
                                 ? users.get(tc.getCoordinatorId()).getFullName() : "?")
-                        .toList()));
+                        .toList(),
+                visitsByTerna.getOrDefault(terna.getId(), List.of())));
     }
 
     @Transactional(readOnly = true)
@@ -194,6 +202,14 @@ public class TernaService {
                 throw new ConflictException("Facility " + clashes.get(0).getFacilityId()
                         + " already belongs to another terna in this cycle");
             }
+        }
+
+        // every facility's setting must match the terna type (TCS → TC, GAS → GA, SHS → SH)
+        List<String> outsideSetting = ternaFacilityRepository
+                .findFacilityCodesOutsideSetting(facilityIds, terna.requiredSetting());
+        if (!outsideSetting.isEmpty()) {
+            throw new BadRequestException(terna.getTernaType() + " ternas link " + terna.requiredSetting()
+                    + " facilities only; not " + String.join(", ", outsideSetting));
         }
 
         // coordinator count by type: 2 for TCS, 1 for GAS/SHS

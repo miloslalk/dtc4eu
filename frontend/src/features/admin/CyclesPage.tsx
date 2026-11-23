@@ -24,7 +24,7 @@ export function CyclesPage() {
   const updateCycle = useUpdateCycle();
 
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ code: '', startDate: '', endDate: '', sequenceNumber: '' });
+  const [form, setForm] = useState({ code: '', startDate: '', endDate: '' });
   const [error, setError] = useState<string | null>(null);
 
   const handleCreate = async () => {
@@ -37,10 +37,9 @@ export function CyclesPage() {
         code: form.code,
         startDate: form.startDate || undefined,
         endDate: form.endDate || undefined,
-        sequenceNumber: form.sequenceNumber === '' ? undefined : Number(form.sequenceNumber),
       });
       setOpen(false);
-      setForm({ code: '', startDate: '', endDate: '', sequenceNumber: '' });
+      setForm({ code: '', startDate: '', endDate: '' });
       setError(null);
     } catch (e) {
       setError(apiErrorMessage(e));
@@ -55,15 +54,20 @@ export function CyclesPage() {
     }
   };
 
+  const handleDefaultChange = async (cycle: CycleInfo, isDefault: boolean) => {
+    try {
+      await updateCycle.mutateAsync({ id: cycle.id, payload: { isDefault } });
+    } catch (e) {
+      alert(apiErrorMessage(e));
+    }
+  };
+
   const columns: Column<CycleInfo>[] = [
     {
-      key: 'sequenceNumber',
-      header: t('admin.sequence'),
-      render: (c) => (c.sequenceNumber != null
-        ? <StatusTag tone="gold">{cycleLabel(c)}</StatusTag>
-        : <span className="text-neutral-400">—</span>),
+      key: 'code',
+      header: t('admin.cycleCode'),
+      render: (c) => <StatusTag tone="gold">{cycleLabel(c)}</StatusTag>,
     },
-    { key: 'code', header: t('admin.cycleCode'), render: (c) => <span className="font-semibold">{c.code}</span> },
     { key: 'startDate', header: t('admin.startDate'), render: (c) => c.startDate ?? '—' },
     { key: 'endDate', header: t('admin.endDate'), render: (c) => c.endDate ?? '—' },
     {
@@ -82,13 +86,29 @@ export function CyclesPage() {
         </select>
       ),
     },
+    {
+      key: 'isDefault',
+      header: t('admin.defaultCycle'),
+      render: (c) => (
+        <label className="flex items-center gap-2 text-sm" onClick={(e) => e.stopPropagation()}>
+          <input type="radio" name="default-cycle" checked={c.isDefault === true}
+            onChange={() => handleDefaultChange(c, true)} />
+          {c.isDefault && (
+            <button type="button" className="text-xs text-azure-500 hover:underline"
+              onClick={() => handleDefaultChange(c, false)}>
+              {t('admin.clearDefault')}
+            </button>
+          )}
+        </label>
+      ),
+    },
   ];
 
   return (
     <div>
       <PageHeader
         title={t('admin.cyclesTitle')}
-        subtitle={t('admin.overlapHint')}
+        subtitle={`${t('admin.overlapHint')} ${t('admin.defaultCycleHint')}`}
         actions={<Button onClick={() => setOpen(true)}>{t('admin.newCycle')}</Button>}
       />
 
@@ -106,12 +126,9 @@ export function CyclesPage() {
         }
       >
         <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <TextField label={t('admin.cycleCode')} required placeholder="2027-2028" value={form.code}
-              onChange={(e) => setForm({ ...form, code: e.target.value })} />
-            <TextField label={t('admin.sequenceLabel')} type="number" placeholder="2" value={form.sequenceNumber}
-              onChange={(e) => setForm({ ...form, sequenceNumber: e.target.value })} />
-          </div>
+          <TextField label={t('admin.cycleCode')} required placeholder="2027-2028" value={form.code}
+            onChange={(e) => setForm({ ...form, code: e.target.value })} />
+          <p className="text-xs text-neutral-500">{t('admin.ordinalHint')}</p>
           <TextField label={t('admin.startDate')} type="date" value={form.startDate}
             onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
           <TextField label={t('admin.endDate')} type="date" value={form.endDate}

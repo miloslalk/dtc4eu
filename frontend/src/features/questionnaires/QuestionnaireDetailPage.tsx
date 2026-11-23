@@ -8,9 +8,11 @@ import { SelectField, TextAreaField, TextField } from '../../components/fields';
 import { StatusTag } from '../../components/StatusTag';
 import { Spinner } from '../../components/Spinner';
 import { apiErrorMessage } from '../../lib/api';
+import { QuestionnaireContainer, type Answer } from '../../components/QuestionnaireContainer';
+import { ProfileForm } from '../../components/ProfileForm';
 import {
   ADMINISTRATION_MODES, STAKEHOLDER_CATEGORIES,
-  useAddForm, useDeleteArea, useDeleteForm, useDeleteItem, useQuestionnaire, useSaveArea, useSaveItem,
+  useAddForm, useDeleteArea, useDeleteForm, useDeleteItem, useProfileSchema, useQuestionnaire, useSaveArea, useSaveItem,
   useUpdateQuestionnaire,
   type Area, type Item, type QuestionnaireDetail, type ResponseType,
 } from './api';
@@ -33,11 +35,11 @@ export function QuestionnaireDetailPage() {
         </Link>
       </div>
       <Header questionnaire={data} />
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1.6fr]">
-        <div className="space-y-6">
-          <AreasCard questionnaire={data} />
-          <FormsCard questionnaire={data} />
-        </div>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <AreasCard questionnaire={data} />
+        <FormsCard questionnaire={data} />
+      </div>
+      <div className="mt-6">
         <ItemsCard questionnaire={data} />
       </div>
     </div>
@@ -94,7 +96,70 @@ function Header({ questionnaire }: { questionnaire: QuestionnaireDetail }) {
         <Button variant="ghost" onClick={rename} loading={update.isPending}>{t('common.save')}</Button>
       </div>
       {message && <p className="mt-1 text-sm text-neutral-600">{message}</p>}
+      <ScaleEditor questionnaire={questionnaire} />
     </div>
+  );
+}
+
+/**
+ * Scale range and TAB.5 bands per questionnaire (Simone's feedback #3: ViVaCom
+ * is 0–5 with its own bands). Locked once responses exist, as the API enforces.
+ */
+function ScaleEditor({ questionnaire }: { questionnaire: QuestionnaireDetail }) {
+  const { t } = useTranslation();
+  const update = useUpdateQuestionnaire(questionnaire.id);
+  const { scaleMin, scaleMax, bandCriticalMax, bandEfficacyMin } = questionnaire;
+  const [form, setForm] = useState({ scaleMin: '', scaleMax: '', bandCriticalMax: '', bandEfficacyMin: '' });
+  const [message, setMessage] = useState<string | null>(null);
+  useEffect(() => setForm({
+    scaleMin: String(scaleMin),
+    scaleMax: String(scaleMax),
+    bandCriticalMax: bandCriticalMax?.toString() ?? '',
+    bandEfficacyMin: bandEfficacyMin?.toString() ?? '',
+  }), [scaleMin, scaleMax, bandCriticalMax, bandEfficacyMin]);
+  const locked = questionnaire.hasResponses;
+
+  const save = async () => {
+    const bothBands = form.bandCriticalMax !== '' && form.bandEfficacyMin !== '';
+    if ((form.bandCriticalMax === '') !== (form.bandEfficacyMin === '')) {
+      setMessage(t('questionnaires.bandsBoth'));
+      return;
+    }
+    try {
+      await update.mutateAsync({
+        name: questionnaire.name,
+        scaleMin: Number(form.scaleMin),
+        scaleMax: Number(form.scaleMax),
+        bandCriticalMax: bothBands ? Number(form.bandCriticalMax) : null,
+        bandEfficacyMin: bothBands ? Number(form.bandEfficacyMin) : null,
+      });
+      setMessage(t('common.saved'));
+    } catch (e) {
+      setMessage(apiErrorMessage(e));
+    }
+  };
+
+  return (
+    <fieldset className="mt-4 max-w-xl rounded-lg border border-neutral-200 p-3">
+      <legend className="px-1 text-xs font-semibold text-neutral-600">{t('questionnaires.scaleAndBands')}</legend>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <TextField label={t('questionnaires.scaleMin')} type="number" value={form.scaleMin} disabled={locked}
+          onChange={(e) => setForm({ ...form, scaleMin: e.target.value })} />
+        <TextField label={t('questionnaires.scaleMax')} type="number" value={form.scaleMax} disabled={locked}
+          onChange={(e) => setForm({ ...form, scaleMax: e.target.value })} />
+        <TextField label={t('questionnaires.bandCriticalMax')} type="number" step="0.01" value={form.bandCriticalMax}
+          disabled={locked} onChange={(e) => setForm({ ...form, bandCriticalMax: e.target.value })} />
+        <TextField label={t('questionnaires.bandEfficacyMin')} type="number" step="0.01" value={form.bandEfficacyMin}
+          disabled={locked} onChange={(e) => setForm({ ...form, bandEfficacyMin: e.target.value })} />
+      </div>
+      <p className="mt-2 text-xs text-neutral-500">
+        {locked ? t('questionnaires.scaleLocked') : t('questionnaires.bandsHint')}
+      </p>
+      {message && <p className="mt-1 text-sm text-neutral-600">{message}</p>}
+      {!locked && (
+        <Button variant="ghost" className="mt-2" onClick={save} loading={update.isPending}>{t('common.save')}</Button>
+      )}
+    </fieldset>
   );
 }
 
@@ -240,44 +305,138 @@ function ItemsCard({ questionnaire }: { questionnaire: QuestionnaireDetail }) {
     }
   };
 
+  // One tab per form (Simone's feedback #2: a single mixed, fixed-height list showed only 1.a/1.b of each form)
+  const tabs: { key: number | 'none' | 'all'; label: string; count: number }[] = [
+    ...[...questionnaire.forms]
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .map((f) => ({
+        key: f.id,
+        label: f.formCode ?? f.name ?? f.administrationMode,
+        count: questionnaire.items.filter((i) => i.formId === f.id).length,
+      })),
+    ...(questionnaire.items.some((i) => i.formId === null)
+      ? [{ key: 'none' as const, label: t('questionnaires.noForm'), count: questionnaire.items.filter((i) => i.formId === null).length }]
+      : []),
+  ];
+  if (tabs.length === 0) tabs.push({ key: 'all', label: t('common.all'), count: questionnaire.items.length });
+  const [tab, setTab] = useState<number | 'none' | 'all'>(tabs[0].key);
+  const activeTab = tabs.some((x) => x.key === tab) ? tab : tabs[0].key;
+  const [query, setQuery] = useState('');
+  const [previewing, setPreviewing] = useState(false);
+  const activeForm = typeof activeTab === 'number' ? questionnaire.forms.find((f) => f.id === activeTab) ?? null : null;
+
+  const needle = query.trim().toLowerCase();
+  const tabItems = questionnaire.items
+    .filter((i) => (activeTab === 'all' ? true : activeTab === 'none' ? i.formId === null : i.formId === activeTab))
+    .filter((i) => !needle || i.itemCode.toLowerCase().includes(needle) || i.itemText.toLowerCase().includes(needle)
+      || areaCode(i.areaId).toLowerCase().includes(needle))
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  const areaTitle = (areaId: number | null) => {
+    if (areaId === null) return '—';
+    const override = questionnaire.formAreaLabels?.find((l) => l.formId === activeForm?.id && l.areaId === areaId);
+    const area = questionnaire.areas.find((a) => a.id === areaId);
+    return `${area?.areaCode ?? ''} — ${override?.displayName ?? area?.name ?? ''}`;
+  };
+  const groups = [...questionnaire.areas]
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+    .map((area) => ({ areaId: area.id as number | null, items: tabItems.filter((i) => i.areaId === area.id) }))
+    .concat([{ areaId: null, items: tabItems.filter((i) => i.areaId === null) }])
+    .filter((g) => g.items.length > 0);
+  const areasInForm = new Set(questionnaire.items
+    .filter((i) => activeForm !== null && i.formId === activeForm.id).map((i) => i.areaId)).size;
+  // the form is the tab, so "USER-1.a" reads as "1.a"
+  const shortCode = (item: Item) => {
+    const prefix = activeForm?.formCode ? `${activeForm.formCode}-` : null;
+    return prefix && item.itemCode.startsWith(prefix) ? item.itemCode.slice(prefix.length) : item.itemCode;
+  };
+
   return (
     <section className="rounded-xl border border-neutral-200 bg-white shadow-sm">
-      <header className="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200 px-4 py-3">
         <h2 className="text-sm font-bold uppercase tracking-wide text-blue-600">
           {t('questionnaires.items')} ({questionnaire.items.length})
         </h2>
-        <Button variant="ghost" className="!px-2.5 !py-1 text-xs" onClick={() => openEditor('new')}>
-          {t('questionnaires.addItem')}
-        </Button>
+        <div className="flex gap-2">
+          {activeForm && (
+            <Button variant="ghost" className="!px-2.5 !py-1 text-xs" onClick={() => setPreviewing(!previewing)}>
+              {previewing ? t('questionnaires.backToItems') : t('questionnaires.previewForm')}
+            </Button>
+          )}
+          <Button variant="ghost" className="!px-2.5 !py-1 text-xs" onClick={() => openEditor('new')}
+            disabled={questionnaire.hasResponses}>
+            {t('questionnaires.addItem')}
+          </Button>
+        </div>
       </header>
-      <ul className="max-h-[560px] divide-y divide-neutral-100 overflow-y-auto">
-        {questionnaire.items.map((item) => (
-          <li key={item.id} className="flex items-start gap-2 px-4 py-2 text-sm">
-            <span className="w-10 shrink-0 font-mono text-xs font-bold text-blue-600">{item.itemCode}</span>
-            <span className="w-8 shrink-0 rounded bg-blue-50 px-1 text-center font-mono text-[10px] text-blue-700">
-              {areaCode(item.areaId)}
-            </span>
-            {formCode(item.formId) && (
-              <span className="w-20 shrink-0 truncate rounded bg-gold-50 px-1 text-center font-mono text-[10px] text-gold-900">
-                {formCode(item.formId)}
-              </span>
-            )}
-            <span className="flex-1 text-neutral-800">{item.itemText}</span>
-            {item.responseType === 'FREE_TEXT' && <StatusTag tone="neutral">txt</StatusTag>}
-            <button type="button" className="text-xs font-medium text-azure-500 hover:underline"
-              onClick={() => openEditor(item)}>
-              {t('common.edit')}
-            </button>
-            <button type="button" className="text-xs font-medium text-error hover:underline"
-              onClick={() => deleteItem.mutate(item.id, { onError: (e) => alert(apiErrorMessage(e)) })}>
-              {t('common.delete')}
-            </button>
-          </li>
+      <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-neutral-200 px-2">
+        {tabs.map((x) => (
+          <button key={String(x.key)} type="button" role="tab" aria-selected={activeTab === x.key}
+            onClick={() => { setTab(x.key); setPreviewing(false); }}
+            className={`-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-xs font-semibold ${activeTab === x.key
+              ? 'border-gold-500 text-blue-600' : 'border-transparent text-neutral-500 hover:text-blue-600'}`}>
+            {x.label} ({x.count})
+          </button>
         ))}
-        {questionnaire.items.length === 0 && (
-          <li className="px-4 py-4 text-sm text-neutral-400">{t('common.empty')}</li>
-        )}
-      </ul>
+      </div>
+      {activeForm && (
+        <p className="border-b border-neutral-100 bg-neutral-50 px-4 py-2 text-xs text-neutral-600">
+          {t(`questionnaires.modes.${activeForm.administrationMode}`)}
+          {activeForm.stakeholderCategory && ` · ${t('questionnaires.stakeholderCategory')}: ${activeForm.stakeholderCategory}`}
+          {activeForm.facilityType && ` · ${t('questionnaires.facilityType')}: ${activeForm.facilityType}`}
+          {` · ${t('questionnaires.formCounts', {
+            items: questionnaire.items.filter((i) => i.formId === activeForm.id).length, areas: areasInForm,
+          })}`}
+        </p>
+      )}
+      {questionnaire.hasResponses && (
+        <p className="border-b border-neutral-100 px-4 py-2 text-xs text-warning">{t('questionnaires.lockedHint')}</p>
+      )}
+
+      {previewing && activeForm ? (
+        <FormPreview questionnaire={questionnaire} formId={activeForm.id} />
+      ) : (
+        <>
+          <div className="px-4 py-2">
+            <input type="search" value={query} onChange={(e) => setQuery(e.target.value)}
+              placeholder={t('questionnaires.searchItems')} aria-label={t('questionnaires.searchItems')}
+              className="w-full rounded-lg border border-neutral-300 px-3 py-1.5 text-sm" />
+          </div>
+          {groups.map((group) => (
+            <div key={String(group.areaId)}>
+              <h3 className="bg-blue-50 px-4 py-1.5 text-xs font-bold text-blue-700">{areaTitle(group.areaId)}</h3>
+              <ul className="divide-y divide-neutral-100">
+                {group.items.map((item) => (
+                  <li key={item.id} className="flex items-start gap-2 px-4 py-2 text-sm">
+                    <span className="shrink-0 whitespace-nowrap font-mono text-xs font-bold text-blue-600">
+                      {shortCode(item)}
+                    </span>
+                    {activeTab === 'all' && formCode(item.formId) && (
+                      <span className="shrink-0 rounded bg-gold-50 px-1 font-mono text-[10px] text-gold-900">
+                        {formCode(item.formId)}
+                      </span>
+                    )}
+                    <span className="flex-1 text-neutral-800">{item.itemText}</span>
+                    {item.responseType === 'FREE_TEXT' && <StatusTag tone="neutral">txt</StatusTag>}
+                    {!questionnaire.hasResponses && (
+                      <>
+                        <button type="button" className="text-xs font-medium text-azure-500 hover:underline"
+                          onClick={() => openEditor(item)}>
+                          {t('common.edit')}
+                        </button>
+                        <button type="button" className="text-xs font-medium text-error hover:underline"
+                          onClick={() => deleteItem.mutate(item.id, { onError: (e) => alert(apiErrorMessage(e)) })}>
+                          {t('common.delete')}
+                        </button>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          {groups.length === 0 && <p className="px-4 py-4 text-sm text-neutral-400">{t('common.empty')}</p>}
+        </>
+      )}
 
       <Modal
         title={editing === 'new' ? t('questionnaires.addItem') : t('common.edit')}
@@ -438,5 +597,25 @@ function FormsCard({ questionnaire }: { questionnaire: QuestionnaireDetail }) {
         </div>
       </Modal>
     </section>
+  );
+}
+
+/**
+ * Read-only walk-through of one form as respondents see it: profile header,
+ * then the areas with their Likert anchors. Answers are local and never saved
+ * (for training Internal Facilitators and Terna Coordinators).
+ */
+function FormPreview({ questionnaire, formId }: { questionnaire: QuestionnaireDetail; formId: number }) {
+  const { t } = useTranslation();
+  const { data: profileSchema } = useProfileSchema(questionnaire.id, formId);
+  const [profile, setProfile] = useState<Record<string, unknown>>({});
+  const [answers, setAnswers] = useState<Map<number, Answer>>(new Map());
+  return (
+    <div className="space-y-5 px-4 py-4">
+      <p className="rounded-lg bg-gold-50 px-3 py-2 text-xs font-medium text-gold-900">{t('questionnaires.previewHint')}</p>
+      {profileSchema && <ProfileForm schema={profileSchema} value={profile} onChange={setProfile} readOnly={false} />}
+      <QuestionnaireContainer questionnaire={questionnaire} formId={formId} answers={answers} readOnly={false}
+        onAnswer={(itemId, answer) => setAnswers((current) => new Map(current).set(itemId, answer))} />
+    </div>
   );
 }

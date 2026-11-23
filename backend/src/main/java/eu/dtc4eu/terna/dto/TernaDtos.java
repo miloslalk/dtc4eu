@@ -32,7 +32,8 @@ public final class TernaDtos {
     /** Row shape for list screens (aggregates flattened). */
     public record TernaRowDto(Long id, String ternaCode, Terna.TernaType ternaType,
                               LocalDate foundingMeetingDate, LocalDate finalForumDate,
-                              List<String> facilityCodes, List<String> coordinatorNames) {
+                              List<String> facilityCodes, List<String> coordinatorNames,
+                              List<VisitDateDto> visitDates) {
     }
 
     public record SaveTernaRequest(

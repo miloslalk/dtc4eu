@@ -245,13 +245,33 @@ export interface QcncAdministration {
   administeredByName: string | null;
   updatedAt: string | null;
   conformityByStandard: Record<number, 'C' | 'NC'>;
+  scoreByStandard: Record<number, number>;
+}
+
+/** Mean of the administrations' 1–4 scores for one standard, classified per TAB.5 (expert feedback). */
+export interface QcncStandardScore {
+  standardId: number;
+  meanScore: number;
+  classification: 'CRITICAL' | 'INTERMEDIATE' | 'EFFICACY' | null;
 }
 
 export interface QcncBoard {
   standards: QcncStandard[];
   administrations: QcncAdministration[];
+  standardScores: QcncStandardScore[];
   strengthStandardIds: number[];
   weaknessStandardIds: number[];
+  metaAreas: QcncMetaArea[];
+}
+
+/** Spec §6.5 meta-area (RO.1 = Q1+Q2, RO.2 = Q3, RO.3 = Q4+Q5) over the three administrations. */
+export interface QcncMetaArea {
+  code: string;
+  clusterCodes: string[];
+  dtcroAreas: number[];
+  requiredStandards: number;
+  conformingByAdministration: Partial<Record<QcncAdministrationType, number>>;
+  status: 'STRENGTH' | 'WEAKNESS' | 'NEITHER' | 'INCOMPLETE';
 }
 
 export function useQcncBoard(facilityId: number) {
@@ -266,7 +286,7 @@ export function useSaveQcncResults(facilityId: number) {
   return useMutation({
     mutationFn: async ({ administrationType, results }: {
       administrationType: QcncAdministrationType;
-      results: { standardId: number; conformity: 'C' | 'NC' }[];
+      results: { standardId: number; conformity: 'C' | 'NC'; score?: number | null }[];
     }) =>
       (await api.put<QcncBoard>(`/facilities/${facilityId}/qcnc-standards/${administrationType}`, { results })).data,
     onSuccess: () =>

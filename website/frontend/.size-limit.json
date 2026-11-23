@@ -1,0 +1,4 @@
+[
+  { "name": "public site JS (gzip)", "path": ["dist/assets/*.js", "!dist/assets/AdminApp-*.js"], "gzip": true },
+  { "name": "CMS admin JS (gzip)", "path": "dist/assets/AdminApp-*.js", "gzip": true }
+]

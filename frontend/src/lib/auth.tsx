@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { Navigate, useLocation } from 'react-router-dom';
 import { api } from './api';
 import { tokenStore } from './tokenStore';
+import { ChangePasswordPage } from '../features/auth/ChangePasswordPage';
 import type { MeResponse, RoleCode, ScopeInfo, TokenResponse, UserInfo } from './types';
 
 interface AuthContextValue {
@@ -10,6 +11,8 @@ interface AuthContextValue {
   initializing: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** clears the forced-change state after a successful password change */
+  passwordChanged: () => void;
   hasAnyRole: (...roles: RoleCode[]) => boolean;
 }
 
@@ -59,9 +62,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user],
   );
 
+  const passwordChanged = useCallback(
+    () => setUser((current) => (current ? { ...current, mustChangePassword: false } : current)),
+    [],
+  );
+
   const value = useMemo(
-    () => ({ user, scope, initializing, login, logout, hasAnyRole }),
-    [user, scope, initializing, login, logout, hasAnyRole],
+    () => ({ user, scope, initializing, login, logout, passwordChanged, hasAnyRole }),
+    [user, scope, initializing, login, logout, passwordChanged, hasAnyRole],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -84,6 +92,9 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   }
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  if (user.mustChangePassword) {
+    return <ChangePasswordPage forced />;
   }
   return <>{children}</>;
 }

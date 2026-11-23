@@ -65,6 +65,11 @@ export interface QuestionnaireDetail extends Omit<QuestionnaireRow, 'areaCount' 
   forms: Form[];
   anchors: Anchor[];
   formAreaLabels: FormAreaLabel[];
+  /** TAB.5 bands (V15); null = scores stay unclassified */
+  bandCriticalMax: number | null;
+  bandEfficacyMin: number | null;
+  /** once answered, the scale, bands and items are locked */
+  hasResponses: boolean;
 }
 
 /* Per-form profile-header schema (v0.2 register §2.4) */
@@ -136,7 +141,10 @@ export function useCreateQuestionnaire() {
 export function useUpdateQuestionnaire(id: number) {
   const invalidate = useInvalidate(id);
   return useMutation({
-    mutationFn: async (payload: { name: string; scaleMin?: number; scaleMax?: number; active?: boolean }) =>
+    mutationFn: async (payload: {
+      name: string; scaleMin?: number; scaleMax?: number; active?: boolean;
+      bandCriticalMax?: number | null; bandEfficacyMin?: number | null;
+    }) =>
       (await api.put<QuestionnaireDetail>(`/questionnaires/${id}`, payload)).data,
     onSuccess: invalidate,
   });

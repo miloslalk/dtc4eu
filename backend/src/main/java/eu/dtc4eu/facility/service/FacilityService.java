@@ -5,6 +5,7 @@ import eu.dtc4eu.user.entity.Role;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.dtc4eu.questionnaire.service.ProfileSchemaService;
 import eu.dtc4eu.questionnaire.service.ProfileValidationService;
+import eu.dtc4eu.common.error.BadRequestException;
 import eu.dtc4eu.common.error.ConflictException;
 import eu.dtc4eu.common.error.NotFoundException;
 import eu.dtc4eu.common.web.CsvWriter;
@@ -191,14 +192,36 @@ public class FacilityService {
                 participation.getFoundationMeetingDone(), participation.getFinalForumDone());
     }
 
+    /**
+     * The assigned Internal Facilitator gets data access to the facility (as
+     * audit and terna coordinators do), and loses it once no cycle names them
+     * there any more. Manual grants share the table and are revoked too — the
+     * known limitation of the coordinator auto-scope pattern.
+     */
+    private void syncFacilitatorAccess(Long facilityId, Long facilitatorId, Long previousFacilitatorId) {
+        if (facilitatorId != null) {
+            participationRepository.grantFacilityAccess(facilitatorId, facilityId);
+        }
+        if (previousFacilitatorId != null && !previousFacilitatorId.equals(facilitatorId)
+                && participationRepository.findByFacilityId(facilityId).stream()
+                .noneMatch(p -> previousFacilitatorId.equals(p.getInternalFacilitatorId()))) {
+            participationRepository.revokeFacilityAccess(previousFacilitatorId, facilityId);
+        }
+    }
+
     /** Upsert per (facility, cycle): the activity is settable per cycle (spec T2). */
     @Transactional
     public ParticipationDto setParticipation(Long facilityId, SetParticipationRequest request,
                                              AppUserDetails actor) {
         findInScope(facilityId, actor);
         Long cycleId = cycleContext.requireWritable().getId();
-        if (request.internalFacilitatorId() != null && !userRepository.existsById(request.internalFacilitatorId())) {
-            throw new NotFoundException("Internal facilitator user not found");
+        Long facilitatorId = request.internalFacilitatorId();
+        if (facilitatorId != null) {
+            User facilitator = userRepository.findById(facilitatorId)
+                    .orElseThrow(() -> new NotFoundException("Internal facilitator user not found"));
+            if (!facilitator.roleCodes().contains(Role.INTERNAL_FACILITATOR)) {
+                throw new BadRequestException(facilitator.getFullName() + " does not have the Internal Facilitator role");
+            }
         }
         FacilityCycleParticipation participation = participationRepository
                 .findByFacilityIdAndAnnualCycleId(facilityId, cycleId)
@@ -208,6 +231,7 @@ public class FacilityService {
                     created.setAnnualCycleId(cycleId);
                     return created;
                 });
+        Long previousFacilitatorId = participation.getInternalFacilitatorId();
         participation.setActivity(request.activity());
         participation.setInternalFacilitatorId(request.internalFacilitatorId());
         participation.setSagDone(request.sagDone());
@@ -215,7 +239,8 @@ public class FacilityService {
         participation.setDtcroLongFormDone(request.dtcroLongFormDone());
         participation.setFoundationMeetingDone(request.foundationMeetingDone());
         participation.setFinalForumDone(request.finalForumDone());
-        participationRepository.save(participation);
+        participationRepository.saveAndFlush(participation);
+        syncFacilitatorAccess(facilityId, facilitatorId, previousFacilitatorId);
         auditService.success(actor.getId(), "SET_PARTICIPATION", "facility", facilityId,
                 Map.of("cycleId", cycleId, "activity", request.activity().name()));
         return participationDto(participation);

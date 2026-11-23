@@ -12,7 +12,9 @@
     "administration": "Administration",
     "users": "Users",
     "cycles": "Cycles",
-    "audits": "Audits"
+    "audits": "Audits",
+    "myQuestionnaires": "My questionnaires",
+    "rules": "Assignment rules"
   },
   "auth": {
     "signIn": "Sign in",
@@ -24,7 +26,10 @@
   },
   "cycle": {
     "label": "Cycle",
-    "readOnly": "This cycle is {{status}} — data is read-only"
+    "readOnly": "This cycle is {{status}} — data is read-only",
+    "banner": "You are working in cycle {{cycle}} ({{status}}). Every list and form below belongs to this cycle.",
+    "emptyIn": "No {{what}} in cycle {{cycle}}.",
+    "switchTo": "Switch cycle:"
   },
   "common": {
     "save": "Save",
@@ -54,7 +59,9 @@
     "previous": "Previous",
     "next": "Next",
     "notFound": "Page not found",
-    "required": "Please fill in the required fields"
+    "required": "Please fill in the required fields",
+    "add": "Add",
+    "open": "Open"
   },
   "dashboard": {
     "welcome": "Welcome, {{name}}",
@@ -79,8 +86,8 @@
     "overview": "Overview",
     "participation": "Participation",
     "members": "Members",
-    "sag": "Set Analysis Grid",
-    "qcnc": "QCNC",
+    "sag": "GAS-Set (Setting Analysis Grid)",
+    "qcnc": "QCNC (Conformity / Non-Conformity)",
     "scores": "Scores",
     "memberCode": "Member code",
     "category": "Category",
@@ -96,7 +103,7 @@
     "typeNames": {
       "TC": "DTC-TC — Therapeutic Community",
       "GA": "DTC-GA — Group Apartment",
-      "SH": "SH — Social Housing"
+      "SH": "SH — Supported Housing"
     },
     "subtypes": {
       "RTC": "1.a Residential TC (RTC)",
@@ -156,8 +163,8 @@
     },
     "checklist": {
       "title": "Cycle activity checklist (OK / NO)",
-      "sagDone": "Setting Analysis Grid — Internal Facilitator",
-      "qcncDone": "QCNC — Internal Facilitator",
+      "sagDone": "GAS-Set (Setting Analysis Grid) — Internal Facilitator",
+      "qcncDone": "QCNC (Conformity / Non-Conformity) — Internal Facilitator",
       "dtcroLongFormDone": "DTCRO Long Form — Internal Facilitator",
       "foundationMeetingDone": "Foundation Meeting",
       "finalForumDone": "Final Forum"
@@ -186,6 +193,22 @@
       "types": {
         "ORGANIZATIONAL_STRUCTURAL": "Organizational-structural",
         "COMMUNITY_FUNCTIONAL": "Community-functional"
+      },
+      "score": "Score (1–4)",
+      "noScore": "–",
+      "meanScore": "Mean score (TAB.5)",
+      "metaAreas": {
+        "title": "Qualitative meta-areas",
+        "hint": "Counts the standards required for scoring (7 per quality standard) marked C in each administration. A meta-area is a strength when all are C, and a weakness when fewer than half are, in all three administrations. Its DTCRO areas become the facility's qualitative strength or weakness areas in the Summary Table.",
+        "metaArea": "Meta-area",
+        "dtcroAreas": "DTCRO areas",
+        "status": "Result",
+        "statuses": {
+          "STRENGTH": "Strength",
+          "WEAKNESS": "Weakness",
+          "NEITHER": "Neither",
+          "INCOMPLETE": "Incomplete — needs all three administrations"
+        }
       }
     },
     "gasset": {
@@ -212,6 +235,11 @@
       "cycle": "Cycle",
       "questionnaire": "Questionnaire code",
       "labels": "EP labels"
+    },
+    "facilitator": {
+      "assign": "Assign",
+      "none": "Not assigned",
+      "help": "The Internal Facilitator completes the GAS-Set, the QCNC self-assessment and the DTCRO Long Form for this facility in this cycle, and manages the member codes. Assigning a person gives them access to this facility’s data. Only users with the Internal Facilitator role can be chosen."
     }
   },
   "ternas": {
@@ -249,8 +277,10 @@
       "collected": "Collected",
       "roster": "Subjects",
       "total": "Total",
-      "saveTernaFirst": "Save the terna first to see its analytics."
-    }
+      "saveTernaFirst": "Save the terna first to see its analytics.",
+      "exportXlsx": "Download terna workbook (XLSX)"
+    },
+    "facilitatorTwice": "The same person is Internal Facilitator for two of these facilities. Check that this is intended."
   },
   "questionnaires": {
     "title": "Questionnaires",
@@ -281,7 +311,42 @@
       "INDIVIDUAL": "Individual",
       "LONG_FORM": "Long Form (community self-assessment)",
       "DELEGATION": "Delegation (visits / audits)"
-    }
+    },
+    "noForm": "No form",
+    "previewForm": "Preview form",
+    "backToItems": "Back to items",
+    "previewHint": "Preview: this is what respondents see. Nothing you enter here is saved.",
+    "searchItems": "Search by code, text or area",
+    "formCounts": "{{items}} items in {{areas}} areas",
+    "lockedHint": "This questionnaire already has responses, so its items, scale and bands are locked.",
+    "scaleAndBands": "Scale and classification bands",
+    "scaleMin": "Scale min",
+    "scaleMax": "Scale max",
+    "bandCriticalMax": "Critical up to",
+    "bandEfficacyMin": "Efficacy from",
+    "bandsHint": "A score up to \"Critical up to\" is critical; from \"Efficacy from\" it is efficacy; in between it is intermediate. Leave both empty to keep the current bands. Without bands, scores are not classified.",
+    "bandsBoth": "Fill in both band limits, or neither.",
+    "scaleLocked": "Locked: answers already given on this scale.",
+    "facilityInstruments": {
+      "title": "Facility instruments",
+      "intro": "These are completed per facility, in the facility’s own page. Choose a facility to open it in cycle {{cycle}}.",
+      "chooseFacility": "Choose facility…",
+      "gasSet": {
+        "name": "GAS-Set (Setting Analysis Grid)",
+        "about": "Completed by the Internal Facilitator once per cycle: the structured description of the facility (sections A–N)."
+      },
+      "qcnc": {
+        "name": "QCNC (Conformity / Non-Conformity)",
+        "about": "Q1–Q5 standards, in three administrations: the Internal Facilitator’s self-assessment, the Terna Coordinator’s own assessment and the delegation’s."
+      },
+      "qualityDocuments": {
+        "name": "Quality Document Assessment Form",
+        "about": "The GPP / CGS / EEN documents a facility applies, each assessed by a named assessor. Found in the facility’s Participation tab."
+      }
+    },
+    "closePreview": "Close preview",
+    "qcncPreviewHint": "Preview of the QCNC standards. In the facility’s QCNC tab each standard is marked by three administrations: Internal Facilitator, Terna Coordinator and the delegation.",
+    "mandatory": "Mandatory"
   },
   "responses": {
     "title": "Responses",
@@ -317,6 +382,29 @@
       "MANAGER": "Manager",
       "LONG_FORM": "Long Form (community)",
       "DELEGATION": "Delegation"
+    },
+    "researchExport": "SPSS / R export",
+    "researchExportHint": "Pick a questionnaire first — the export has one column per item",
+    "import": {
+      "open": "Import paper forms",
+      "title": "Import paper questionnaires",
+      "hint": "Download the XLSX template for a form, enter one paper questionnaire per row (subject code, header fields, item values), then upload it. The file is checked row by row; nothing is imported while any row has an error. Complete rows are submitted, incomplete ones are kept as drafts.",
+      "template": "Download template",
+      "file": "Filled template (.xlsx)",
+      "validate": "Check file",
+      "commit": "Import",
+      "summary": "{{valid}} of {{total}} rows valid, {{invalid}} with errors",
+      "done": "Imported: {{submitted}} submitted, {{drafts}} kept as drafts",
+      "row": "Row",
+      "answered": "Items",
+      "outcome": "Result",
+      "notes": "Notes",
+      "outcomes": {
+        "VALID": "Valid",
+        "INVALID": "Error",
+        "SUBMITTED": "Submitted",
+        "DRAFT": "Draft"
+      }
     }
   },
   "scoring": {
@@ -380,8 +468,6 @@
     "startDate": "Start date",
     "endDate": "End date",
     "status": "Status",
-    "sequence": "No.",
-    "sequenceLabel": "Cycle number in the programme",
     "overlapHint": "Cycles span 16 months (Sep 1 → Dec 31 of the following year) and adjacent cycles overlap — several cycles can be OPEN at once.",
     "statuses": {
       "OPEN": "Open",
@@ -401,7 +487,15 @@
       "TRAINER": "Trainer",
       "DTC_REPRESENTATIVE": "DTC Representative",
       "POLICYMAKER": "Policymaker"
-    }
+    },
+    "ordinalHint": "The cycle number is worked out from the start date. A facility’s history shows its own count (\"1st\", \"2nd\", …).",
+    "facilitates": "Internal Facilitator in {{cycle}} for:",
+    "facilitatesNone": "No facility in this cycle yet.",
+    "facilitatesHint": "To assign one, open a facility’s Participation tab, or pick the facilitator in a terna.",
+    "temporaryPassword": "Temporary password: the user must choose a new one at first login",
+    "defaultCycle": "Default",
+    "clearDefault": "clear",
+    "defaultCycleHint": "Optionally mark one cycle as the default that everyone lands in on their first visit; afterwards each user stays in the cycle they last chose."
   },
   "audits": {
     "title": "Quality Audits",
@@ -432,5 +526,140 @@
     "addItem": "Add accredited item",
     "epValue": "EP value",
     "confirmDelete": "Delete this audit? This cannot be undone."
+  },
+  "rules": {
+    "title": "Assignment rules",
+    "subtitle": "Which questionnaire form each respondent receives. Every active rule whose conditions match a respondent's profile assigns its form. The client's assignment matrix is entered here; nothing is hardcoded.",
+    "newRule": "New rule",
+    "editRule": "Edit rule",
+    "empty": "No rules yet. Until rules exist, respondents see no questionnaires.",
+    "name": "Name",
+    "description": "Description",
+    "priority": "Priority",
+    "targetForm": "Assigned form",
+    "questionnaire": "Questionnaire",
+    "validity": "Valid",
+    "always": "Always",
+    "validFrom": "Valid from",
+    "validTo": "Valid to",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "conditions": "Conditions",
+    "conditionsHint": "Combine conditions with AND (all must match) or OR (any may match). Groups can be nested. Several values in one condition mean \"any of these\".",
+    "groupOp": "Group operator",
+    "allMatch": "all of the following",
+    "anyMatch": "any of the following",
+    "addCondition": "Add condition",
+    "addGroup": "Add group",
+    "removeGroup": "Remove group",
+    "removeCondition": "Remove condition",
+    "field": "Field",
+    "operator": "Operator",
+    "values": "Values",
+    "valuesPlaceholder": "Values, separated by commas",
+    "requiredFields": "A name and an assigned form are required.",
+    "deleteTitle": "Delete rule",
+    "deleteMessage": "Delete the rule \"{{name}}\"? Respondents it assigned a form to will no longer see that form unless another rule assigns it.",
+    "testTitle": "Rule test",
+    "testHint": "Enter a sample profile to see which forms the active rules would assign today. Separate several values with commas.",
+    "runTest": "Test",
+    "testNone": "No form would be assigned.",
+    "viaRule": "via \"{{name}}\"",
+    "fields": {
+      "CATEGORY": "Respondent category",
+      "AGE": "Age",
+      "COUNTRY": "Country",
+      "PROJECT_PHASE": "Project phase",
+      "FACILITY_SETTING": "Facility setting",
+      "FACILITY_SUBTYPE": "Facility type",
+      "TERNA_TYPE": "Terna type",
+      "CYCLE": "Cycle",
+      "ROLE": "Platform role"
+    },
+    "operators": {
+      "IN": "is one of",
+      "NOT_IN": "is not one of",
+      "GTE": "is at least",
+      "LTE": "is at most"
+    },
+    "ops": {
+      "AND": "AND",
+      "OR": "OR"
+    }
+  },
+  "my": {
+    "title": "Your questionnaires",
+    "subtitle": "Only the questionnaires assigned to you are listed. You can save and come back later.",
+    "none": "No questionnaire is assigned to you at the moment.",
+    "editProfile": "Edit my profile",
+    "profileTitle": "Your profile",
+    "profileHint": "Please check your details for this cycle before continuing. They decide which questionnaires you receive.",
+    "category": "I am a…",
+    "categories": {
+      "USER": "User / resident",
+      "FAMILY": "Family member",
+      "STAFF": "Staff member",
+      "MANAGER": "Manager"
+    },
+    "age": "Age",
+    "phase": "Project phase",
+    "phaseFromFacility": "As recorded for my community",
+    "phases": {
+      "VISITING_TERNA": "Visiting terna",
+      "QUALITY_AUDIT": "Quality audit",
+      "TRAINING_PAUSE": "Training pause"
+    },
+    "country": "Country",
+    "city": "City",
+    "facilities": "Your community",
+    "privacyNote": "We never ask for your name. Your answers are stored under a code only.",
+    "confirmProfile": "Confirm and continue",
+    "categoryRequired": "Please choose who you are.",
+    "statuses": {
+      "NOT_STARTED": "Not started",
+      "DRAFT": "In progress",
+      "SUBMITTED": "Submitted"
+    },
+    "start": "Start",
+    "resume": "Continue",
+    "view": "View",
+    "subjectCode": "Your code",
+    "subjectCodeHint": "The code your Internal Facilitator gave you, for example U-07. Do not enter your name.",
+    "subjectCodeRequired": "Please enter your code."
+  },
+  "progress": {
+    "tab": "Progress",
+    "todoTitle": "What you need to complete in cycle {{cycle}}",
+    "overviewTitle": "Completion across all ternas in cycle {{cycle}}",
+    "legend": "Click a status to open the form. Done = checklist OK or form submitted; in progress = something saved.",
+    "nothing": "Nothing assigned to you in cycle {{cycle}}.",
+    "status": {
+      "NOT_STARTED": "Not started",
+      "IN_PROGRESS": "In progress",
+      "DONE": "Done"
+    },
+    "tasks": {
+      "GAS_SET": "GAS-Set",
+      "QCNC_INTERNAL_FACILITATOR": "QCNC self-assessment",
+      "DTCRO_LONG_FORM": "DTCRO Long Form",
+      "QCNC_TERNA_COORDINATOR_OWN": "QCNC (coordinator)",
+      "QCNC_TERNA_COORDINATOR_DELEGATION": "QCNC (delegation)",
+      "DTCRO_DELEGATION": "DTCRO Delegation",
+      "QUALITY_DOCUMENTS": "Quality documents",
+      "PARTICIPATION_CHECKLIST": "Checklist"
+    }
+  },
+  "account": {
+    "title": "Change password",
+    "forcedIntro": "Your password is temporary or has been shared. Choose a new one to continue.",
+    "current": "Current password",
+    "new": "New password",
+    "confirm": "Repeat the new password",
+    "rules": "At least 10 characters. It must differ from the current one and must not contain your username.",
+    "minLength": "At least 10 characters",
+    "mismatch": "The two passwords do not match",
+    "submit": "Change password",
+    "changed": "Password changed."
   }
 }

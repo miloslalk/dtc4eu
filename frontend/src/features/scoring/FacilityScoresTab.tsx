@@ -6,6 +6,7 @@ import { ClassificationBadge } from '../../components/ClassificationBadge';
 import { useAuth } from '../../lib/auth';
 import { apiErrorMessage } from '../../lib/api';
 import { useQuestionnaires } from '../questionnaires/api';
+import { useQcncBoard, type QcncMetaArea } from '../facilities/api';
 import {
   useFacilityScores, useRecomputeScores, useScoreSummary,
   type AreaScoreRow, type ItemScoreRow, type SummaryTable,
@@ -30,6 +31,8 @@ export function FacilityScoresTab({ facilityId }: { facilityId: number }) {
 
   const { data: scores, isLoading, error } = useFacilityScores(facilityId, effectiveId);
   const { data: summary } = useScoreSummary(facilityId, effectiveId);
+  const { data: qcnc } = useQcncBoard(facilityId);
+  const isDtcro = scorable.find((q) => q.id === effectiveId)?.code.startsWith('DTCRO') ?? false;
   const recompute = useRecomputeScores(facilityId);
   const canRecompute = hasAnyRole('ADMIN', 'SUPER_ADMIN', 'COORDINATOR');
 
@@ -107,7 +110,7 @@ export function FacilityScoresTab({ facilityId }: { facilityId: number }) {
               points={[...scores.weaknessAreas.map((a) => `${t('scoring.area')} ${a}`), ...scores.weaknessPoints]} />
           </section>
 
-          {summary && <SummaryCard summary={summary} />}
+          {summary && <SummaryCard summary={isDtcro ? withQualitativeAreas(summary, qcnc?.metaAreas) : summary} />}
         </>
       )}
     </div>
@@ -185,6 +188,18 @@ function PointList({ title, points, tone }: { title: string; points: string[]; t
       )}
     </section>
   );
+}
+
+/**
+ * Spec §6.5: the DTCRO areas of the QCNC meta-areas that are strong (weak) in
+ * all three administrations are the qualitative strength (weakness) areas.
+ * Stays null ("not available") while any meta-area lacks an administration.
+ */
+function withQualitativeAreas(summary: SummaryTable, metaAreas: QcncMetaArea[] | undefined): SummaryTable {
+  if (!metaAreas || metaAreas.length === 0 || metaAreas.some((m) => m.status === 'INCOMPLETE')) return summary;
+  const areasWith = (status: QcncMetaArea['status']) =>
+    metaAreas.filter((m) => m.status === status).flatMap((m) => m.dtcroAreas).map(String);
+  return { ...summary, qualStrengthAreas: areasWith('STRENGTH'), qualWeaknessAreas: areasWith('WEAKNESS') };
 }
 
 function SummaryCard({ summary }: { summary: SummaryTable }) {

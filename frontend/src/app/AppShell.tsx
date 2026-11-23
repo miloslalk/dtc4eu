@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
 import { useCycle } from '../lib/cycle';
 import { cycleLabel } from '../lib/types';
-import { LANGUAGES } from '../lib/i18n';
+import { changeLanguage, LANGUAGES } from '../lib/i18n';
 import type { RoleCode } from '../lib/types';
 
 interface NavItem {
@@ -20,9 +20,11 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/ternas', labelKey: 'nav.ternas', roles: ['SUPER_ADMIN', 'ADMIN', 'RESEARCH_TEAM', 'COORDINATOR'] },
   { to: '/audits', labelKey: 'nav.audits', roles: ['SUPER_ADMIN', 'ADMIN', 'RESEARCH_TEAM', 'AUDIT_COORDINATOR', 'UPPER_COORDINATOR'] },
   { to: '/questionnaires', labelKey: 'nav.questionnaires', roles: ['SUPER_ADMIN', 'ADMIN'] },
+  { to: '/my-questionnaires', labelKey: 'nav.myQuestionnaires', roles: ['RESPONDENT'] },
   { to: '/responses', labelKey: 'nav.responses', roles: ['SUPER_ADMIN', 'ADMIN', 'RESEARCH_TEAM', 'COORDINATOR', 'INTERNAL_FACILITATOR', 'RESPONDENT'] },
   { to: '/admin/users', labelKey: 'nav.users', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { to: '/admin/cycles', labelKey: 'nav.cycles', roles: ['SUPER_ADMIN', 'ADMIN'] },
+  { to: '/admin/rules', labelKey: 'nav.rules', roles: ['SUPER_ADMIN', 'ADMIN', 'UPPER_COORDINATOR'] },
 ];
 
 export function AppShell() {
@@ -57,12 +59,8 @@ export function AppShell() {
             navOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
       >
-        <div className="flex items-center gap-3 px-4 py-4">
-          <img src="/logo.png" alt="DTC4EU" className="size-10 rounded-lg bg-white object-contain p-0.5" />
-          <div className="leading-tight">
-            <div className="text-base font-extrabold tracking-wide">DTC4EU</div>
-            <div className="text-[11px] text-blue-100">Erasmus+ KA220</div>
-          </div>
+        <div className="flex items-center px-4 py-4">
+          <img src="/logo.png" alt="DTC4EU" className="size-20 rounded-xl bg-white object-contain p-1" />
           <button
             type="button"
             onClick={() => setNavOpen(false)}
@@ -118,7 +116,7 @@ export function AppShell() {
               {selected === null && <option value="">—</option>}
               {cycles.map((cycle) => (
                 <option key={cycle.id} value={cycle.id}>
-                  {cycleLabel(cycle)}
+                  {cycleLabel(cycle)} · {t(`admin.statuses.${cycle.status}`)}
                 </option>
               ))}
             </select>
@@ -132,18 +130,21 @@ export function AppShell() {
           <div className="ml-auto flex items-center gap-2 sm:gap-4">
             <select
               value={i18n.language}
-              onChange={(e) => i18n.changeLanguage(e.target.value)}
+              onChange={(e) => void changeLanguage(e.target.value)}
               className="rounded-lg border border-neutral-200 px-2 py-1 text-sm text-neutral-600"
               aria-label="Language"
             >
               {LANGUAGES.map((lang) => (
-                <option key={lang.code} value={lang.code}>
+                <option key={lang.code} value={lang.code} title={lang.label}>
                   {lang.code.toUpperCase()}
                 </option>
               ))}
             </select>
             <div className="hidden text-right leading-tight md:block">
-              <div className="text-sm font-semibold text-neutral-800">{user?.fullName}</div>
+              <NavLink to="/account/password" className="text-sm font-semibold text-neutral-800 hover:underline"
+                title={t('account.title')}>
+                {user?.fullName}
+              </NavLink>
               <div className="text-xs text-neutral-500">{user?.roles.map((r) => t(`admin.roleNames.${r}`)).join(', ')}</div>
             </div>
             <button
@@ -157,6 +158,12 @@ export function AppShell() {
         </header>
 
         <main className="flex-1 px-4 py-4 sm:px-6 sm:py-6">
+          {selected && (
+            <p className="mb-4 rounded-lg border border-gold-500/40 bg-gold-50 px-3 py-2 text-xs text-neutral-700"
+              role="status">
+              {t('cycle.banner', { cycle: cycleLabel(selected), status: t(`admin.statuses.${selected.status}`) })}
+            </p>
+          )}
           <Outlet />
         </main>
 

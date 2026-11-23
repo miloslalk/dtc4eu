@@ -1,0 +1,85 @@
+# DTC4EU staging (FIX-LIST X3): the same images as production, with its own
+# database, storage and secrets, holding an anonymised copy of production
+# (staging-refresh.sh) for QA, the scoring golden-fixture test and training.
+# It has no public ports: the production Caddy proxies STAGING_DOMAIN to it
+# over the shared "dtc4eu-edge" network, so start production first.
+# Run from the repo root on the server:
+#   docker compose -f deploy/docker-compose.staging.yml --env-file deploy/staging.env up -d --build
+name: dtc4eu-staging
+
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+    restart: unless-stopped
+    volumes:
+      - ./Caddyfile.staging:/etc/caddy/Caddyfile:ro
+    networks:
+      default:
+      edge:
+        aliases: [staging-web]
+    depends_on:
+      - platform-api
+    mem_limit: 128m
+
+  platform-api:
+    build:
+      context: ..
+      dockerfile: deploy/platform-api.Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/dtc4eu
+      DB_USERNAME: dtc4eu
+      DB_PASSWORD: ${PLATFORM_DB_PASSWORD}
+      JWT_SECRET: ${PLATFORM_JWT_SECRET}
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_BUCKET: dtc4eu
+      STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER}
+      STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      CORS_ALLOWED_ORIGINS: https://${STAGING_DOMAIN}
+      JAVA_TOOL_OPTIONS: "-Xmx384m -Xms96m"
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    mem_limit: 640m
+
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      PLATFORM_DB_PASSWORD: ${PLATFORM_DB_PASSWORD}
+      # initdb also creates the (unused here) website database
+      WEBSITE_DB_PASSWORD: ${PLATFORM_DB_PASSWORD}
+    volumes:
+      - staging_pgdata:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 384m
+
+  minio:
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372  # same pin as production
+    restart: unless-stopped
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - staging_miniodata:/data
+    mem_limit: 256m
+
+networks:
+  edge:
+    external: true
+    name: dtc4eu-edge
+
+volumes:
+  staging_pgdata:
+  staging_miniodata:

@@ -24,6 +24,8 @@ import eu.dtc4eu.questionnaire.repository.QuestionnaireAreaRepository;
 import eu.dtc4eu.questionnaire.repository.QuestionnaireFormAreaLabelRepository;
 import eu.dtc4eu.questionnaire.repository.QuestionnaireFormRepository;
 import eu.dtc4eu.questionnaire.repository.QuestionnaireItemRepository;
+import eu.dtc4eu.questionnaire.repository.QuestionnaireResponseItemRepository;
+import eu.dtc4eu.questionnaire.repository.QuestionnaireResponseRepository;
 import eu.dtc4eu.questionnaire.repository.QuestionnaireRepository;
 import eu.dtc4eu.questionnaire.repository.QuestionnaireScaleAnchorRepository;
 import eu.dtc4eu.security.AppUserDetails;
@@ -33,6 +35,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 
@@ -44,6 +47,8 @@ public class QuestionnaireService {
     private final QuestionnaireRepository questionnaireRepository;
     private final QuestionnaireAreaRepository areaRepository;
     private final QuestionnaireItemRepository itemRepository;
+    private final QuestionnaireResponseItemRepository responseItemRepository;
+    private final QuestionnaireResponseRepository responseRepository;
     private final QuestionnaireFormRepository formRepository;
     private final QuestionnaireScaleAnchorRepository anchorRepository;
     private final QuestionnaireFormAreaLabelRepository formAreaLabelRepository;
@@ -79,7 +84,8 @@ public class QuestionnaireService {
                 forms.stream().map(FormDto::of).toList(),
                 anchorRepository.findByQuestionnaireIdOrderByValue(id).stream()
                         .map(a -> new AnchorDto(a.getValue(), a.getLabel())).toList(),
-                formAreaLabels);
+                formAreaLabels, questionnaire.getBandCriticalMax(), questionnaire.getBandEfficacyMin(),
+                responseRepository.existsByQuestionnaireId(id));
     }
 
     @Transactional
@@ -102,6 +108,15 @@ public class QuestionnaireService {
     public QuestionnaireDetailDto update(Long id, UpdateQuestionnaireRequest request, AppUserDetails actor) {
         Questionnaire questionnaire = find(id);
         questionnaire.setName(request.name());
+        boolean scaleChange = (request.scaleMin() != null && request.scaleMin() != questionnaire.getScaleMin())
+                || (request.scaleMax() != null && request.scaleMax() != questionnaire.getScaleMax());
+        boolean bandChange = (request.bandCriticalMax() != null || request.bandEfficacyMin() != null)
+                && !(sameValue(request.bandCriticalMax(), questionnaire.getBandCriticalMax())
+                && sameValue(request.bandEfficacyMin(), questionnaire.getBandEfficacyMin()));
+        if ((scaleChange || bandChange) && responseRepository.existsByQuestionnaireId(id)) {
+            // answers and classifications already stored were made on the old scale (spec INS-06)
+            throw new ConflictException("The scale and bands cannot change once the questionnaire has responses");
+        }
         if (request.scaleMin() != null) {
             questionnaire.setScaleMin(request.scaleMin());
         }
@@ -109,6 +124,16 @@ public class QuestionnaireService {
             questionnaire.setScaleMax(request.scaleMax());
         }
         validateScale(questionnaire.getScaleMin(), questionnaire.getScaleMax());
+        if (bandChange) {
+            if (request.bandCriticalMax() == null || request.bandEfficacyMin() == null) {
+                throw new BadRequestException("Both band limits are required");
+            }
+            validateBands(request.bandCriticalMax(), request.bandEfficacyMin(), questionnaire);
+            questionnaire.setBandCriticalMax(request.bandCriticalMax());
+            questionnaire.setBandEfficacyMin(request.bandEfficacyMin());
+        } else if (questionnaire.getBandCriticalMax() != null) {
+            validateBands(questionnaire.getBandCriticalMax(), questionnaire.getBandEfficacyMin(), questionnaire);
+        }
         if (request.active() != null) {
             questionnaire.setActive(request.active());
         }
@@ -181,6 +206,10 @@ public class QuestionnaireService {
     @Transactional
     public ItemDto updateItem(Long questionnaireId, Long itemId, SaveItemRequest request, AppUserDetails actor) {
         QuestionnaireItem item = ownedItem(questionnaireId, itemId);
+        // spec INS-06: an answered item is frozen so stored responses stay comparable
+        if (responseItemRepository.existsByItemId(itemId)) {
+            throw new ConflictException("Item already has responses and cannot be changed");
+        }
         if (!item.getItemCode().equals(request.itemCode())
                 && itemRepository.existsByQuestionnaireIdAndItemCode(questionnaireId, request.itemCode())) {
             throw new ConflictException("Item code already exists in this questionnaire");
@@ -253,6 +282,12 @@ public class QuestionnaireService {
                 .orElseThrow(() -> NotFoundException.of("Profile schema for form", formId));
     }
 
+    /** Empty GAS-Set definition (field labels only, no data) for the Questionnaires-page preview. */
+    public com.fasterxml.jackson.databind.JsonNode getGasSetSchema() {
+        return profileSchemaService.find("gasset", "GAS_SET")
+                .orElseThrow(() -> new NotFoundException("GAS-Set schema not available"));
+    }
+
     /* --------------------------------- helpers --------------------------------- */
 
     private Questionnaire find(Long id) {
@@ -315,6 +350,20 @@ public class QuestionnaireService {
                         && Objects.equals(existing.getAreaId(), request.areaId())
                         && Objects.equals(existing.getItemLetter(), request.itemLetter()))
                 .isPresent();
+    }
+
+    private static boolean sameValue(BigDecimal a, BigDecimal b) {
+        return a == null ? b == null : b != null && a.compareTo(b) == 0;
+    }
+
+    /** Bands must sit inside the scale with CRITICAL below EFFICACY (TAB.5). */
+    private static void validateBands(BigDecimal criticalMax, BigDecimal efficacyMin,
+                                      Questionnaire questionnaire) {
+        if (criticalMax.compareTo(efficacyMin) >= 0
+                || criticalMax.compareTo(BigDecimal.valueOf(questionnaire.getScaleMin())) < 0
+                || efficacyMin.compareTo(BigDecimal.valueOf(questionnaire.getScaleMax())) > 0) {
+            throw new BadRequestException("Bands must satisfy scaleMin ≤ critical limit < efficacy limit ≤ scaleMax");
+        }
     }
 
     private void validateScale(int scaleMin, int scaleMax) {

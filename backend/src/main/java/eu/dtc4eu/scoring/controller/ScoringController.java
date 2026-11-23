@@ -7,11 +7,15 @@ import eu.dtc4eu.scoring.dto.ScoringDtos.TernaBenchmarkRowDto;
 import eu.dtc4eu.scoring.dto.ScoringDtos.TernaPopulationDto;
 import eu.dtc4eu.scoring.service.FacilityScoringService;
 import eu.dtc4eu.scoring.service.TernaAnalyticsService;
+import eu.dtc4eu.scoring.service.TernaExportService;
 import eu.dtc4eu.security.AppUserDetails;
 import eu.dtc4eu.security.CycleContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,6 +41,7 @@ public class ScoringController {
 
     private final FacilityScoringService facilityScoringService;
     private final TernaAnalyticsService ternaAnalyticsService;
+    private final TernaExportService ternaExportService;
     private final CycleContext cycleContext;
     private final AuditService auditService;
 
@@ -79,5 +84,18 @@ public class ScoringController {
                                          @RequestParam(required = false) Long questionnaireId,
                                          @AuthenticationPrincipal AppUserDetails principal) {
         return ternaAnalyticsService.population(ternaId, questionnaireId, principal);
+    }
+
+    @Operation(summary = "Terna report workbook (REP-02): one sheet per facility with TAB.3, TAB.4, "
+            + "the area mean and the benchmark areas, plus TAB.2")
+    @GetMapping("/ternas/{ternaId}/analytics/export.xlsx")
+    public ResponseEntity<byte[]> exportTerna(@PathVariable Long ternaId, @RequestParam Long questionnaireId,
+                                              @AuthenticationPrincipal AppUserDetails principal) {
+        TernaExportService.TernaWorkbook workbook = ternaExportService.export(ternaId, questionnaireId, principal);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + workbook.fileName() + "\"")
+                .body(workbook.content());
     }
 }

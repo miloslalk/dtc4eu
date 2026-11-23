@@ -36,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -173,11 +174,20 @@ public class StandardApplicationService {
         cycleIds.addAll(applicationsByCycle.keySet());
         cycleIds.addAll(epByCycle.keySet());
 
-        List<HistoryCycleDto> cycles = cycleRepository.findAllById(cycleIds).stream()
-                .sorted(Comparator.comparing(AnnualCycle::getSequenceNumber,
-                                Comparator.nullsLast(Comparator.naturalOrder()))
-                        .thenComparing(AnnualCycle::getStartDate, Comparator.nullsLast(Comparator.naturalOrder())))
-                .map(cycle -> new HistoryCycleDto(cycle.getId(), cycle.getCode(), cycle.getSequenceNumber(),
+        List<AnnualCycle> ordered = cycleRepository.findAllById(cycleIds).stream()
+                .sorted(Comparator.comparing(AnnualCycle::getStartDate, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(AnnualCycle::getCode))
+                .toList();
+        // the ordinal is per facility (Simone's history tables: "1ST 2023-24 … 4TH 2026-27"):
+        // the n-th cycle this facility took part in, by start date
+        Map<Long, Integer> ordinalOf = new HashMap<>();
+        for (AnnualCycle cycle : ordered) {
+            if (participationByCycle.containsKey(cycle.getId())) {
+                ordinalOf.put(cycle.getId(), ordinalOf.size() + 1);
+            }
+        }
+        List<HistoryCycleDto> cycles = ordered.stream()
+                .map(cycle -> new HistoryCycleDto(cycle.getId(), cycle.getCode(), ordinalOf.get(cycle.getId()),
                         participationByCycle.containsKey(cycle.getId())
                                 ? participationByCycle.get(cycle.getId()).getActivity().name() : null,
                         epByCycle.getOrDefault(cycle.getId(), Map.of()),

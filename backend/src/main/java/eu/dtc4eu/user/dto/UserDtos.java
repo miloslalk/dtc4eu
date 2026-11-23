@@ -40,7 +40,9 @@ public final class UserDtos {
             @NotBlank @Size(min = 8, max = 100) String password,
             @NotEmpty Set<String> roles,
             List<Long> facilityIds,
-            List<Long> ternaIds) {
+            List<Long> ternaIds,
+            /* true = a temporary password the user must replace at first login (X4) */
+            Boolean mustChangePassword) {
     }
 
     public record UpdateUserRequest(
@@ -51,6 +53,8 @@ public final class UserDtos {
             Boolean active,
             @NotEmpty Set<String> roles,
             List<Long> facilityIds,
-            List<Long> ternaIds) {
+            List<Long> ternaIds,
+            /* with a new password: true = temporary, to be replaced at next login (X4) */
+            Boolean mustChangePassword) {
     }
 }

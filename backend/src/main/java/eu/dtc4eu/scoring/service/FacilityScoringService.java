@@ -87,6 +87,14 @@ public class FacilityScoringService {
     private final DataScopeService dataScopeService;
     private final CycleContext cycleContext;
 
+    /** The questionnaire's TAB.5 band table; null while the client has not supplied one (e.g. ViVaCom). */
+    @Transactional(readOnly = true)
+    public Classification.Bands bandsOf(Long questionnaireId) {
+        return questionnaireScoreRepository.findBands(questionnaireId).stream().findFirst()
+                .map(row -> Classification.Bands.of((java.math.BigDecimal) row[0], (java.math.BigDecimal) row[1]))
+                .orElse(null);
+    }
+
     /* -------------------------------- recompute -------------------------------- */
 
     @Transactional
@@ -114,7 +122,8 @@ public class FacilityScoringService {
             input.computeIfAbsent(response.getRespondentCategory(), c -> new ArrayList<>()).add(values);
         }
 
-        FacilityScoringEngine.Result result = FacilityScoringEngine.compute(input, areaCoordinates);
+        FacilityScoringEngine.Result result = FacilityScoringEngine.classify(
+                FacilityScoringEngine.compute(input, areaCoordinates), bandsOf(questionnaireId));
         OffsetDateTime now = OffsetDateTime.now();
 
         persistGrids(facilityId, cycleId, questionnaireId, result, now);

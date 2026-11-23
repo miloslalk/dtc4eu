@@ -23,4 +23,13 @@ website/frontend/node_modules/
 # Logs
 *.log
 deploy/.env
+deploy/staging.env
 tools/*.zip
+
+# Office lock files
+~$*
+
+# Check reports (CONSTRAINTS.md)
+semgrep-results.json
+osv-results.json
+node_modules/

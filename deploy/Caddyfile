@@ -3,6 +3,7 @@
 #   SITE_DOMAIN      e.g. dtc4eu.eu        → public website + CMS
 #   PLATFORM_DOMAIN  e.g. platform.dtc4eu.eu → evaluation platform
 #   ACME_EMAIL       Let's Encrypt contact
+#   STAGING_DOMAIN   optional, e.g. staging.platform.dtc4eu.eu → staging stack
 #
 # For a local/pre-DNS smoke test set SITE_DOMAIN=localhost and
 # PLATFORM_DOMAIN=platform.localhost — Caddy then uses its internal CA.
@@ -42,4 +43,12 @@
 
 {$PLATFORM_DOMAIN} {
 	import spa platform-api:8080 /srv/platform
+}
+
+# Staging (FIX-LIST X3, deploy/docker-compose.staging.yml). Unset → a local-only
+# name with an internal certificate; 502 while the staging stack is down.
+{$STAGING_DOMAIN:staging.localhost} {
+	encode zstd gzip
+	reverse_proxy staging-web:80
+	header X-Robots-Tag "noindex, nofollow"
 }

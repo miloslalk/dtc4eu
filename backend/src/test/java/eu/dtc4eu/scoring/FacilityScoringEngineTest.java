@@ -67,6 +67,48 @@ class FacilityScoringEngineTest {
         assertThat(scores.classification()).isEqualTo(Classification.INTERMEDIATE);
     }
 
+    /** Spec §6.8: the band is decided on the unrounded mean, so 2.9995 displays as 3.000 but stays INTERMEDIATE. */
+    @Test
+    void bandIsAppliedBeforeRounding() {
+        Map<Long, List<Coordinate>> grid = new LinkedHashMap<>();
+        grid.put(AREA_1, List.of(c(AREA_1, "a")));
+
+        List<Map<Coordinate, Integer>> staff = new java.util.ArrayList<>();
+        for (int i = 0; i < 1999; i++) {
+            staff.add(Map.of(c(AREA_1, "a"), 3));
+        }
+        staff.add(Map.of(c(AREA_1, "a"), 2));   // mean = 5999 / 2000 = 2.9995
+        var input = responses();
+        input.put(RespondentCategory.STAFF, staff);
+
+        Result result = FacilityScoringEngine.compute(input, grid);
+        Scores item = result.items().get(c(AREA_1, "a"));
+        assertThat(item.finalScore()).isEqualByComparingTo("3.000");
+        assertThat(item.classification()).isEqualTo(Classification.INTERMEDIATE);
+        assertThat(result.areas().get(AREA_1).classification()).isEqualTo(Classification.INTERMEDIATE);
+        assertThat(result.overall()).isEqualByComparingTo("3.000");
+        assertThat(result.overallClassification()).isEqualTo(Classification.INTERMEDIATE);
+    }
+
+    /** ViVaCom runs 0–5: a 0 is an answer and pulls the mean down; a questionnaire without bands stays unclassified. */
+    @Test
+    void zeroAnswersCountAndMissingBandsLeaveScoresUnclassified() {
+        Map<Long, List<Coordinate>> grid = new LinkedHashMap<>();
+        grid.put(AREA_1, List.of(c(AREA_1, "a")));
+        var input = responses();
+        input.put(RespondentCategory.USER, List.of(Map.of(c(AREA_1, "a"), 0), Map.of(c(AREA_1, "a"), 4)));
+
+        Result unbanded = FacilityScoringEngine.classify(FacilityScoringEngine.compute(input, grid), null);
+        Scores item = unbanded.items().get(c(AREA_1, "a"));
+        assertThat(item.userMean()).isEqualByComparingTo("2.000");   // mean of {0, 4}, not 4
+        assertThat(item.classification()).isNull();
+        assertThat(unbanded.overallClassification()).isNull();
+
+        Result banded = FacilityScoringEngine.classify(FacilityScoringEngine.compute(input, grid),
+                new Classification.Bands(new java.math.BigDecimal("2"), new java.math.BigDecimal("4")));
+        assertThat(banded.items().get(c(AREA_1, "a")).classification()).isEqualTo(Classification.CRITICAL);
+    }
+
     /** Del is inherently absent for letters d/e; Final averages only what exists. */
     @Test
     void delIsSkippedForLettersDAndE() {

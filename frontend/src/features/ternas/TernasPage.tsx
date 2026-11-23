@@ -6,6 +6,7 @@ import { Button } from '../../components/Button';
 import { FilterBar } from '../../components/FilterBar';
 import { filterInputClass } from '../../components/fields';
 import { DataTable, type Column } from '../../components/DataTable';
+import { CycleEmptyMessage } from '../../components/CycleEmptyMessage';
 import { StatusTag } from '../../components/StatusTag';
 import { useAuth } from '../../lib/auth';
 import { useCycle } from '../../lib/cycle';
@@ -42,8 +43,11 @@ export function TernasPage() {
       header: t('ternas.coordinators'),
       render: (row) => row.coordinatorNames.join(', ') || '—',
     },
-    { key: 'foundingMeetingDate', header: t('ternas.foundingMeeting'), render: (row) => row.foundingMeetingDate ?? '—' },
-    { key: 'finalForumDate', header: t('ternas.finalForum'), render: (row) => row.finalForumDate ?? '—' },
+    {
+      key: 'foundingMeetingDate',
+      header: t('ternas.dates'),
+      render: (row) => <KeyDates row={row} />,
+    },
   ];
 
   return (
@@ -89,8 +93,35 @@ export function TernasPage() {
         size={data?.size ?? 20}
         totalElements={data?.totalElements}
         onPageChange={(page) => setFilters({ ...filters, page })}
+        emptyMessage={<CycleEmptyMessage what={t('ternas.title').toLowerCase()} />}
         onRowClick={(row) => navigate(`/ternas/${row.id}`)}
       />
     </div>
+  );
+}
+
+/** The five key dates as a timeline (X1): founding, visits 1–3, final forum; past ones ticked, the next one marked. */
+function KeyDates({ row }: { row: TernaRow }) {
+  const { t } = useTranslation();
+  const visit = (order: number) => row.visitDates.find((v) => v.visitOrder === order)?.visitDate ?? null;
+  const dates: [string, string | null][] = [
+    [t('ternas.foundingMeeting'), row.foundingMeetingDate],
+    [t('ternas.visit', { n: 1 }), visit(1)],
+    [t('ternas.visit', { n: 2 }), visit(2)],
+    [t('ternas.visit', { n: 3 }), visit(3)],
+    [t('ternas.finalForum'), row.finalForumDate],
+  ];
+  const today = new Date().toISOString().slice(0, 10);
+  const next = dates.findIndex(([, date]) => date !== null && date >= today);
+  return (
+    <ol className="space-y-0.5 text-xs">
+      {dates.map(([label, date], i) => (
+        <li key={label} className={i === next ? 'font-semibold text-blue-700' : date && date < today
+          ? 'text-neutral-500' : 'text-neutral-700'}>
+          <span aria-hidden>{date && date < today ? '✓ ' : i === next ? '→ ' : '· '}</span>
+          {label}: {date ?? '—'}
+        </li>
+      ))}
+    </ol>
   );
 }

@@ -7,9 +7,12 @@ import { SelectField, TextField } from '../../components/fields';
 import { Spinner } from '../../components/Spinner';
 import { useAuth } from '../../lib/auth';
 import { useCycle } from '../../lib/cycle';
-import { apiErrorMessage } from '../../lib/api';
-import { useFacilities } from '../facilities/api';
+import { api, apiErrorMessage } from '../../lib/api';
+import { useQueryClient } from '@tanstack/react-query';
+import { useFacilities, useFacilitatorPicker, type Participation } from '../facilities/api';
 import { TernaAnalyticsTab } from './TernaAnalyticsTab';
+import { useTernaProgress } from '../progress/api';
+import { ProgressMatrix } from '../progress/ProgressMatrix';
 import {
   TERNA_TYPES, useCoordinatorOptions, useSaveTerna, useTerna, type SaveTernaPayload, type TernaType,
 } from './api';
@@ -21,11 +24,15 @@ export function TernaBuilderPage() {
   const isEdit = id !== undefined && id !== 'new';
   const ternaId = isEdit ? Number(id) : null;
   const navigate = useNavigate();
-  const [tab, setTab] = useState<'builder' | 'analytics'>('builder');
+  const [tab, setTab] = useState<'builder' | 'progress' | 'analytics'>('builder');
 
   const { user, hasAnyRole } = useAuth();
   const { readOnly } = useCycle();
   const canWrite = !readOnly && hasAnyRole('ADMIN', 'SUPER_ADMIN', 'COORDINATOR');
+  // facilitator assignment is an admin action (it grants data access, Simone's feedback #4)
+  const canAssign = !readOnly && hasAnyRole('ADMIN', 'SUPER_ADMIN');
+  const facilitatorOptions = useFacilitatorPicker(canAssign);
+  const queryClient = useQueryClient();
 
   const { data: existing, isLoading } = useTerna(ternaId);
   const facilities = useFacilities({ page: 0, size: 200 });
@@ -40,6 +47,8 @@ export function TernaBuilderPage() {
   const [finalForum, setFinalForum] = useState('');
   const [visits, setVisits] = useState<string[]>(['', '', '']);
   const [error, setError] = useState<string | null>(null);
+  /** per slot: the chosen facilitator; undefined = keep the facility's current one */
+  const [facilitatorChoice, setFacilitatorChoice] = useState<(number | '' | undefined)[]>([undefined, undefined, undefined]);
 
   useEffect(() => {
     if (existing) {
@@ -66,11 +75,50 @@ export function TernaBuilderPage() {
   }, [existing, isEdit]);
 
   const requiredCoordinators = ternaType === 'TCS' ? 2 : 1;
+  // a terna links facilities of its own setting only (spec §3.3; enforced by the API too)
+  const settingOf: Record<TernaType, string> = { TCS: 'TC', GAS: 'GA', SHS: 'SH' };
   const facilityOptions = facilities.data?.content ?? [];
   const facilitatorOf = useMemo(
     () => new Map(facilityOptions.map((f) => [f.id, f.internalFacilitatorName])),
     [facilityOptions],
   );
+  const facilitatorIdOf = useMemo(
+    () => new Map(facilityOptions.map((f) => [f.id, f.internalFacilitatorId])),
+    [facilityOptions],
+  );
+  const effectiveFacilitator = (slot: number): number | '' => {
+    const choice = facilitatorChoice[slot];
+    if (choice !== undefined) return choice;
+    const facilityId = facilityIds[slot];
+    return facilityId === '' ? '' : facilitatorIdOf.get(facilityId) ?? '';
+  };
+  const chosenFacilitators = [0, 1, 2].map(effectiveFacilitator).filter((v): v is number => v !== '');
+  const facilitatorTwice = new Set(chosenFacilitators).size !== chosenFacilitators.length;
+
+  /** Writes changed facilitators through each facility's participation, keeping its activity and checklist. */
+  const saveFacilitators = async () => {
+    for (const slot of [0, 1, 2]) {
+      const facilityId = facilityIds[slot];
+      const choice = facilitatorChoice[slot];
+      if (facilityId === '' || choice === undefined || choice === (facilitatorIdOf.get(facilityId) ?? '')) continue;
+      let current: Partial<Participation> = {};
+      try {
+        current = (await api.get<Participation>(`/facilities/${facilityId}/participation`)).data;
+      } catch {
+        // no participation yet in this cycle: create it as a visiting-terna facility
+      }
+      await api.post(`/facilities/${facilityId}/participation`, {
+        activity: current.activity ?? 'VISITING_TERNA',
+        internalFacilitatorId: choice === '' ? null : choice,
+        sagDone: current.sagDone ?? null,
+        qcncDone: current.qcncDone ?? null,
+        dtcroLongFormDone: current.dtcroLongFormDone ?? null,
+        foundationMeetingDone: current.foundationMeetingDone ?? null,
+        finalForumDone: current.finalForumDone ?? null,
+      });
+    }
+    await queryClient.invalidateQueries({ queryKey: ['facilities'] });
+  };
 
   if (isEdit && (isLoading || !existing)) {
     return <Spinner label={t('common.loading')} />;
@@ -109,6 +157,8 @@ export function TernaBuilderPage() {
     };
     try {
       const saved = await save.mutateAsync({ id: ternaId, payload });
+      if (canAssign) await saveFacilitators();
+      setFacilitatorChoice([undefined, undefined, undefined]);
       navigate(`/ternas/${saved.id}`, { replace: true });
       setError(null);
     } catch (e) {
@@ -127,7 +177,7 @@ export function TernaBuilderPage() {
 
       {isEdit && (
         <div className="mb-5 flex gap-1 border-b border-neutral-200">
-          {(['builder', 'analytics'] as const).map((key) => (
+          {(['builder', 'progress', 'analytics'] as const).map((key) => (
             <button
               key={key}
               type="button"
@@ -138,16 +188,18 @@ export function TernaBuilderPage() {
                   : 'border-transparent text-neutral-500 hover:text-blue-600'
               }`}
             >
-              {key === 'builder' ? t('ternas.tabBuilder') : t('ternas.tabAnalytics')}
+              {key === 'builder' ? t('ternas.tabBuilder') : key === 'progress' ? t('progress.tab')
+                : t('ternas.tabAnalytics')}
             </button>
           ))}
         </div>
       )}
 
       {isEdit && tab === 'analytics' && ternaId !== null && <TernaAnalyticsTab ternaId={ternaId} />}
+      {isEdit && tab === 'progress' && ternaId !== null && <TernaProgress ternaId={ternaId} />}
 
       <div className={`space-y-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-6 ${
-        isEdit && tab === 'analytics' ? 'hidden' : ''
+        isEdit && tab !== 'builder' ? 'hidden' : ''
       }`}>
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField label={t('ternas.code')} required value={ternaCode} disabled={!canWrite || isEdit}
@@ -177,23 +229,47 @@ export function TernaBuilderPage() {
                     const next = [...facilityIds];
                     next[slot] = e.target.value === '' ? '' : Number(e.target.value);
                     setFacilityIds(next);
+                    const choices = [...facilitatorChoice];
+                    choices[slot] = undefined;
+                    setFacilitatorChoice(choices);
                   }}
                 >
                   <option value="">—</option>
-                  {facilityOptions.map((facility) => (
+                  {facilityOptions.filter((facility) => facility.facilityType === settingOf[ternaType]).map((facility) => (
                     <option key={facility.id} value={facility.id}
                       disabled={facilityIds.includes(facility.id) && facilityIds[slot] !== facility.id}>
                       {facility.facilityCode} — {facility.name}
                     </option>
                   ))}
                 </select>
-                <span className="w-full truncate text-xs text-neutral-500 sm:w-56">
-                  {t('facilities.internalFacilitator')}:{' '}
-                  {facilityIds[slot] !== '' ? facilitatorOf.get(facilityIds[slot] as number) ?? '—' : '—'}
-                </span>
+                {canAssign ? (
+                  <select aria-label={t('facilities.internalFacilitator')}
+                    className="w-full rounded-lg border border-neutral-300 px-2 py-2 text-sm sm:w-56 disabled:bg-neutral-100"
+                    disabled={facilityIds[slot] === ''}
+                    value={effectiveFacilitator(slot)}
+                    onChange={(e) => {
+                      const choices = [...facilitatorChoice];
+                      choices[slot] = e.target.value === '' ? '' : Number(e.target.value);
+                      setFacilitatorChoice(choices);
+                    }}>
+                    <option value="">{t('facilities.internalFacilitator')}: —</option>
+                    {(facilitatorOptions.data ?? []).map((u) => (
+                      <option key={u.id} value={u.id}>{u.fullName}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="w-full truncate text-xs text-neutral-500 sm:w-56">
+                    {t('facilities.internalFacilitator')}:{' '}
+                    {facilityIds[slot] !== '' ? facilitatorOf.get(facilityIds[slot] as number) ?? '—' : '—'}
+                  </span>
+                )}
               </div>
             ))}
           </div>
+          {canAssign && <p className="mt-1 text-xs text-neutral-500">{t('facilities.facilitator.help')}</p>}
+          {canAssign && facilitatorTwice && (
+            <p className="mt-1 text-xs font-medium text-warning">{t('ternas.facilitatorTwice')}</p>
+          )}
         </fieldset>
 
         <fieldset>
@@ -246,5 +322,18 @@ export function TernaBuilderPage() {
         )}
       </div>
     </div>
+  );
+}
+
+/** The terna's three facilities × every instrument (Simone's feedback #5). */
+function TernaProgress({ ternaId }: { ternaId: number }) {
+  const { t } = useTranslation();
+  const { data, isLoading } = useTernaProgress(ternaId);
+  if (isLoading) return <Spinner label={t('common.loading')} />;
+  return (
+    <ProgressMatrix rows={data ?? []} tasks={[
+      'GAS_SET', 'QCNC_INTERNAL_FACILITATOR', 'DTCRO_LONG_FORM', 'QCNC_TERNA_COORDINATOR_OWN',
+      'QCNC_TERNA_COORDINATOR_DELEGATION', 'DTCRO_DELEGATION', 'QUALITY_DOCUMENTS', 'PARTICIPATION_CHECKLIST',
+    ]} />
   );
 }

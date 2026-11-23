@@ -47,6 +47,7 @@ public final class StandardAppDtos {
     }
 
     /** One cycle of the facility's accreditation history (v0.2 register §6). */
+    /** {@code sequenceNumber} is the facility's own ordinal: its n-th cycle in the programme (null = not taking part). */
     public record HistoryCycleDto(Long cycleId, String cycleCode, Integer sequenceNumber, String activity,
                                   Map<String, List<String>> excellencePointsByQuestionnaire,
                                   List<DocumentApplicationDto> documentApplications) {

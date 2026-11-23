@@ -1,0 +1,436 @@
+# osv-scanner config for CONSTRAINTS.md (Security: deps row, exception E3).
+# Baseline of the high/critical advisories present when constraints were adopted
+# (2026-11-16). Each expires on 2026-12-16: by then upgrade (Spring Boot 3.5.3 ->
+# 3.5.16 in both backends; axios/vite/zod/... in both frontends) or re-justify
+# per advisory. Never add an entry here to make a new advisory pass — fix it.
+# Run with: osv-scanner scan source -r --config osv-scanner.toml .
+
+[[IgnoredVulns]]
+id = "GHSA-3pq3-5fj3-cg6v"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): axios 1.18.1, CVSS 7.0, in frontend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-542g-h47m-68v8"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): axios 1.18.1, CVSS 8.2, in frontend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-c29m-xwm3-cm6r"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): axios 1.18.1, CVSS 8.2, in frontend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-m8m8-qj5v-23w3"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): axios 1.18.1, CVSS 7.6, in frontend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-mghh-pgcx-3jjj"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): axios 1.18.1, CVSS 8.2, in frontend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-r4gj-5m52-g5wh"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): axios 1.18.1, CVSS 7.0, in frontend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-x97p-jq2g-jp4f"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): axios 1.18.1, CVSS 8.3, in frontend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-73wf-gq98-2v4g"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): browserslist 4.28.5, CVSS 7.5, in frontend"
+
+[[IgnoredVulns]]
+id = "GHSA-c83g-rgw3-j3cx"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): browserslist 4.28.5, CVSS 7.5, in frontend"
+
+[[IgnoredVulns]]
+id = "GHSA-7hhh-6rmp-j9qf"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): com.fasterxml.jackson.core:jackson-core 2.19.1, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-p6pp-m3f8-5c89"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): com.fasterxml.jackson.core:jackson-core 2.19.1, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-r7wm-3cxj-wff9"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): com.fasterxml.jackson.core:jackson-core 2.19.1, CVSS 8.7, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-cxp5-3px4-pw24"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): com.fasterxml.jackson.core:jackson-databind 2.19.1, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-j3rv-43j4-c7qm"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): com.fasterxml.jackson.core:jackson-databind 2.19.1, CVSS 8.1, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-q4xh-88c3-wmh7"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): com.fasterxml.jackson.core:jackson-databind 2.19.1, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-rmj7-2vxq-3g9f"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): com.fasterxml.jackson.core:jackson-databind 2.19.1, CVSS 8.1, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-wv8q-qhhj-9h54"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): com.fasterxml.jackson.core:jackson-databind 2.19.1, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-g9gq-3pfx-2gw2"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer 20240325.1, CVSS 8.6, in website"
+
+[[IgnoredVulns]]
+id = "GHSA-8r9p-f939-6h3c"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): follow-redirects 1.16.0, CVSS 8.2, in frontend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-mrwp-f3q8-3g9p"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): follow-redirects 1.16.0, CVSS 8.2, in frontend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-q3jh-wrc6-jgq8"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): follow-redirects 1.16.0, CVSS 8.2, in frontend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-g3pr-3p32-fp23"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.micrometer:micrometer-core 1.15.1, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-w737-wx49-qj23"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.micrometer:micrometer-core 1.15.1, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-558v-64gr-wgg4"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.netty:netty-codec 4.1.122.Final, CVSS 8.7, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-mj4r-2hfc-f8p6"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.netty:netty-codec 4.1.122.Final, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-57rv-r2g8-2cj3"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.netty:netty-codec-http 4.1.122.Final, CVSS 7.3, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-6jqx-86gh-f27w"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.netty:netty-codec-http 4.1.122.Final, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-f6hv-jmp6-3vwv"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.netty:netty-codec-http 4.1.122.Final, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-fghv-69vj-qj49"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.netty:netty-codec-http 4.1.122.Final, CVSS unscored, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-jppx-w49h-x2qq"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.netty:netty-codec-http 4.1.122.Final, CVSS 8.7, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-mvh2-crg5-v77c"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.netty:netty-codec-http 4.1.122.Final, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-pwqr-wmgm-9rr8"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.netty:netty-codec-http 4.1.122.Final, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-93wv-jw9v-4972"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.netty:netty-codec-http2 4.1.122.Final, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-prj3-ccx8-p6x4"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.netty:netty-codec-http2 4.1.122.Final, CVSS 8.2, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-w9fj-cfpg-grvv"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.netty:netty-codec-http2 4.1.122.Final, CVSS 8.7, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-3qp7-7mw8-wx86"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.netty:netty-handler 4.1.122.Final, CVSS 8.1, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-c4c3-7fpv-j4q5"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.netty:netty-handler 4.1.122.Final, CVSS 9.1, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-c653-97m9-rcg9"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.netty:netty-handler 4.1.122.Final, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-x4gw-5cx5-pgmh"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): io.netty:netty-handler 4.1.122.Final, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-gfr2-rv44-r23c"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): markdown-it 14.3.0, CVSS 7.5, in website"
+
+[[IgnoredVulns]]
+id = "GHSA-r7fv-28h4-cvq7"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): markdown-it 14.3.0, CVSS 7.5, in website"
+
+[[IgnoredVulns]]
+id = "GHSA-28wg-ghj8-5hjv"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): nanoid 3.3.15, CVSS 8.2, in frontend"
+
+[[IgnoredVulns]]
+id = "GHSA-2v37-7h3g-55p8"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): nanoid 3.3.15, CVSS 8.2, in frontend"
+
+[[IgnoredVulns]]
+id = "GHSA-25xr-qj8w-c4vf"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-563x-q5rq-57qp"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-5m62-pw8w-7w9f"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 9.1, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-5mp6-jrq3-r938"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-9xv2-5v5q-p794"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 9.8, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-fpj8-gq4v-p354"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 9.1, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-fv25-8xcx-gqjc"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 7.3, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-gcx9-497g-6cp6"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 9.1, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-gqp3-2cvr-x8m3"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-gx5v-xp9w-j4cg"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-h3x4-894j-xpx5"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 9.1, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-h6fc-48rj-7qqh"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 9.8, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-h792-v28v-ppgr"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 7.3, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-mgp5-rv84-w37q"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-mqg3-r7h5-24x4"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 9.1, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-r29c-68gh-xp6x"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 9.8, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-rv64-5gf8-9qq8"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-vfww-5hm6-hx2j"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 9.6, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-wmwf-9ccg-fff5"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 7.7, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-wr62-c79q-cv37"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-x4m4-345f-5h5g"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.apache.tomcat.embed:tomcat-embed-core 10.1.42, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-rqfh-9r24-8c9r"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.assertj:assertj-core 3.27.3, CVSS 8.2, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-98qh-xjc8-98pq"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.postgresql:postgresql 42.7.7, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-j92g-9f8w-j867"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.postgresql:postgresql 42.7.7, CVSS 8.2, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-wwpq-f5c3-7hvx"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.springframework.boot:spring-boot 3.5.3, CVSS 7.0, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-8hfc-fq58-r658"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.springframework.boot:spring-boot-starter-actuator 3.5.3, CVSS 8.2, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-mgvc-8q2h-5pgc"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.springframework.boot:spring-boot-starter-actuator 3.5.3, CVSS 8.2, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-88fw-v6x4-3f58"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.springframework.data:spring-data-commons 3.5.1, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-9fw2-h3hf-293r"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.springframework.data:spring-data-commons 3.5.1, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-8v5q-rhf3-jphm"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.springframework.security:spring-security-core 6.5.1, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-mf92-479x-3373"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.springframework.security:spring-security-web 6.5.1, CVSS 9.1, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-jmp9-x22r-554x"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.springframework:spring-core 6.2.8, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-r5w3-xv2f-j59q"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.springframework:spring-expression 6.2.8, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-3chg-m5w7-qfv5"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.springframework:spring-webmvc 6.2.8, CVSS 7.1, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-j9f9-w8pj-32f8"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.springframework:spring-webmvc 6.2.8, CVSS 9.8, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-pc63-qcmh-9cmg"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.springframework:spring-webmvc 6.2.8, CVSS 9.8, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-x23c-287f-qqv5"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): org.springframework:spring-webmvc 6.2.8, CVSS 7.5, in backend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-r28c-9q8g-f849"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): postcss 8.5.16, CVSS 7.5, in frontend"
+
+[[IgnoredVulns]]
+id = "GHSA-c8x8-7fp4-3x9w"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): prosemirror-view 1.42.2, CVSS 8.5, in website"
+
+[[IgnoredVulns]]
+id = "GHSA-qwww-vcr4-c8h2"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): react-router 7.18.1, CVSS 7.1, in frontend"
+
+[[IgnoredVulns]]
+id = "GHSA-68fv-2mgg-jv7q"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): source-map-js 1.2.1, CVSS 8.7, in frontend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-587h-7wmj-h5pm"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): vite 6.4.3, CVSS 7.5, in frontend+website"
+
+[[IgnoredVulns]]
+id = "GHSA-mrhx-c7xc-m3w5"
+ignoreUntil = 2026-12-16T00:00:00Z
+reason = "Adoption baseline (E3): zod 3.25.76, CVSS 8.2, in frontend+website"

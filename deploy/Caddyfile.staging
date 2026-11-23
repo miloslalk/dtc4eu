@@ -1,0 +1,22 @@
+# Staging web tier: plain HTTP inside the edge network; the production Caddy
+# terminates TLS for STAGING_DOMAIN and proxies here (see Caddyfile).
+:80 {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy platform-api:8080
+	}
+
+	handle {
+		root * /srv/platform
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		X-Robots-Tag "noindex, nofollow"
+		-Server
+	}
+}

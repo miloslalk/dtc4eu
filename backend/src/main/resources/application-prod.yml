@@ -11,3 +11,8 @@ spring:
 logging:
   level:
     eu.dtc4eu: INFO
+
+dtc4eu:
+  security:
+    # FIX-LIST X4: require the seeded admin to change the published password
+    force-seed-admin-rotation: true

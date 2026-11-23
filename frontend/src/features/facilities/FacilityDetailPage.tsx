@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../components/PageHeader';
 import { Button } from '../../components/Button';
@@ -8,12 +8,14 @@ import { StatusTag } from '../../components/StatusTag';
 import { Spinner } from '../../components/Spinner';
 import { ProfileForm } from '../../components/ProfileForm';
 import { EmptyState } from '../../components/EmptyState';
+import { ClassificationBadge } from '../../components/ClassificationBadge';
 import { useAuth } from '../../lib/auth';
 import { useCycle } from '../../lib/cycle';
 import { apiErrorMessage } from '../../lib/api';
 import { FacilityScoresTab } from '../scoring/FacilityScoresTab';
 import { useQuestionnaire, useQuestionnaires } from '../questionnaires/api';
 import { cycleLabel } from '../../lib/types';
+import { facilityCycleLabel } from '../../lib/ordinal';
 import {
   ACTIVITIES, FACILITY_TYPES, MEMBER_CATEGORIES, STANDARD_TYPES, SUBTYPES_BY_TYPE,
   useAddMember, useDeleteDocumentApplication, useDocumentApplications, useFacilitatorPicker, useFacility,
@@ -36,13 +38,17 @@ import {
 } from './api';
 
 type Tab = 'overview' | 'participation' | 'members' | 'scores' | 'sag' | 'qcnc';
+const TABS: Tab[] = ['overview', 'participation', 'members', 'scores', 'sag', 'qcnc'];
 
 export function FacilityDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams();
   const facilityId = Number(id);
   const { data: facility, isLoading } = useFacility(facilityId);
-  const [tab, setTab] = useState<Tab>('overview');
+  // ?tab= lets the checklist, dashboard and questionnaire list deep-link (Simone's feedback #5)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab: Tab = TABS.includes(searchParams.get('tab') as Tab) ? searchParams.get('tab') as Tab : 'overview';
+  const setTab = (next: Tab) => setSearchParams(next === 'overview' ? {} : { tab: next }, { replace: true });
 
   if (isLoading || !facility) {
     return <Spinner label={t('common.loading')} />;
@@ -95,8 +101,13 @@ export function FacilityDetailPage() {
         ))}
       </div>
 
-      {tab === 'overview' && <OverviewTab facility={facility} />}
-      {tab === 'participation' && <ParticipationTab facilityId={facilityId} />}
+      {tab === 'overview' && (
+        <div className="space-y-4">
+          <FacilitatorCard facilityId={facilityId} onEdit={() => setTab('participation')} />
+          <OverviewTab facility={facility} />
+        </div>
+      )}
+      {tab === 'participation' && <ParticipationTab facilityId={facilityId} onOpenTab={setTab} />}
       {tab === 'members' && <MembersTab facilityId={facilityId} />}
       {tab === 'scores' && <FacilityScoresTab facilityId={facilityId} />}
       {tab === 'sag' && <SagTab facilityId={facilityId} />}
@@ -187,7 +198,36 @@ function OverviewTab({ facility }: { facility: Facility }) {
   );
 }
 
-function ParticipationTab({ facilityId }: { facilityId: number }) {
+/** The selected cycle's Internal Facilitator, visible on the first screen (Simone's feedback #4). */
+function FacilitatorCard({ facilityId, onEdit }: { facilityId: number; onEdit: () => void }) {
+  const { t } = useTranslation();
+  const { hasAnyRole } = useAuth();
+  const { selected } = useCycle();
+  const { data: participation } = useParticipation(facilityId);
+  return (
+    <div className="flex max-w-xl flex-wrap items-center justify-between gap-3 rounded-xl border border-neutral-200
+      bg-white px-5 py-3 shadow-sm">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+          {t('facilities.internalFacilitator')}{selected && ` · ${cycleLabel(selected)}`}
+        </p>
+        <p className="text-sm font-semibold text-neutral-800">
+          {participation?.internalFacilitatorName ?? t('facilities.facilitator.none')}
+        </p>
+      </div>
+      {hasAnyRole('ADMIN', 'SUPER_ADMIN') && (
+        <Button variant="ghost" onClick={onEdit}>
+          {participation?.internalFacilitatorId ? t('common.edit') : t('facilities.facilitator.assign')}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/** Checklist rows that have their own screen link straight to it. */
+const CHECKLIST_TABS: Partial<Record<ChecklistKey, Tab>> = { sagDone: 'sag', qcncDone: 'qcnc' };
+
+function ParticipationTab({ facilityId, onOpenTab }: { facilityId: number; onOpenTab: (tab: Tab) => void }) {
   const { t } = useTranslation();
   const { hasAnyRole } = useAuth();
   const { readOnly } = useCycle();
@@ -258,6 +298,7 @@ function ParticipationTab({ facilityId }: { facilityId: number }) {
             {participation?.internalFacilitatorName ?? '—'}
           </p>
         )}
+        {isAdmin && <p className="-mt-2 text-xs text-neutral-500">{t('facilities.facilitator.help')}</p>}
 
         {/* Expert-feedback activity checklist: OK / NO / unset per cycle */}
         <fieldset className="rounded-lg border border-neutral-200 p-3">
@@ -265,7 +306,18 @@ function ParticipationTab({ facilityId }: { facilityId: number }) {
           <div className="space-y-2">
             {PARTICIPATION_CHECKLIST.map((key) => (
               <div key={key} className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-sm text-neutral-700">{t(`facilities.checklist.${key}`)}</span>
+                {CHECKLIST_TABS[key] ? (
+                  <button type="button" onClick={() => onOpenTab(CHECKLIST_TABS[key] as Tab)}
+                    className="text-left text-sm font-medium text-azure-500 hover:underline">
+                    {t(`facilities.checklist.${key}`)} →
+                  </button>
+                ) : key === 'dtcroLongFormDone' ? (
+                  <Link to="/responses" className="text-sm font-medium text-azure-500 hover:underline">
+                    {t(`facilities.checklist.${key}`)} →
+                  </Link>
+                ) : (
+                  <span className="text-sm text-neutral-700">{t(`facilities.checklist.${key}`)}</span>
+                )}
                 <span className="flex gap-1">
                   {([true, false, null] as const).map((value) => (
                     <button key={String(value)} type="button" disabled={!canWrite}
@@ -610,13 +662,8 @@ function HistorySection({ facilityId }: { facilityId: number }) {
   const { data: history } = useFacilityHistory(facilityId);
   if (!history) return null;
 
-  const cycleName = (cycle: { cycleCode: string; sequenceNumber: number | null }) => {
-    const span = cycle.cycleCode.replace(/^(\d{4})-\d{2}(\d{2})$/, '$1-$2');
-    if (cycle.sequenceNumber == null) return span;
-    const n = cycle.sequenceNumber;
-    const suffix = n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10 > 3 ? 0 : n % 10];
-    return `${n}${suffix} ${span}`;
-  };
+  const cycleName = (cycle: { cycleCode: string; sequenceNumber: number | null }) =>
+    facilityCycleLabel(cycle.cycleCode, cycle.sequenceNumber);
 
   return (
     <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
@@ -888,8 +935,9 @@ function QcncTab({ facilityId }: { facilityId: number }) {
 
   const board = useQcncBoard(facilityId);
   const save = useSaveQcncResults(facilityId);
-  // local edits per administration column, applied on top of the server marks
-  const [edits, setEdits] = useState<Record<string, Record<number, 'C' | 'NC'>>>({});
+  // local edits per administration column (C/NC mark + expert-feedback 1–4 score), applied on top of the server state
+  type CellEdit = { conformity?: 'C' | 'NC'; score?: number | null };
+  const [edits, setEdits] = useState<Record<string, Record<number, CellEdit>>>({});
   const [message, setMessage] = useState<string | null>(null);
 
   if (board.isLoading) return <Spinner label={t('common.loading')} />;
@@ -902,21 +950,40 @@ function QcncTab({ facilityId }: { facilityId: number }) {
 
   const serverMarks = (type: QcncAdministrationType): Record<number, 'C' | 'NC'> =>
     board.data!.administrations.find((a) => a.administrationType === type)?.conformityByStandard ?? {};
+  const serverScores = (type: QcncAdministrationType): Record<number, number> =>
+    board.data!.administrations.find((a) => a.administrationType === type)?.scoreByStandard ?? {};
   const markOf = (type: QcncAdministrationType, standardId: number): 'C' | 'NC' | undefined =>
-    edits[type]?.[standardId] ?? serverMarks(type)[standardId];
+    edits[type]?.[standardId]?.conformity ?? serverMarks(type)[standardId];
+  const scoreOf = (type: QcncAdministrationType, standardId: number): number | null => {
+    const edit = edits[type]?.[standardId];
+    if (edit && 'score' in edit) return edit.score ?? null;
+    return serverScores(type)[standardId] ?? null;
+  };
   const administeredBy = (type: QcncAdministrationType) =>
     board.data!.administrations.find((a) => a.administrationType === type)?.administeredByName ?? null;
 
+  const patchCell = (type: QcncAdministrationType, standardId: number, patch: CellEdit) =>
+    setEdits((prev) => ({
+      ...prev,
+      [type]: { ...prev[type], [standardId]: { ...prev[type]?.[standardId], ...patch } },
+    }));
   const setMark = (type: QcncAdministrationType, standardId: number, mark: 'C' | 'NC') =>
-    setEdits((prev) => ({ ...prev, [type]: { ...prev[type], [standardId]: mark } }));
+    patchCell(type, standardId, { conformity: mark });
+  const setScore = (type: QcncAdministrationType, standardId: number, score: number | null) =>
+    patchCell(type, standardId, { score });
 
   const saveColumn = async (type: QcncAdministrationType) => {
-    const merged = { ...serverMarks(type), ...edits[type] };
+    const marks = { ...serverMarks(type) };
+    const scores: Record<number, number | null> = { ...serverScores(type) };
+    for (const [id, edit] of Object.entries(edits[type] ?? {})) {
+      if (edit.conformity) marks[Number(id)] = edit.conformity;
+      if ('score' in edit) scores[Number(id)] = edit.score ?? null;
+    }
     try {
       await save.mutateAsync({
         administrationType: type,
-        results: Object.entries(merged).map(([standardId, conformity]) => ({
-          standardId: Number(standardId), conformity,
+        results: Object.entries(marks).map(([standardId, conformity]) => ({
+          standardId: Number(standardId), conformity, score: scores[Number(standardId)] ?? null,
         })),
       });
       setEdits((prev) => ({ ...prev, [type]: {} }));
@@ -926,6 +993,7 @@ function QcncTab({ facilityId }: { facilityId: number }) {
     }
   };
 
+  const meanByStandard = new Map(board.data.standardScores.map((s) => [s.standardId, s]));
   const clusters: QcncStandard['clusterCode'][] = ['Q1', 'Q2', 'Q3', 'Q4', 'Q5'];
   const idsToCodes = (ids: number[]) =>
     ids.map((id) => board.data!.standards.find((s) => s.id === id)?.letterCode ?? String(id));
@@ -961,6 +1029,49 @@ function QcncTab({ facilityId }: { facilityId: number }) {
           ))}
       </div>
 
+      {/* spec §6.5 meta-areas — feed the Summary Table's qualitative areas */}
+      <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+        <header className="border-b border-neutral-200 bg-blue-50 px-5 py-3">
+          <h3 className="text-sm font-bold text-blue-700">{t('facilities.qcncBoard.metaAreas.title')}</h3>
+          <p className="mt-0.5 text-xs text-neutral-500">{t('facilities.qcncBoard.metaAreas.hint')}</p>
+        </header>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-neutral-200 text-left text-xs text-neutral-500">
+                <th className="px-4 py-2">{t('facilities.qcncBoard.metaAreas.metaArea')}</th>
+                <th className="px-4 py-2">{t('facilities.qcncBoard.metaAreas.dtcroAreas')}</th>
+                {QCNC_ADMINISTRATIONS.map((type) => (
+                  <th key={type} className="px-4 py-2">{t(`facilities.qcncBoard.administrations.${type}`)}</th>
+                ))}
+                <th className="px-4 py-2">{t('facilities.qcncBoard.metaAreas.status')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {board.data.metaAreas.map((meta) => (
+                <tr key={meta.code} className="border-b border-neutral-100 last:border-0">
+                  <td className="px-4 py-1.5 font-mono text-xs font-semibold">
+                    {meta.code} <span className="font-normal text-neutral-500">({meta.clusterCodes.join(' + ')})</span>
+                  </td>
+                  <td className="px-4 py-1.5 font-mono text-xs">{meta.dtcroAreas.join(', ')}</td>
+                  {QCNC_ADMINISTRATIONS.map((type) => (
+                    <td key={type} className="px-4 py-1.5 font-mono text-xs">
+                      {meta.conformingByAdministration[type] != null
+                        ? `${meta.conformingByAdministration[type]} / ${meta.requiredStandards}` : '—'}
+                    </td>
+                  ))}
+                  <td className={`px-4 py-1.5 text-xs font-semibold ${
+                    meta.status === 'STRENGTH' ? 'text-success' : meta.status === 'WEAKNESS' ? 'text-error' : 'text-neutral-500'
+                  }`}>
+                    {t(`facilities.qcncBoard.metaAreas.statuses.${meta.status}`)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       {message && <p className="text-sm font-medium text-neutral-600">{message}</p>}
 
       {clusters.map((cluster) => (
@@ -984,6 +1095,7 @@ function QcncTab({ facilityId }: { facilityId: number }) {
                       </span>
                     </th>
                   ))}
+                  <th className="min-w-28 px-3 py-2 text-center">{t('facilities.qcncBoard.meanScore')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1006,6 +1118,7 @@ function QcncTab({ facilityId }: { facilityId: number }) {
                     </td>
                     {QCNC_ADMINISTRATIONS.map((type) => {
                       const mark = markOf(type, standard.id);
+                      const score = scoreOf(type, standard.id);
                       const writable = canWriteColumn(type);
                       return (
                         <td key={type} className="px-3 py-2 text-center">
@@ -1024,9 +1137,36 @@ function QcncTab({ facilityId }: { facilityId: number }) {
                               </button>
                             ))}
                           </span>
+                          <select
+                            value={score ?? ''}
+                            disabled={!writable || !mark}
+                            aria-label={t('facilities.qcncBoard.score')}
+                            onChange={(e) =>
+                              setScore(type, standard.id, e.target.value === '' ? null : Number(e.target.value))}
+                            className="mt-1 block w-full rounded-md border border-neutral-200 px-1 py-0.5 text-center text-xs text-neutral-700 disabled:opacity-50"
+                          >
+                            <option value="">{t('facilities.qcncBoard.noScore')}</option>
+                            {[1, 2, 3, 4].map((value) => (
+                              <option key={value} value={value}>{value}</option>
+                            ))}
+                          </select>
                         </td>
                       );
                     })}
+                    <td className="px-3 py-2 text-center">
+                      {meanByStandard.get(standard.id) ? (
+                        <>
+                          <span className="font-mono text-xs font-semibold text-neutral-700">
+                            {meanByStandard.get(standard.id)!.meanScore}
+                          </span>
+                          <span className="mt-0.5 block">
+                            <ClassificationBadge classification={meanByStandard.get(standard.id)!.classification} />
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-neutral-300">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -247,6 +247,14 @@ class ResponseFlowIT {
         ResponseEntity<Map> resubmit = rest.exchange("/api/v1/responses/" + responseId + "/submit",
                 HttpMethod.POST, new HttpEntity<>(facilitator), Map.class);
         assertThat(resubmit.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+
+        // spec INS-06: an item with stored answers is frozen, even for an admin
+        Map<String, Object> answered = new java.util.HashMap<>(staffItems.get(0));
+        answered.put("itemText", "Reworded after responses exist");
+        ResponseEntity<Map> frozenItem = rest.exchange(
+                "/api/v1/questionnaires/" + dtcroId + "/items/" + staffItems.get(0).get("id"),
+                HttpMethod.PUT, new HttpEntity<>(answered, admin()), Map.class);
+        assertThat(frozenItem.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
     }
 
     @Test

@@ -1,6 +1,10 @@
 package eu.dtc4eu;
 
 import eu.dtc4eu.security.dto.AuthDtos.TokenResponse;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -19,11 +23,16 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -327,5 +336,64 @@ class FacilityScoringIT {
         // the DTCRO Excellence Points of the cycle ride along as coordinate lists
         Map<String, List<String>> ep = (Map<String, List<String>>) cycle.get("excellencePointsByQuestionnaire");
         assertThat(ep.get("DTCRO")).hasSize(18).contains("1.d");
+    }
+
+    @Test
+    @Order(9)
+    void ternaWorkbookHasOneSheetPerFacilityWithTheEngineValues() throws IOException {
+        ResponseEntity<byte[]> export = rest.exchange(
+                "/api/v1/ternas/" + ternaId + "/analytics/export.xlsx?questionnaireId=" + dtcroId,
+                HttpMethod.GET, new HttpEntity<>(admin()), byte[].class);
+        assertThat(export.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(export.getHeaders().getContentDisposition().getFilename()).isEqualTo("TSC-1-DTCRO-terna-report.xlsx");
+
+        try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(export.getBody()))) {
+            List<String> sheets = new ArrayList<>();
+            workbook.forEach(sheet -> sheets.add(sheet.getSheetName()));
+            assertThat(sheets).containsExactly("F-SC-1", "F-SC-2", "F-SC-3", "TAB.2 Population");
+
+            // TAB.3 row "1.a" carries the hand-computed values of the grid test
+            Sheet first = workbook.getSheet("F-SC-1");
+            Row oneA = null;
+            for (Row row : first) {
+                if (row.getCell(0) != null && "1.a".equals(row.getCell(0).getStringCellValue())) {
+                    oneA = row;
+                    break;
+                }
+            }
+            assertThat(oneA).isNotNull();
+            assertThat(oneA.getCell(1).getNumericCellValue()).isEqualTo(3.0);   // U-I
+            assertThat(oneA.getCell(6).getNumericCellValue()).isEqualTo(4.0);   // Com
+            assertThat(oneA.getCell(9).getStringCellValue()).isEqualTo("INTERMEDIATE");
+        }
+    }
+
+    @Test
+    @Order(10)
+    void researchBundleCarriesWideDataAndSpssSyntax() throws IOException {
+        ResponseEntity<byte[]> export = rest.exchange(
+                "/api/v1/responses/export/research?questionnaireId=" + dtcroId + "&status=SUBMITTED",
+                HttpMethod.GET, new HttpEntity<>(admin()), byte[].class);
+        assertThat(export.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        Map<String, String> files = new HashMap<>();
+        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(export.getBody()))) {
+            for (ZipEntry entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
+                files.put(entry.getName(), new String(zip.readAllBytes(), StandardCharsets.UTF_8));
+            }
+        }
+        assertThat(files).containsKeys("data.csv", "codebook.csv");
+        String sps = files.entrySet().stream().filter(e -> e.getKey().endsWith(".sps"))
+                .map(Map.Entry::getValue).findFirst().orElseThrow();
+        assertThat(files.keySet()).anyMatch(name -> name.endsWith(".R"));
+
+        String[] lines = files.get("data.csv").split("\r\n");
+        List<String> header = List.of(lines[0].split(","));
+        assertThat(header).startsWith("response_id", "form", "facility", "subject");
+        assertThat(header).contains("USER_1_a", "p_age");
+        assertThat(lines.length - 1).isPositive();
+        // syntax reads every column and labels the Likert scale
+        assertThat(sps).contains("GET DATA", "USER_1_a F2.0", "VALUE LABELS");
+        assertThat(files.get("codebook.csv")).contains("USER_1_a,USER-1.a");
     }
 }

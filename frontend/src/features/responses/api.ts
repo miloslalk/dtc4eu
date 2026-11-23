@@ -151,3 +151,55 @@ export function useScores(responseId: number, enabled: boolean) {
     enabled,
   });
 }
+
+/* ------------------------- paper import (spec COL-06) ------------------------- */
+
+export type ImportRowOutcome = 'VALID' | 'INVALID' | 'SUBMITTED' | 'DRAFT';
+
+export interface ImportRow {
+  row: number;
+  subjectCode: string | null;
+  answered: number;
+  expected: number;
+  errors: string[];
+  warnings: string[];
+  outcome: ImportRowOutcome;
+  responseId: number | null;
+}
+
+export interface ImportReport {
+  facilityCode: string;
+  formCode: string;
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  committed: boolean;
+  submitted: number;
+  drafts: number;
+  fileErrors: string[];
+  rows: ImportRow[];
+}
+
+export interface ImportTarget {
+  questionnaireId: number;
+  formId: number;
+  facilityId: number;
+}
+
+/** Validates (commit=false) or imports (commit=true) a filled XLSX template. */
+export function useImportResponses() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ target, file, commit }: { target: ImportTarget; file: File; commit: boolean }) => {
+      const body = new FormData();
+      body.append('file', file);
+      return (await api.post<ImportReport>('/responses/import', body, {
+        params: { ...target, commit },
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })).data;
+    },
+    onSuccess: (report) => {
+      if (report.committed) queryClient.invalidateQueries({ queryKey: ['responses'] });
+    },
+  });
+}

@@ -21,4 +21,8 @@ public interface FacilityQuestionnaireScoreRepository extends JpaRepository<Faci
     void deleteByFacilityIdAndAnnualCycleIdAndQuestionnaireId(@Param("facilityId") Long facilityId,
                                                               @Param("cycleId") Long annualCycleId,
                                                               @Param("questionnaireId") Long questionnaireId);
+
+    /** The questionnaire's TAB.5 band limits [critical max, efficacy min] (V15); native to stay off questionnaire entities. */
+    @Query(value = "select band_critical_max, band_efficacy_min from questionnaires where id = :id", nativeQuery = true)
+    java.util.List<Object[]> findBands(@Param("id") Long questionnaireId);
 }

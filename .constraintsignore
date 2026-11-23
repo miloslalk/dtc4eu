@@ -1,0 +1,6 @@
+# Paths the floor guard (scripts/floor-guard.mjs) skips. Every line here must
+# match a row in the CONSTRAINTS.md Exceptions table (owner + expiry).
+# E1: image builds skip tests; the suite runs in check:full / CI before deploy
+deploy/*.Dockerfile
+# E2: the guard's own pattern lists contain every suppression it looks for
+scripts/floor-guard.mjs

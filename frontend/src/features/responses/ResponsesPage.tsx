@@ -17,6 +17,7 @@ import {
   RESPONDENT_CATEGORIES, useCreateResponse, useResponses,
   type RespondentCategory, type ResponseFilters, type ResponseRow,
 } from './api';
+import { ImportResponsesModal } from './ImportResponsesModal';
 
 export function ResponsesPage() {
   const { t } = useTranslation();
@@ -24,12 +25,15 @@ export function ResponsesPage() {
   const { hasAnyRole } = useAuth();
   const { readOnly } = useCycle();
   const canExport = hasAnyRole('RESEARCH_TEAM', 'ADMIN', 'SUPER_ADMIN');
+  const canImport = hasAnyRole('SUPER_ADMIN', 'ADMIN', 'UPPER_COORDINATOR', 'COORDINATOR', 'AUDIT_COORDINATOR',
+    'INTERNAL_FACILITATOR');
 
   const [filters, setFilters] = useState<ResponseFilters>({ page: 0 });
   const { data, isLoading } = useResponses(filters);
   const facilities = useFacilities({ page: 0, size: 200 });
   const questionnaires = useQuestionnaires();
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const columns: Column<ResponseRow>[] = [
     { key: 'id', header: '#', render: (r) => <span className="font-mono text-xs text-neutral-400">{r.id}</span> },
@@ -61,6 +65,15 @@ export function ResponsesPage() {
       status: filters.status || undefined,
     }, 'response-items.csv');
 
+  // SPSS/R bundle (REP-05/07): wide layout, so one questionnaire at a time
+  const handleResearchExport = () =>
+    downloadFile('/responses/export/research', {
+      questionnaireId: filters.questionnaireId,
+      facilityId: filters.facilityId || undefined,
+      category: filters.category || undefined,
+      status: filters.status || undefined,
+    }, 'research-export.zip');
+
   return (
     <div>
       <PageHeader
@@ -68,6 +81,15 @@ export function ResponsesPage() {
         actions={
           <>
             {canExport && <Button variant="ghost" onClick={handleExport}>{t('responses.exportItems')}</Button>}
+            {canExport && (
+              <Button variant="ghost" onClick={handleResearchExport} disabled={!filters.questionnaireId}
+                title={filters.questionnaireId ? undefined : t('responses.researchExportHint')}>
+                {t('responses.researchExport')}
+              </Button>
+            )}
+            {canImport && !readOnly && (
+              <Button variant="ghost" onClick={() => setImportOpen(true)}>{t('responses.import.open')}</Button>
+            )}
             {!readOnly && <Button onClick={() => setCreateOpen(true)}>{t('responses.new')}</Button>}
           </>
         }
@@ -116,6 +138,7 @@ export function ResponsesPage() {
       />
 
       <NewResponseModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      <ImportResponsesModal open={importOpen} onClose={() => setImportOpen(false)} />
     </div>
   );
 }

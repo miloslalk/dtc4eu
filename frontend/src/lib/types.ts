@@ -1,4 +1,5 @@
 // Shared API types mirroring the backend DTOs.
+import { shortCycleCode } from './ordinal';
 
 export interface PageResponse<T> {
   content: T[];
@@ -37,6 +38,8 @@ export interface UserInfo {
   email: string | null;
   preferredLang: string;
   roles: RoleCode[];
+  /** temporary or published password: only the change-password screen is usable (X4) */
+  mustChangePassword: boolean;
 }
 
 export interface TokenResponse {
@@ -45,7 +48,7 @@ export interface TokenResponse {
   user: UserInfo;
 }
 
-/** Cycles overlap (v0.2 register §8) — several can be OPEN at once; sequenceNumber feeds "1st 2026-27" labels. */
+/** Cycles overlap (v0.2 register §8) — several can be OPEN at once; sequenceNumber is the derived programme order. */
 export interface CycleInfo {
   id: number;
   code: string;
@@ -53,15 +56,16 @@ export interface CycleInfo {
   endDate?: string | null;
   status: 'OPEN' | 'CLOSED' | 'ARCHIVED';
   sequenceNumber: number | null;
+  /** optional admin-chosen landing cycle for first visits (Q1) */
+  isDefault?: boolean;
 }
 
-/** "1st 2026-27"-style display label from the register (§8). */
-export function cycleLabel(cycle: Pick<CycleInfo, 'code' | 'sequenceNumber'>): string {
-  const shortSpan = cycle.code.replace(/^(\d{4})-\d{2}(\d{2})$/, '$1-$2');
-  if (cycle.sequenceNumber == null) return shortSpan;
-  const n = cycle.sequenceNumber;
-  const suffix = n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10 > 3 ? 0 : n % 10];
-  return `${n}${suffix} ${shortSpan}`;
+/**
+ * Global cycle label: the code only ("2025-26"). Ordinals are per facility and
+ * live in the facility history (see lib/ordinal.ts, Simone's feedback #1).
+ */
+export function cycleLabel(cycle: Pick<CycleInfo, 'code'>): string {
+  return shortCycleCode(cycle.code);
 }
 
 export interface ScopeInfo {

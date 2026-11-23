@@ -6,6 +6,7 @@ import { Button } from '../../components/Button';
 import { FilterBar } from '../../components/FilterBar';
 import { filterInputClass } from '../../components/fields';
 import { DataTable, type Column } from '../../components/DataTable';
+import { CycleEmptyMessage } from '../../components/CycleEmptyMessage';
 import { StatusTag } from '../../components/StatusTag';
 import { useAuth } from '../../lib/auth';
 import { downloadFile } from '../../lib/api';
@@ -51,7 +52,17 @@ export function FacilitiesPage() {
     {
       key: 'internalFacilitatorName',
       header: t('facilities.internalFacilitator'),
-      render: (f) => f.internalFacilitatorName ?? '—',
+      render: (f) => (
+        <span className="flex items-center gap-2">
+          {f.internalFacilitatorName ?? '—'}
+          {isAdmin && (
+            <button type="button" className="text-xs font-semibold text-azure-500 hover:underline"
+              onClick={(e) => { e.stopPropagation(); navigate(`/facilities/${f.id}?tab=participation`); }}>
+              {f.internalFacilitatorName ? t('common.edit') : t('facilities.facilitator.assign')}
+            </button>
+          )}
+        </span>
+      ),
     },
   ];
 
@@ -116,6 +127,7 @@ export function FacilitiesPage() {
         size={data?.size ?? 20}
         totalElements={data?.totalElements}
         onPageChange={(page) => setFilters({ ...filters, page })}
+        emptyMessage={<CycleEmptyMessage what={t('facilities.title').toLowerCase()} />}
         onRowClick={(f) => navigate(`/facilities/${f.id}`)}
       />
 

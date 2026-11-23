@@ -73,6 +73,7 @@ public class TernaAnalyticsService {
                 .findByQuestionnaireIdOrderBySortOrderAscIdAsc(questionnaireId).stream()
                 .collect(Collectors.toMap(QuestionnaireArea::getId, Function.identity()));
         Map<Long, String> facilityCodes = facilityCodes(terna);
+        Classification.Bands bands = facilityScoringService.bandsOf(questionnaireId);
 
         return benchmarkRepository.findByTernaIdAndQuestionnaireId(terna.getId(), questionnaireId).stream()
                 .map(row -> {
@@ -80,7 +81,7 @@ public class TernaAnalyticsService {
                     return new TernaBenchmarkRowDto(area != null ? area.getSortOrder() : null,
                             area != null ? area.getAreaCode() : null, area != null ? area.getName() : null,
                             row.getBestFacilityId(), facilityCodes.get(row.getBestFacilityId()),
-                            row.getBestScore(), Classification.of(row.getBestScore()));
+                            row.getBestScore(), Classification.of(row.getBestScore(), bands));
                 })
                 .sorted(Comparator.comparing(TernaBenchmarkRowDto::areaNo,
                         Comparator.nullsLast(Comparator.naturalOrder())))

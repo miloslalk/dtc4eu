@@ -5,12 +5,15 @@ import eu.dtc4eu.questionnaire.entity.Questionnaire;
 import eu.dtc4eu.questionnaire.entity.QuestionnaireArea;
 import eu.dtc4eu.questionnaire.entity.QuestionnaireForm;
 import eu.dtc4eu.questionnaire.entity.QuestionnaireItem;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public final class QuestionnaireDtos {
@@ -59,7 +62,9 @@ public final class QuestionnaireDtos {
     public record QuestionnaireDetailDto(Long id, String code, String name, int scaleMin, int scaleMax,
                                          boolean active, List<AreaDto> areas, List<ItemDto> items,
                                          List<FormDto> forms, List<AnchorDto> anchors,
-                                         List<FormAreaLabelDto> formAreaLabels) {
+                                         List<FormAreaLabelDto> formAreaLabels,
+                                         BigDecimal bandCriticalMax, BigDecimal bandEfficacyMin,
+                                         boolean hasResponses) {
     }
 
     public record CreateQuestionnaireRequest(
@@ -73,7 +78,9 @@ public final class QuestionnaireDtos {
             @NotBlank @Size(max = 150) String name,
             @Min(0) @Max(10) Integer scaleMin,
             @Min(1) @Max(10) Integer scaleMax,
-            Boolean active) {
+            Boolean active,
+            @DecimalMin("0") @DecimalMax("10") BigDecimal bandCriticalMax,
+            @DecimalMin("0") @DecimalMax("10") BigDecimal bandEfficacyMin) {
     }
 
     public record SaveAreaRequest(@NotBlank @Size(max = 20) String areaCode,

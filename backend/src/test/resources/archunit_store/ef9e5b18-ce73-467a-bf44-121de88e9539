@@ -1,0 +1,2 @@
+Method <eu.dtc4eu.user.service.UserAdminService.coordinatorOptions()> calls constructor <eu.dtc4eu.user.controller.UserAdminController$CoordinatorOption.<init>(java.lang.Long, java.lang.String, java.lang.String)> in (UserAdminService.java:79)
+Method <eu.dtc4eu.user.service.UserAdminService.coordinatorOptions()> has generic return type <java.util.List<eu.dtc4eu.user.controller.UserAdminController$CoordinatorOption>> with type argument depending on <eu.dtc4eu.user.controller.UserAdminController$CoordinatorOption> in (UserAdminService.java:0)

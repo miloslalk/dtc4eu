@@ -13,6 +13,7 @@ export interface TernaRow {
   finalForumDate: string | null;
   facilityCodes: string[];
   coordinatorNames: string[];
+  visitDates: VisitDate[];
 }
 
 export interface TernaFacility {

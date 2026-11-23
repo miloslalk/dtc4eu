@@ -114,6 +114,42 @@ class FoundationIT {
     }
 
     @Test
+    @Order(6)
+    void cycleWindowAndOrdinalAreValidated() {
+        // spec REG-01: 1 Sep N → 31 Dec N+1
+        ResponseEntity<Map> wrongStart = rest.exchange("/api/v1/cycles", HttpMethod.POST,
+                new HttpEntity<>(Map.of("code", "2028-2029", "startDate", "2028-01-01"), adminHeaders()), Map.class);
+        assertThat(wrongStart.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+
+        ResponseEntity<Map> notConsecutive = rest.exchange("/api/v1/cycles", HttpMethod.POST,
+                new HttpEntity<>(Map.of("code", "2028-2030"), adminHeaders()), Map.class);
+        assertThat(notConsecutive.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+
+        // a typed-in ordinal is ignored: it is derived from the start date, so a back-filled
+        // earlier cycle becomes no. 1 and pushes 2026-2027 to no. 2 (the old "-1undefined" bug)
+        ResponseEntity<Map> defaulted = rest.exchange("/api/v1/cycles", HttpMethod.POST,
+                new HttpEntity<>(Map.of("code", "2025-2026", "sequenceNumber", -1), adminHeaders()), Map.class);
+        assertThat(defaulted.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(defaulted.getBody().get("startDate")).isEqualTo("2025-09-01");
+        assertThat(defaulted.getBody().get("endDate")).isEqualTo("2026-12-31");
+        assertThat(defaulted.getBody().get("sequenceNumber")).isEqualTo(1);
+        ResponseEntity<List> cycles = rest.exchange("/api/v1/cycles", HttpMethod.GET,
+                new HttpEntity<>(adminHeaders()), List.class);
+        assertThat((List<Map<String, Object>>) cycles.getBody())
+                .filteredOn(c -> "2026-2027".equals(c.get("code")))
+                .extracting(c -> c.get("sequenceNumber")).containsExactly(2);
+
+        ResponseEntity<Map> badEnd = rest.exchange("/api/v1/cycles/" + defaulted.getBody().get("id"), HttpMethod.PUT,
+                new HttpEntity<>(Map.of("endDate", "2026-08-31"), adminHeaders()), Map.class);
+        assertThat(badEnd.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+
+        // leave the shared database with only the cycles other suites expect to be open
+        ResponseEntity<Map> closed = rest.exchange("/api/v1/cycles/" + defaulted.getBody().get("id"), HttpMethod.PUT,
+                new HttpEntity<>(Map.of("status", "CLOSED"), adminHeaders()), Map.class);
+        assertThat(closed.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
     @Order(4)
     void unknownCycleHeaderIsRejected() {
         HttpHeaders headers = adminHeaders();

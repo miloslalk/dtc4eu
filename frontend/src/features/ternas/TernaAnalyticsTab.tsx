@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Spinner } from '../../components/Spinner';
 import { ClassificationBadge } from '../../components/ClassificationBadge';
-import { apiErrorMessage } from '../../lib/api';
+import { apiErrorMessage, downloadFile } from '../../lib/api';
+import { Button } from '../../components/Button';
 import { useQuestionnaires } from '../questionnaires/api';
 import { useTernaBenchmarks, useTernaPopulation } from '../scoring/api';
 import { MEMBER_CATEGORIES } from '../facilities/api';
@@ -30,15 +31,23 @@ export function TernaAnalyticsTab({ ternaId }: { ternaId: number }) {
 
   return (
     <div className="space-y-6">
-      {scorable.length > 1 && (
-        <select
-          className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm"
-          value={effectiveId ?? ''}
-          onChange={(e) => setQuestionnaireId(Number(e.target.value))}
-        >
-          {scorable.map((q) => <option key={q.id} value={q.id}>{q.code}</option>)}
-        </select>
-      )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {scorable.length > 1 ? (
+          <select
+            className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm"
+            value={effectiveId ?? ''}
+            onChange={(e) => setQuestionnaireId(Number(e.target.value))}
+          >
+            {scorable.map((q) => <option key={q.id} value={q.id}>{q.code}</option>)}
+          </select>
+        ) : <span />}
+        {effectiveId !== null && (
+          <Button variant="ghost" onClick={() => downloadFile(`/ternas/${ternaId}/analytics/export.xlsx`,
+            { questionnaireId: effectiveId }, `terna-${ternaId}-report.xlsx`)}>
+            {t('ternas.analytics.exportXlsx')}
+          </Button>
+        )}
+      </div>
 
       <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
         <header className="border-b border-neutral-200 bg-blue-50 px-5 py-3">

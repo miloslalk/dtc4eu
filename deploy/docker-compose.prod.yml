@@ -14,9 +14,11 @@ services:
       SITE_DOMAIN: ${SITE_DOMAIN}
       PLATFORM_DOMAIN: ${PLATFORM_DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL}
+      STAGING_DOMAIN: ${STAGING_DOMAIN:-staging.localhost}
     volumes:
       - caddy_data:/data
       - caddy_config:/config
+    networks: [default, edge]
     depends_on:
       - platform-api
       - website-api
@@ -96,7 +98,7 @@ services:
     mem_limit: 768m
 
   minio:
-    image: minio/minio
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372  # community MinIO build (minio/minio left Docker Hub); pinned by digest — bump deliberately
     restart: unless-stopped
     command: server /data
     environment:
@@ -122,6 +124,11 @@ services:
       db:
         condition: service_healthy
     mem_limit: 256m
+
+networks:
+  # shared with the staging stack's web tier (docker-compose.staging.yml)
+  edge:
+    name: dtc4eu-edge
 
 volumes:
   pgdata:
