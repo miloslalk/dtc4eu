@@ -8,7 +8,6 @@ import { StatusTag } from '../../components/StatusTag';
 import { Spinner } from '../../components/Spinner';
 import { ProfileForm } from '../../components/ProfileForm';
 import { EmptyState } from '../../components/EmptyState';
-import { ClassificationBadge } from '../../components/ClassificationBadge';
 import { useAuth } from '../../lib/auth';
 import { useCycle } from '../../lib/cycle';
 import { apiErrorMessage } from '../../lib/api';
@@ -935,9 +934,8 @@ function QcncTab({ facilityId }: { facilityId: number }) {
 
   const board = useQcncBoard(facilityId);
   const save = useSaveQcncResults(facilityId);
-  // local edits per administration column (C/NC mark + expert-feedback 1–4 score), applied on top of the server state
-  type CellEdit = { conformity?: 'C' | 'NC'; score?: number | null };
-  const [edits, setEdits] = useState<Record<string, Record<number, CellEdit>>>({});
+  // local C/NC edits per administration column, applied on top of the server state (C or NC only: no scores)
+  const [edits, setEdits] = useState<Record<string, Record<number, 'C' | 'NC'>>>({});
   const [message, setMessage] = useState<string | null>(null);
 
   if (board.isLoading) return <Spinner label={t('common.loading')} />;
@@ -950,40 +948,21 @@ function QcncTab({ facilityId }: { facilityId: number }) {
 
   const serverMarks = (type: QcncAdministrationType): Record<number, 'C' | 'NC'> =>
     board.data!.administrations.find((a) => a.administrationType === type)?.conformityByStandard ?? {};
-  const serverScores = (type: QcncAdministrationType): Record<number, number> =>
-    board.data!.administrations.find((a) => a.administrationType === type)?.scoreByStandard ?? {};
   const markOf = (type: QcncAdministrationType, standardId: number): 'C' | 'NC' | undefined =>
-    edits[type]?.[standardId]?.conformity ?? serverMarks(type)[standardId];
-  const scoreOf = (type: QcncAdministrationType, standardId: number): number | null => {
-    const edit = edits[type]?.[standardId];
-    if (edit && 'score' in edit) return edit.score ?? null;
-    return serverScores(type)[standardId] ?? null;
-  };
+    edits[type]?.[standardId] ?? serverMarks(type)[standardId];
   const administeredBy = (type: QcncAdministrationType) =>
     board.data!.administrations.find((a) => a.administrationType === type)?.administeredByName ?? null;
 
-  const patchCell = (type: QcncAdministrationType, standardId: number, patch: CellEdit) =>
-    setEdits((prev) => ({
-      ...prev,
-      [type]: { ...prev[type], [standardId]: { ...prev[type]?.[standardId], ...patch } },
-    }));
   const setMark = (type: QcncAdministrationType, standardId: number, mark: 'C' | 'NC') =>
-    patchCell(type, standardId, { conformity: mark });
-  const setScore = (type: QcncAdministrationType, standardId: number, score: number | null) =>
-    patchCell(type, standardId, { score });
+    setEdits((prev) => ({ ...prev, [type]: { ...prev[type], [standardId]: mark } }));
 
   const saveColumn = async (type: QcncAdministrationType) => {
-    const marks = { ...serverMarks(type) };
-    const scores: Record<number, number | null> = { ...serverScores(type) };
-    for (const [id, edit] of Object.entries(edits[type] ?? {})) {
-      if (edit.conformity) marks[Number(id)] = edit.conformity;
-      if ('score' in edit) scores[Number(id)] = edit.score ?? null;
-    }
+    const marks = { ...serverMarks(type), ...edits[type] };
     try {
       await save.mutateAsync({
         administrationType: type,
         results: Object.entries(marks).map(([standardId, conformity]) => ({
-          standardId: Number(standardId), conformity, score: scores[Number(standardId)] ?? null,
+          standardId: Number(standardId), conformity,
         })),
       });
       setEdits((prev) => ({ ...prev, [type]: {} }));
@@ -993,7 +972,6 @@ function QcncTab({ facilityId }: { facilityId: number }) {
     }
   };
 
-  const meanByStandard = new Map(board.data.standardScores.map((s) => [s.standardId, s]));
   const clusters: QcncStandard['clusterCode'][] = ['Q1', 'Q2', 'Q3', 'Q4', 'Q5'];
   const idsToCodes = (ids: number[]) =>
     ids.map((id) => board.data!.standards.find((s) => s.id === id)?.letterCode ?? String(id));
@@ -1090,12 +1068,14 @@ function QcncTab({ facilityId }: { facilityId: number }) {
                   {QCNC_ADMINISTRATIONS.map((type) => (
                     <th key={type} className="min-w-32 px-3 py-2 text-center">
                       {t(`facilities.qcncBoard.administrations.${type}`)}
+                      <span className="mt-0.5 block font-normal normal-case text-neutral-500">
+                        {t(`facilities.qcncBoard.when.${type}`)}
+                      </span>
                       <span className="mt-0.5 block font-normal normal-case text-neutral-400">
                         {administeredBy(type) ?? t('facilities.qcncBoard.notAdministered')}
                       </span>
                     </th>
                   ))}
-                  <th className="min-w-28 px-3 py-2 text-center">{t('facilities.qcncBoard.meanScore')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1103,9 +1083,6 @@ function QcncTab({ facilityId }: { facilityId: number }) {
                   <tr key={standard.id} className="border-b border-neutral-100 align-top last:border-0 odd:bg-blue-50/40">
                     <td className="max-w-md px-4 py-2">
                       <span className="mr-2 font-mono text-xs font-bold text-blue-600">{standard.letterCode}</span>
-                      {standard.mandatory && (
-                        <span title={t('facilities.qcncBoard.mandatory')} className="mr-1 text-gold-600">★</span>
-                      )}
                       <span className="text-neutral-800">{standard.description}</span>
                       <span className="mt-0.5 block text-[11px] uppercase tracking-wide text-neutral-400">
                         {t(`facilities.qcncBoard.types.${standard.standardType}`)}
@@ -1118,7 +1095,6 @@ function QcncTab({ facilityId }: { facilityId: number }) {
                     </td>
                     {QCNC_ADMINISTRATIONS.map((type) => {
                       const mark = markOf(type, standard.id);
-                      const score = scoreOf(type, standard.id);
                       const writable = canWriteColumn(type);
                       return (
                         <td key={type} className="px-3 py-2 text-center">
@@ -1137,36 +1113,9 @@ function QcncTab({ facilityId }: { facilityId: number }) {
                               </button>
                             ))}
                           </span>
-                          <select
-                            value={score ?? ''}
-                            disabled={!writable || !mark}
-                            aria-label={t('facilities.qcncBoard.score')}
-                            onChange={(e) =>
-                              setScore(type, standard.id, e.target.value === '' ? null : Number(e.target.value))}
-                            className="mt-1 block w-full rounded-md border border-neutral-200 px-1 py-0.5 text-center text-xs text-neutral-700 disabled:opacity-50"
-                          >
-                            <option value="">{t('facilities.qcncBoard.noScore')}</option>
-                            {[1, 2, 3, 4].map((value) => (
-                              <option key={value} value={value}>{value}</option>
-                            ))}
-                          </select>
                         </td>
                       );
                     })}
-                    <td className="px-3 py-2 text-center">
-                      {meanByStandard.get(standard.id) ? (
-                        <>
-                          <span className="font-mono text-xs font-semibold text-neutral-700">
-                            {meanByStandard.get(standard.id)!.meanScore}
-                          </span>
-                          <span className="mt-0.5 block">
-                            <ClassificationBadge classification={meanByStandard.get(standard.id)!.classification} />
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-neutral-300">—</span>
-                      )}
-                    </td>
                   </tr>
                 ))}
               </tbody>

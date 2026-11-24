@@ -212,7 +212,6 @@ function QcncPreview() {
               <li key={s.id} className="flex gap-3 px-3 py-1.5">
                 <span className="w-10 shrink-0 font-mono text-xs font-bold text-blue-600">{s.letterCode}</span>
                 <span className="flex-1 text-neutral-800">{s.description ?? '—'}</span>
-                {s.mandatory && <StatusTag tone="gold">{t('questionnaires.mandatory')}</StatusTag>}
               </li>
             ))}
           </ul>

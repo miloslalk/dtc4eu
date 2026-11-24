@@ -174,9 +174,8 @@
       "finalForumDone": "Forum Końcowe"
     },
     "qcncBoard": {
-      "intro": "Zgodność / Niezgodność dla każdego standardu jakości w trzech administracjach cyklu: samoocena Facylitatora Wewnętrznego, własna ocena Koordynatora Terny oraz ocena Koordynatora Terny dla delegacji wizytującej. ★ oznacza obowiązkowe standardy Q1 (1D, 1E, 1K, 1O, 1P, 1Q, 1R).",
+      "intro": "Zgodność / Niezgodność dla każdego standardu jakości (każdy standard ocenia się wyłącznie jako C lub NC) w trzech administracjach cyklu, w kolejności ich wykonywania: samoocena Facylitatora Wewnętrznego przed rozpoczęciem wizyt, ocena Koordynatorów Terny dla delegacji wizytującej po wizycie oraz własna ocena Koordynatora Terny po zakończeniu wszystkich trzech wizyt.",
       "standard": "Standard",
-      "mandatory": "Standard obowiązkowy",
       "notAdministered": "jeszcze nieprzeprowadzone",
       "strengthMeta": "Standardy mocne (C we wszystkich trzech)",
       "weaknessMeta": "Standardy słabe (NC we wszystkich trzech)",
@@ -194,16 +193,18 @@
         "TERNA_COORDINATOR_OWN": "Koordynator Terny",
         "TERNA_COORDINATOR_DELEGATION": "Koord. Terny — Delegacja"
       },
+      "when": {
+        "INTERNAL_FACILITATOR": "1 · przed wizytami",
+        "TERNA_COORDINATOR_DELEGATION": "2 · po wizycie",
+        "TERNA_COORDINATOR_OWN": "3 · po trzech wizytach"
+      },
       "types": {
         "ORGANIZATIONAL_STRUCTURAL": "Organizacyjno-strukturalny",
         "COMMUNITY_FUNCTIONAL": "Społecznościowo-funkcjonalny"
       },
-      "score": "Wynik (1–4)",
-      "noScore": "–",
-      "meanScore": "Średni wynik (TAB.5)",
       "metaAreas": {
         "title": "Jakościowe metaobszary",
-        "hint": "Liczy standardy wymagane do punktacji (7 na standard jakości) oznaczone jako C w każdej administracji. Metaobszar jest mocną stroną, gdy wszystkie są C, a słabą, gdy mniej niż połowa jest C — we wszystkich trzech administracjach. Jego obszary DTCRO stają się jakościowymi mocnymi lub słabymi obszarami placówki w Tabeli Podsumowującej.",
+        "hint": "Liczy standardy uwzględniane w metaobszarach (7 na standard jakości) oznaczone jako C w każdej administracji. Metaobszar jest mocną stroną, gdy wszystkie są C, a słabą, gdy mniej niż połowa jest C — we wszystkich trzech administracjach. Jego obszary DTCRO stają się jakościowymi mocnymi lub słabymi obszarami placówki w Tabeli Podsumowującej.",
         "metaArea": "Metaobszar",
         "dtcroAreas": "Obszary DTCRO",
         "status": "Wynik",
@@ -341,7 +342,7 @@
       },
       "qcnc": {
         "name": "QCNC (Zgodność / Niezgodność)",
-        "about": "Standardy Q1–Q5 w trzech administracjach: samoocena Facylitatora Wewnętrznego, ocena własna Koordynatora Terny oraz ocena delegacji."
+        "about": "Standardy Q1–Q5, oznaczane jako C lub NC w trzech administracjach: samoocena Facylitatora Wewnętrznego przed wizytami, ocena delegacji po wizycie oraz własna ocena Koordynatora Terny po trzech wizytach."
       },
       "qualityDocuments": {
         "name": "Formularz Oceny Dokumentów Jakości",
@@ -349,8 +350,7 @@
       }
     },
     "closePreview": "Zamknij podgląd",
-    "qcncPreviewHint": "Podgląd standardów QCNC. W zakładce QCNC placówki każdy standard oceniają trzy administracje: Facylitator Wewnętrzny, Koordynator Terny i delegacja.",
-    "mandatory": "Obowiązkowy"
+    "qcncPreviewHint": "Podgląd standardów QCNC. W zakładce QCNC placówki każdy standard jest oznaczany jako C lub NC trzy razy: przez Facylitatora Wewnętrznego przed wizytami, dla delegacji wizytującej po wizycie oraz przez Koordynatora Terny po wszystkich trzech wizytach."
   },
   "responses": {
     "title": "Odpowiedzi",

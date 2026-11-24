@@ -1,8 +1,12 @@
 /**
  * The shared Likert control (spec T6: built first). Generic over the
  * questionnaire's scale bounds — DTCRO uses 1–4 with the v0.2 anchors
- * (1 Not at all … 4 Very much) passed via `anchors`.
+ * (1 Not at all … 4 Very much) passed via `anchors`. Sentence-long anchors
+ * (ViVaCom 0–5) do not fit under the buttons: the chosen one is spelled out
+ * below the row instead, and every button keeps its anchor as a tooltip.
  */
+const SHORT_ANCHOR = 24;
+
 export function LikertScale({ min, max, value, onChange, disabled, anchors }: {
   min: number;
   max: number;
@@ -15,7 +19,10 @@ export function LikertScale({ min, max, value, onChange, disabled, anchors }: {
   for (let v = min; v <= max; v++) {
     steps.push(v);
   }
+  const short = Object.values(anchors ?? {}).every((label) => label.length <= SHORT_ANCHOR);
+  const chosen = value !== null ? anchors?.[value] : undefined;
   return (
+    <div>
     <div role="radiogroup" className="flex flex-wrap gap-1.5">
       {steps.map((step) => {
         const selected = value === step;
@@ -40,7 +47,7 @@ export function LikertScale({ min, max, value, onChange, disabled, anchors }: {
             >
               {step}
             </button>
-            {anchor && (
+            {anchor && short && (
               <span className={`text-center text-[10px] leading-tight ${
                 selected ? 'font-semibold text-blue-700' : 'text-neutral-400'
               }`}>
@@ -50,6 +57,10 @@ export function LikertScale({ min, max, value, onChange, disabled, anchors }: {
           </div>
         );
       })}
+    </div>
+    {!short && chosen && (
+      <p className="mt-1 text-xs font-medium text-blue-700">{value} = {chosen}</p>
+    )}
     </div>
   );
 }

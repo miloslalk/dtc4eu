@@ -174,9 +174,8 @@
       "finalForumDone": "Kapanış Forumu"
     },
     "qcncBoard": {
-      "intro": "Döngünün üç uygulamasında her kalite standardı için Uygunluk / Uygunsuzluk: İç Kolaylaştırıcının öz değerlendirmesi, Terna Koordinatörünün kendi değerlendirmesi ve Terna Koordinatörünün ziyaret eden heyet için değerlendirmesi. ★ zorunlu Q1 standartlarını gösterir (1D, 1E, 1K, 1O, 1P, 1Q, 1R).",
+      "intro": "Döngünün üç uygulamasında, yapıldıkları sırayla, her kalite standardı için Uygunluk / Uygunsuzluk (her standart yalnızca C veya NC ile yanıtlanır): ziyaretler başlamadan önce İç Kolaylaştırıcının öz değerlendirmesi, ziyaretten sonra Terna Koordinatörlerinin ziyaret eden heyet için değerlendirmesi ve üç ziyaretin tamamı bittikten sonra Terna Koordinatörünün kendi değerlendirmesi.",
       "standard": "Standart",
-      "mandatory": "Zorunlu standart",
       "notAdministered": "henüz uygulanmadı",
       "strengthMeta": "Güçlü standartlar (üçünde de C)",
       "weaknessMeta": "Zayıf standartlar (üçünde de NC)",
@@ -194,16 +193,18 @@
         "TERNA_COORDINATOR_OWN": "Terna Koordinatörü",
         "TERNA_COORDINATOR_DELEGATION": "Terna Koord. — Heyet"
       },
+      "when": {
+        "INTERNAL_FACILITATOR": "1 · ziyaretlerden önce",
+        "TERNA_COORDINATOR_DELEGATION": "2 · ziyaretten sonra",
+        "TERNA_COORDINATOR_OWN": "3 · üç ziyaretin sonunda"
+      },
       "types": {
         "ORGANIZATIONAL_STRUCTURAL": "Örgütsel-yapısal",
         "COMMUNITY_FUNCTIONAL": "Topluluk-işlevsel"
       },
-      "score": "Puan (1–4)",
-      "noScore": "–",
-      "meanScore": "Ortalama puan (TAB.5)",
       "metaAreas": {
         "title": "Nitel meta-alanlar",
-        "hint": "Puanlama için gereken standartlardan (kalite standardı başına 7) her uygulamada C olarak işaretlenenleri sayar. Bir meta-alan, üç uygulamanın hepsinde tümü C ise güçlü yön, yarısından azı C ise zayıf yöndür. DTCRO alanları Özet Tabloda tesisin nitel güçlü veya zayıf alanları olur.",
+        "hint": "Meta-alanlarda sayılan standartlardan (kalite standardı başına 7) her uygulamada C olarak işaretlenenleri sayar. Bir meta-alan, üç uygulamanın hepsinde tümü C ise güçlü yön, yarısından azı C ise zayıf yöndür. DTCRO alanları Özet Tabloda tesisin nitel güçlü veya zayıf alanları olur.",
         "metaArea": "Meta-alan",
         "dtcroAreas": "DTCRO alanları",
         "status": "Sonuç",
@@ -341,7 +342,7 @@
       },
       "qcnc": {
         "name": "QCNC (Uygunluk / Uygunsuzluk)",
-        "about": "Q1–Q5 standartları, üç uygulamada: İç Kolaylaştırıcının öz değerlendirmesi, Terna Koordinatörünün kendi değerlendirmesi ve heyetinki."
+        "about": "Q1–Q5 standartları, üç uygulamada C veya NC olarak işaretlenir: ziyaretlerden önce İç Kolaylaştırıcının öz değerlendirmesi, ziyaretten sonra heyetinki ve üç ziyaretin sonunda Terna Koordinatörünün kendi değerlendirmesi."
       },
       "qualityDocuments": {
         "name": "Kalite Belgesi Değerlendirme Formu",
@@ -349,8 +350,7 @@
       }
     },
     "closePreview": "Önizlemeyi kapat",
-    "qcncPreviewHint": "QCNC standartlarının önizlemesi. Tesisin QCNC sekmesinde her standart üç uygulama tarafından işaretlenir: İç Kolaylaştırıcı, Terna Koordinatörü ve heyet.",
-    "mandatory": "Zorunlu"
+    "qcncPreviewHint": "QCNC standartlarının önizlemesi. Tesisin QCNC sekmesinde her standart üç kez C veya NC olarak işaretlenir: ziyaretlerden önce İç Kolaylaştırıcı tarafından, ziyaretten sonra ziyaret eden heyet için ve üç ziyaretin sonunda bir Terna Koordinatörü tarafından."
   },
   "responses": {
     "title": "Yanıtlar",

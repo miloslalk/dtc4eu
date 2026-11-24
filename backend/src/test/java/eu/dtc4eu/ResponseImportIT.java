@@ -236,4 +236,27 @@ class ResponseImportIT {
         ResponseEntity<Map> junk = upload("not a spreadsheet".getBytes(), false, admin());
         assertThat(junk.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
+
+    /**
+     * Simone, 24 Nov 2026: a User is counted in one community per cycle. A paper
+     * row for a code that already answered as a User elsewhere is refused.
+     */
+    @Test
+    @Order(6)
+    @SuppressWarnings("unchecked")
+    void aUserWhoAlreadyAnsweredInAnotherCommunityIsRefused() throws IOException {
+        Long otherId = ((Number) rest.exchange("/api/v1/facilities", HttpMethod.POST, new HttpEntity<>(Map.of(
+                "facilityCode", "IMP-TC2", "facilityType", "TC", "name", "Import Test TC 2"), admin()), Map.class)
+                .getBody().get("id")).longValue();
+        ResponseEntity<Map> elsewhere = rest.exchange("/api/v1/responses", HttpMethod.POST, new HttpEntity<>(Map.of(
+                "questionnaireId", dtcroId, "formId", userFormId, "facilityId", otherId,
+                "subjectCode", "U-77"), admin()), Map.class);
+        assertThat(elsewhere.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+        ResponseEntity<Map> report = upload(workbook(List.of(completeRow("U-77"))), false, admin());
+        assertThat(report.getStatusCode()).isEqualTo(HttpStatus.OK);
+        List<Map<String, Object>> rows = (List<Map<String, Object>>) report.getBody().get("rows");
+        assertThat((List<String>) rows.get(0).get("errors"))
+                .anyMatch(e -> e.contains("already takes part in IMP-TC2 as USER"));
+    }
 }

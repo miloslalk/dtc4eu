@@ -14,13 +14,12 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,6 +39,9 @@ class FacilityIT {
     @Container
     @ServiceConnection
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16");
+
+    @Autowired
+    private JdbcTemplate jdbc;
 
     @Autowired
     private TestRestTemplate rest;
@@ -209,90 +211,56 @@ class FacilityIT {
     }
 
     /**
-     * Expert feedback (prototype annotations): each QCNC mark carries a 1–4
-     * score; the board reports the mean across administrations with its TAB.5
-     * classification — the intermediate band only exists through that mean.
+     * Simone, 24 Nov 2026: "In the QCNC Questionnaire, items are answered only
+     * with C or NC; there are no scores to assign." A score is refused; C/NC
+     * marks save as before and the board reports no scores.
      */
     @Test
     @Order(8)
     @SuppressWarnings("unchecked")
-    void qcncStandardScoresProduceMeanAndClassification() {
+    void qcncIsAnsweredWithCOrNcOnly() {
         ResponseEntity<Map> board = rest.exchange("/api/v1/facilities/" + facilityAId + "/qcnc-standards",
                 HttpMethod.GET, new HttpEntity<>(admin()), Map.class);
         assertThat(board.getStatusCode()).isEqualTo(HttpStatus.OK);
         List<Map<String, Object>> standards = (List<Map<String, Object>>) board.getBody().get("standards");
         assertThat(standards).isNotEmpty(); // V11 catalogue
         Number standardId = (Number) standards.get(0).get("id");
-
+        Number secondId = (Number) standards.get(1).get("id");
         HttpHeaders facilitator = headersOf("facilitatorA", "Facil1tatorA!");
-        ResponseEntity<Map> self = rest.exchange(
+
+        ResponseEntity<Map> scored = rest.exchange(
                 "/api/v1/facilities/" + facilityAId + "/qcnc-standards/INTERNAL_FACILITATOR", HttpMethod.PUT,
                 new HttpEntity<>(Map.of("results", List.of(Map.of(
                         "standardId", standardId, "conformity", "C", "score", 4))), facilitator), Map.class);
-        assertThat(self.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(scored.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat((String) scored.getBody().get("message")).contains("C or NC only");
 
-        ResponseEntity<Map> own = rest.exchange(
-                "/api/v1/facilities/" + facilityAId + "/qcnc-standards/TERNA_COORDINATOR_OWN", HttpMethod.PUT,
-                new HttpEntity<>(Map.of("results", List.of(Map.of(
-                        "standardId", standardId, "conformity", "NC", "score", 1))), admin()), Map.class);
-        assertThat(own.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-        // mean(4, 1) = 2.500 → INTERMEDIATE
-        List<Map<String, Object>> scores = (List<Map<String, Object>>) own.getBody().get("standardScores");
-        Map<String, Object> row = scores.stream()
-                .filter(s -> ((Number) s.get("standardId")).longValue() == standardId.longValue())
-                .findFirst().orElseThrow();
-        assertThat(new BigDecimal(String.valueOf(row.get("meanScore")))).isEqualByComparingTo("2.5");
-        assertThat(row.get("classification")).isEqualTo("INTERMEDIATE");
-
-        // scores outside 1–4 are rejected by validation
-        ResponseEntity<Map> invalid = rest.exchange(
+        ResponseEntity<Map> saved = rest.exchange(
                 "/api/v1/facilities/" + facilityAId + "/qcnc-standards/INTERNAL_FACILITATOR", HttpMethod.PUT,
-                new HttpEntity<>(Map.of("results", List.of(Map.of(
-                        "standardId", standardId, "conformity", "C", "score", 5))), facilitator), Map.class);
-        assertThat(invalid.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+                new HttpEntity<>(Map.of("results", List.of(
+                        Map.of("standardId", standardId, "conformity", "C"),
+                        Map.of("standardId", secondId, "conformity", "NC"))), facilitator), Map.class);
+        assertThat(saved.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> column = ((List<Map<String, Object>>) saved.getBody().get("administrations")).stream()
+                .filter(a -> "INTERNAL_FACILITATOR".equals(a.get("administrationType"))).findFirst().orElseThrow();
+        assertThat((Map<String, Object>) column.get("conformityByStandard"))
+                .containsEntry(String.valueOf(standardId), "C").containsEntry(String.valueOf(secondId), "NC");
+        assertThat(column).doesNotContainKey("scoreByStandard");
+        assertThat(saved.getBody()).doesNotContainKey("standardScores");
     }
 
-    /**
-     * Clearing a score (null) stores null and drops that administration from
-     * the skip-missing mean; a standard with marks but no scores has no mean.
-     * Builds on @Order(8): standard 0 scored 4 (facilitator) and 1 (coordinator).
-     */
+    /** Scores recorded before Simone's answer stay in the database but are no longer reported. */
     @Test
     @Order(9)
     @SuppressWarnings("unchecked")
-    void qcncClearedScoreLeavesTheMean() {
+    void qcncScoresRecordedEarlierAreNotReported() {
+        jdbc.update("update qcnc_standard_results set score = 4 where assessment_id in"
+                + " (select id from qcnc_assessments where facility_id = ?)", facilityAId);
         ResponseEntity<Map> board = rest.exchange("/api/v1/facilities/" + facilityAId + "/qcnc-standards",
                 HttpMethod.GET, new HttpEntity<>(admin()), Map.class);
-        List<Map<String, Object>> standards = (List<Map<String, Object>>) board.getBody().get("standards");
-        long scoredId = ((Number) standards.get(0).get("id")).longValue();
-        long unscoredId = ((Number) standards.get(1).get("id")).longValue();
-
-        Map<String, Object> cleared = new HashMap<>();
-        cleared.put("standardId", scoredId);
-        cleared.put("conformity", "C");
-        cleared.put("score", null);
-        ResponseEntity<Map> saved = rest.exchange(
-                "/api/v1/facilities/" + facilityAId + "/qcnc-standards/INTERNAL_FACILITATOR", HttpMethod.PUT,
-                new HttpEntity<>(Map.of("results", List.of(cleared,
-                        Map.of("standardId", unscoredId, "conformity", "NC"))),
-                        headersOf("facilitatorA", "Facil1tatorA!")), Map.class);
-        assertThat(saved.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-        Map<String, Object> facilitatorColumn = ((List<Map<String, Object>>) saved.getBody().get("administrations"))
-                .stream().filter(a -> "INTERNAL_FACILITATOR".equals(a.get("administrationType")))
-                .findFirst().orElseThrow();
-        assertThat((Map<String, Object>) facilitatorColumn.get("conformityByStandard"))
-                .containsKeys(String.valueOf(scoredId), String.valueOf(unscoredId));
-        assertThat((Map<String, Object>) facilitatorColumn.get("scoreByStandard")).isEmpty();
-
-        // only the coordinator's 1 remains → mean 1.000, CRITICAL; the unscored standard has no row
-        List<Map<String, Object>> scores = (List<Map<String, Object>>) saved.getBody().get("standardScores");
-        assertThat(scores).noneMatch(s -> ((Number) s.get("standardId")).longValue() == unscoredId);
-        Map<String, Object> row = scores.stream()
-                .filter(s -> ((Number) s.get("standardId")).longValue() == scoredId)
-                .findFirst().orElseThrow();
-        assertThat(new BigDecimal(String.valueOf(row.get("meanScore")))).isEqualByComparingTo("1");
-        assertThat(row.get("classification")).isEqualTo("CRITICAL");
+        assertThat(board.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(board.getBody()).doesNotContainKey("standardScores");
+        assertThat((List<Map<String, Object>>) board.getBody().get("administrations"))
+                .isNotEmpty().allSatisfy(a -> assertThat(a).doesNotContainKey("scoreByStandard"));
     }
 }

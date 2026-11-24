@@ -1,4 +1,5 @@
 import type { ProfileFieldDef, ProfileSchema } from '../features/questionnaires/api';
+import { setRowField } from '../lib/profileDerivation';
 
 type ProfileValue = Record<string, unknown>;
 
@@ -214,9 +215,7 @@ function GroupControl({ field, value, onChange, readOnly }: {
   if (!field.repeat) {
     const groupValue = (value ?? {}) as Record<string, unknown>;
     const setSub = (key: string, subValue: unknown) => {
-      const next = { ...groupValue };
-      if (subValue === undefined) delete next[key];
-      else next[key] = subValue;
+      const next = setRowField(subFields, groupValue, key, subValue);
       onChange(Object.keys(next).length === 0 ? undefined : next);
     };
     return (
@@ -236,9 +235,7 @@ function GroupControl({ field, value, onChange, readOnly }: {
     const rows = field.repeat.rows;
     const groupValue = (value ?? {}) as Record<string, Record<string, unknown>>;
     const setCell = (rowKey: string, subKey: string, cellValue: unknown) => {
-      const row = { ...(groupValue[rowKey] ?? {}) };
-      if (cellValue === undefined) delete row[subKey];
-      else row[subKey] = cellValue;
+      const row = setRowField(subFields, groupValue[rowKey] ?? {}, subKey, cellValue);
       const next = { ...groupValue };
       if (Object.keys(row).length === 0) delete next[rowKey];
       else next[rowKey] = row;
@@ -294,12 +291,7 @@ function GroupControl({ field, value, onChange, readOnly }: {
               <div key={sub.key} className="min-w-[8rem] flex-1">
                 <span className="mb-0.5 block text-[10px] font-semibold text-neutral-500">{sub.label}</span>
                 <FieldControl field={sub} value={row[sub.key]}
-                  onChange={(v) => {
-                    const nextRow = { ...row };
-                    if (v === undefined) delete nextRow[sub.key];
-                    else nextRow[sub.key] = v;
-                    setRow(index, nextRow);
-                  }}
+                  onChange={(v) => setRow(index, setRowField(subFields, row, sub.key, v))}
                   readOnly={readOnly} compact />
               </div>
             ))}

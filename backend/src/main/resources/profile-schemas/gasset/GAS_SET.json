@@ -272,7 +272,15 @@
            {"key": "disciplinary_area", "label": "L.6 DISCIPLINARY AREA (TABLE 2)", "type": "enum", "options": [
              "MSP: Medical-Healthcare-Psychiatric", "PSI: Psychological-Psychotherapeutic",
              "EDP: Educational-Pedagogical", "SAC: Socio-Anthropological-Cultural",
-             "AML: Arts-Crafts-Work", "AUS: Auxiliary Services", "REC: Recovery Orientation", "A: Other"]},
+             "AML: Arts-Crafts-Work", "AUS: Auxiliary Services", "REC: Recovery Orientation", "A: Other"],
+             "derivedFrom": {"field": "role", "map": {
+               "DS: Medical Director / Clinical Manager": "MSP: Medical-Healthcare-Psychiatric",
+               "MP: Psychiatric Doctor": "MSP: Medical-Healthcare-Psychiatric",
+               "PS: Psychotherapist": "PSI: Psychological-Psychotherapeutic",
+               "PL: Psychologist": "PSI: Psychological-Psychotherapeutic",
+               "PD: Pedagogue in the healthcare field": "EDP: Educational-Pedagogical",
+               "AS: Social Worker": "SAC: Socio-Anthropological-Cultural",
+               "AT: Art Therapist": "AML: Arts-Crafts-Work"}}},
            {"key": "service_months", "label": "L.7 Service in the current community — months", "type": "integer", "min": 0},
            {"key": "service_years", "label": "L.7 Service in the current community — years", "type": "integer", "min": 0},
            {"key": "total_months", "label": "L.8 Total work (incl. current community) — months", "type": "integer", "min": 0},
@@ -310,7 +318,15 @@
            {"key": "disciplinary_area", "label": "M.6 DISCIPLINARY AREA (TABLE 2)", "type": "enum", "options": [
              "MSP: Medical-Healthcare-Psychiatric", "PSI: Psychological-Psychotherapeutic",
              "EDP: Educational-Pedagogical", "SAC: Socio-Anthropological-Cultural",
-             "AML: Arts-Crafts-Work", "AUS: Auxiliary Services", "REC: Recovery Orientation", "A: Other"]},
+             "AML: Arts-Crafts-Work", "AUS: Auxiliary Services", "REC: Recovery Orientation", "A: Other"],
+             "derivedFrom": {"field": "role", "map": {
+               "EP: Healthcare Educator": "EDP: Educational-Pedagogical",
+               "OS: Healthcare Support Assistant": "MSP: Medical-Healthcare-Psychiatric",
+               "I: Nurse": "MSP: Medical-Healthcare-Psychiatric",
+               "TR: Rehabilitation Therapist": "MSP: Medical-Healthcare-Psychiatric",
+               "AU: Auxiliary Staff (Cooks, Drivers, Maintenance Workers or Cleaners...)": "AUS: Auxiliary Services",
+               "MA: Recreational Therapist - Mental Health Support Worker, Art Masters, Teachers, Job Placement Tutors": "AML: Arts-Crafts-Work",
+               "UE: Expert Users / Former Users or Peer Support Operators or Social Facilitators": "REC: Recovery Orientation"}}},
            {"key": "service_months", "label": "M.7 Service in the current community — months", "type": "integer", "min": 0},
            {"key": "service_years", "label": "M.7 Service in the current community — years", "type": "integer", "min": 0},
            {"key": "total_months", "label": "M.8 Total work (incl. current community) — months", "type": "integer", "min": 0},

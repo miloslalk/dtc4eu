@@ -51,7 +51,7 @@ class QcncMetaAreasTest {
     private static AdministrationDto administration(AdministrationType type, List<Long> conforming) {
         Map<Long, String> marks = new HashMap<>();
         CATALOGUE.forEach(s -> marks.put(s.id(), conforming.contains(s.id()) ? "C" : "NC"));
-        return new AdministrationDto(type, null, null, null, marks, Map.of());
+        return new AdministrationDto(type, null, null, null, marks);
     }
 
     private static Map<AdministrationType, AdministrationDto> allThree(List<Long> conforming) {

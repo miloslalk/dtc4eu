@@ -47,9 +47,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -166,6 +169,12 @@ public class ResponseService {
         }
 
         validateProfile(form, questionnaire.getCode(), request.profileSnapshot(), false);
+        QuestionnaireResponse.RespondentCategory category = form != null ? categoryOf(form)
+                : request.respondentCategory();
+        singleCommunityConflict(cycleId, request.facilityId(), request.subjectCode(), category, null)
+                .ifPresent(message -> {
+                    throw new BadRequestException(message);
+                });
 
         QuestionnaireResponse response = new QuestionnaireResponse();
         response.setQuestionnaireId(questionnaire.getId());
@@ -173,7 +182,7 @@ public class ResponseService {
         response.setAnnualCycleId(cycleId);
         response.setFacilityId(request.facilityId());
         response.setSubjectCode(request.subjectCode());
-        response.setRespondentCategory(form != null ? categoryOf(form) : request.respondentCategory());
+        response.setRespondentCategory(category);
         response.setAdministrationMode(form != null ? form.getAdministrationMode()
                 : request.administrationMode());
         response.setProfileSnapshot(request.profileSnapshot());
@@ -196,6 +205,11 @@ public class ResponseService {
                     .filter(f -> scope.canRespondFor(f.getId()))
                     .orElseThrow(() -> NotFoundException.of("Facility", request.facilityId()));
         }
+        singleCommunityConflict(response.getAnnualCycleId(), request.facilityId(), request.subjectCode(),
+                response.getRespondentCategory(), response.getId())
+                .ifPresent(message -> {
+                    throw new BadRequestException(message);
+                });
         response.setFacilityId(request.facilityId());
         response.setSubjectCode(request.subjectCode());
         if (response.getFormId() == null && request.respondentCategory() != null) {
@@ -386,7 +400,37 @@ public class ResponseService {
     }
 
     /** A form fixes the respondent category: its stakeholder category, or the collective mode itself. */
-    private QuestionnaireResponse.RespondentCategory categoryOf(QuestionnaireForm form) {
+    private static final Set<QuestionnaireResponse.RespondentCategory> SINGLE_COMMUNITY =
+            EnumSet.of(QuestionnaireResponse.RespondentCategory.STAFF, QuestionnaireResponse.RespondentCategory.USER);
+    private static final Set<String> PERSON_CATEGORIES = Set.of("USER", "FAMILY", "STAFF", "MANAGER");
+
+    /**
+     * Simone, 24 Nov 2026: Staff and Users are members of a single community and
+     * are counted only there in a cycle; Family members and Managers may also
+     * belong to other communities. Collective forms (Long Form, Delegation) and
+     * facility-less responses are not tied to a person and are not checked.
+     */
+    Optional<String> singleCommunityConflict(Long cycleId, Long facilityId, String subjectCode,
+                                             QuestionnaireResponse.RespondentCategory category, Long responseId) {
+        if (facilityId == null || subjectCode == null || category == null
+                || !PERSON_CATEGORIES.contains(category.name())) {
+            return Optional.empty();
+        }
+        boolean single = SINGLE_COMMUNITY.contains(category);
+        for (Object[] row : responseRepository.findOtherCommunities(cycleId, subjectCode, facilityId,
+                responseId == null ? -1L : responseId)) {
+            String otherCategory = (String) row[1];
+            if (PERSON_CATEGORIES.contains(otherCategory)
+                    && (single || "STAFF".equals(otherCategory) || "USER".equals(otherCategory))) {
+                return Optional.of("Subject code " + subjectCode + " already takes part in " + row[0] + " as "
+                        + otherCategory + " in this cycle. Staff and Users are counted in one community per"
+                        + " cycle; only Family members and Managers can be in several.");
+            }
+        }
+        return Optional.empty();
+    }
+
+    QuestionnaireResponse.RespondentCategory categoryOf(QuestionnaireForm form) {
         return switch (form.getAdministrationMode()) {
             case LONG_FORM -> QuestionnaireResponse.RespondentCategory.LONG_FORM;
             case DELEGATION -> QuestionnaireResponse.RespondentCategory.DELEGATION;

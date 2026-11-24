@@ -170,9 +170,8 @@
       "finalForumDone": "Final Forum"
     },
     "qcncBoard": {
-      "intro": "Conformity / Non-Conformity per quality standard, over the three administrations of the cycle: the Internal Facilitator's self-assessment, the Terna Coordinator's own assessment, and the Terna Coordinator's assessment for the visiting delegation. ★ marks the mandatory Q1 standards (1D, 1E, 1K, 1O, 1P, 1Q, 1R).",
+      "intro": "Conformity / Non-Conformity per quality standard (each standard is answered C or NC only), over the three administrations of the cycle, in the order they are done: the Internal Facilitator's self-assessment before the visits begin, the Terna Coordinators' assessment for the visiting delegation after the visit, and the Terna Coordinator's own assessment at the end of all three visits.",
       "standard": "Standard",
-      "mandatory": "Mandatory standard",
       "notAdministered": "not administered yet",
       "strengthMeta": "Strength standards (C in all three)",
       "weaknessMeta": "Weakness standards (NC in all three)",
@@ -190,16 +189,18 @@
         "TERNA_COORDINATOR_OWN": "Terna Coordinator",
         "TERNA_COORDINATOR_DELEGATION": "Terna Coord. — Delegation"
       },
+      "when": {
+        "INTERNAL_FACILITATOR": "1 · before the visits begin",
+        "TERNA_COORDINATOR_DELEGATION": "2 · after the visit",
+        "TERNA_COORDINATOR_OWN": "3 · after all three visits"
+      },
       "types": {
         "ORGANIZATIONAL_STRUCTURAL": "Organizational-structural",
         "COMMUNITY_FUNCTIONAL": "Community-functional"
       },
-      "score": "Score (1–4)",
-      "noScore": "–",
-      "meanScore": "Mean score (TAB.5)",
       "metaAreas": {
         "title": "Qualitative meta-areas",
-        "hint": "Counts the standards required for scoring (7 per quality standard) marked C in each administration. A meta-area is a strength when all are C, and a weakness when fewer than half are, in all three administrations. Its DTCRO areas become the facility's qualitative strength or weakness areas in the Summary Table.",
+        "hint": "Counts the standards that count for the meta-areas (7 per quality standard) marked C in each administration. A meta-area is a strength when all are C, and a weakness when fewer than half are, in all three administrations. Its DTCRO areas become the facility's qualitative strength or weakness areas in the Summary Table.",
         "metaArea": "Meta-area",
         "dtcroAreas": "DTCRO areas",
         "status": "Result",
@@ -337,7 +338,7 @@
       },
       "qcnc": {
         "name": "QCNC (Conformity / Non-Conformity)",
-        "about": "Q1–Q5 standards, in three administrations: the Internal Facilitator’s self-assessment, the Terna Coordinator’s own assessment and the delegation’s."
+        "about": "Q1–Q5 standards, marked C or NC in three administrations: the Internal Facilitator’s self-assessment before the visits, the delegation’s after the visit, and the Terna Coordinator’s own after all three visits."
       },
       "qualityDocuments": {
         "name": "Quality Document Assessment Form",
@@ -345,8 +346,7 @@
       }
     },
     "closePreview": "Close preview",
-    "qcncPreviewHint": "Preview of the QCNC standards. In the facility’s QCNC tab each standard is marked by three administrations: Internal Facilitator, Terna Coordinator and the delegation.",
-    "mandatory": "Mandatory"
+    "qcncPreviewHint": "Preview of the QCNC standards. In the facility’s QCNC tab each standard is marked C or NC three times: by the Internal Facilitator before the visits, for the visiting delegation after the visit, and by a Terna Coordinator after all three visits."
   },
   "responses": {
     "title": "Responses",

@@ -94,7 +94,8 @@ class SimoneFeedbackIT {
         Map<String, Object> vivacom = questionnaire("VIVACOM");
         assertThat(vivacom.get("scaleMin")).isEqualTo(0);
         assertThat(vivacom.get("scaleMax")).isEqualTo(5);
-        assertThat(vivacom.get("bandCriticalMax")).isNull();   // band table pending from the client (Q3)
+        // bands answered by Simone on 24 Nov 2026 (V17, SimoneAnswersIT)
+        assertThat(((Number) vivacom.get("bandCriticalMax")).doubleValue()).isEqualTo(3.0);
 
         Map<String, Object> dtcro = questionnaire("DTCRO");
         assertThat(((Number) dtcro.get("bandCriticalMax")).doubleValue()).isEqualTo(2.0);

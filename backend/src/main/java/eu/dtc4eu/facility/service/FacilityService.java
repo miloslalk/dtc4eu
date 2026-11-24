@@ -51,6 +51,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -222,6 +223,17 @@ public class FacilityService {
             if (!facilitator.roleCodes().contains(Role.INTERNAL_FACILITATOR)) {
                 throw new BadRequestException(facilitator.getFullName() + " does not have the Internal Facilitator role");
             }
+            // Simone, 24 Nov 2026: one community per Internal Facilitator per annual cycle
+            participationRepository.findByAnnualCycleIdAndInternalFacilitatorId(cycleId, facilitatorId).stream()
+                    .filter(other -> !other.getFacilityId().equals(facilityId))
+                    .findFirst()
+                    .ifPresent(other -> {
+                        String code = facilityRepository.findById(other.getFacilityId())
+                                .map(Facility::getFacilityCode).orElse("another community");
+                        throw new BadRequestException(facilitator.getFullName()
+                                + " is already the Internal Facilitator of " + code
+                                + " in this cycle. A person can facilitate only one community per cycle.");
+                    });
         }
         FacilityCycleParticipation participation = participationRepository
                 .findByFacilityIdAndAnnualCycleId(facilityId, cycleId)
@@ -260,9 +272,7 @@ public class FacilityService {
     public MemberDto addMember(Long facilityId, AddMemberRequest request, AppUserDetails actor) {
         findInScope(facilityId, actor);
         Long cycleId = cycleContext.requireWritable().getId();
-        memberRepository.findByMemberCodeAndAnnualCycleId(request.memberCode(), cycleId).ifPresent(existing -> {
-            throw new ConflictException("Member code already registered in this cycle");
-        });
+        checkSingleCommunity(facilityId, cycleId, request.memberCode(), request.category());
         FacilityMember member = new FacilityMember();
         member.setFacilityId(facilityId);
         member.setAnnualCycleId(cycleId);
@@ -272,6 +282,30 @@ public class FacilityService {
         auditService.success(actor.getId(), "ADD_MEMBER", "facility", facilityId,
                 Map.of("memberCode", member.getMemberCode(), "category", member.getCategory().name()));
         return MemberDto.of(member);
+    }
+
+    /**
+     * Simone, 24 Nov 2026: Staff and Users are members of a single community per
+     * cycle; Family members and Managers may also belong to other communities.
+     * So a code is registered once per facility, a STAFF/USER code nowhere else,
+     * and no other facility may register a code that is STAFF/USER somewhere.
+     */
+    private void checkSingleCommunity(Long facilityId, Long cycleId, String code, FacilityMember.Category category) {
+        boolean singleCommunity = category == FacilityMember.Category.STAFF || category == FacilityMember.Category.USER;
+        for (FacilityMember existing : memberRepository.findByAnnualCycleIdAndMemberCodeIgnoreCase(cycleId, code)) {
+            if (existing.getFacilityId().equals(facilityId)) {
+                throw new ConflictException("Member code " + code + " is already registered in this community");
+            }
+            boolean existingSingle = existing.getCategory() == FacilityMember.Category.STAFF
+                    || existing.getCategory() == FacilityMember.Category.USER;
+            if (singleCommunity || existingSingle) {
+                String other = facilityRepository.findById(existing.getFacilityId())
+                        .map(Facility::getFacilityCode).orElse("another community");
+                throw new ConflictException("Member code " + code + " is already registered in " + other
+                        + " as " + existing.getCategory() + " in this cycle. Staff and Users belong to one"
+                        + " community per cycle; only Family members and Managers can be in several.");
+            }
+        }
     }
 
     @Transactional
@@ -369,12 +403,17 @@ public class FacilityService {
                     created.setGridVariant(request.gridVariant());
                     return created;
                 });
+        Map<String, Object> payload = request.payload();
         if (GAS_VARIANT.equals(request.gridVariant())) {
             // lenient validation: the GAS-Set is compiled progressively across the cycle
-            profileSchemaService.find(GAS_SCHEMA_CODE, GAS_SCHEMA_FORM)
-                    .ifPresent(schema -> profileValidationService.validate(request.payload(), schema, false));
+            Optional<JsonNode> schema = profileSchemaService.find(GAS_SCHEMA_CODE, GAS_SCHEMA_FORM);
+            if (schema.isPresent()) {
+                // L/M rows: the disciplinary area follows from the role (Tables 1-2)
+                payload = ProfileDerivations.apply(payload, schema.get());
+                profileValidationService.validate(payload, schema.get(), false);
+            }
         }
-        grid.setPayload(request.payload());
+        grid.setPayload(payload);
         grid.setCompiledBy(actor.getId());
         grid = sagRepository.save(grid);
         auditService.success(actor.getId(), "PUT_SAG", "facility", facilityId,

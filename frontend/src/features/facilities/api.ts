@@ -225,8 +225,9 @@ export function usePutSag(facilityId: number) {
 
 export type QcncAdministrationType =
   | 'INTERNAL_FACILITATOR' | 'TERNA_COORDINATOR_OWN' | 'TERNA_COORDINATOR_DELEGATION';
+/** In the order they are done (Simone, 24 Nov 2026): before the visits, after each visit, after all three. */
 export const QCNC_ADMINISTRATIONS: QcncAdministrationType[] =
-  ['INTERNAL_FACILITATOR', 'TERNA_COORDINATOR_OWN', 'TERNA_COORDINATOR_DELEGATION'];
+  ['INTERNAL_FACILITATOR', 'TERNA_COORDINATOR_DELEGATION', 'TERNA_COORDINATOR_OWN'];
 
 export interface QcncStandard {
   id: number;
@@ -245,20 +246,11 @@ export interface QcncAdministration {
   administeredByName: string | null;
   updatedAt: string | null;
   conformityByStandard: Record<number, 'C' | 'NC'>;
-  scoreByStandard: Record<number, number>;
-}
-
-/** Mean of the administrations' 1–4 scores for one standard, classified per TAB.5 (expert feedback). */
-export interface QcncStandardScore {
-  standardId: number;
-  meanScore: number;
-  classification: 'CRITICAL' | 'INTERMEDIATE' | 'EFFICACY' | null;
 }
 
 export interface QcncBoard {
   standards: QcncStandard[];
   administrations: QcncAdministration[];
-  standardScores: QcncStandardScore[];
   strengthStandardIds: number[];
   weaknessStandardIds: number[];
   metaAreas: QcncMetaArea[];
@@ -286,7 +278,7 @@ export function useSaveQcncResults(facilityId: number) {
   return useMutation({
     mutationFn: async ({ administrationType, results }: {
       administrationType: QcncAdministrationType;
-      results: { standardId: number; conformity: 'C' | 'NC'; score?: number | null }[];
+      results: { standardId: number; conformity: 'C' | 'NC' }[];
     }) =>
       (await api.put<QcncBoard>(`/facilities/${facilityId}/qcnc-standards/${administrationType}`, { results })).data,
     onSuccess: () =>

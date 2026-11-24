@@ -250,6 +250,8 @@ public class ResponseImportService {
                     errors.add("subject_code " + code + " already has a " + definition.form().getFormCode()
                             + " response in this cycle");
                 }
+                responseService.singleCommunityConflict(cycleId, facilityId, code,
+                        responseService.categoryOf(definition.form()), null).ifPresent(errors::add);
                 if (!roster.isEmpty() && !roster.contains(key)) {
                     errors.add("subject_code " + code + " is not in " + facilityCode + "'s member roster");
                 } else if (roster.isEmpty()) {

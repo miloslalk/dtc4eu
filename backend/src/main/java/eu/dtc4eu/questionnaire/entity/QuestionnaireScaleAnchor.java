@@ -28,6 +28,6 @@ public class QuestionnaireScaleAnchor {
     @Column(nullable = false)
     private Integer value;
 
-    @Column(nullable = false, length = 60)
+    @Column(nullable = false, length = 200)
     private String label;
 }

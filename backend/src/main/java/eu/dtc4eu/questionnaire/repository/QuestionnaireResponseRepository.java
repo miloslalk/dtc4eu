@@ -35,6 +35,23 @@ public interface QuestionnaireResponseRepository
     List<String> findRosterCodes(@Param("facilityId") Long facilityId,
                                  @Param("cycleId") Long cycleId);
 
+    /**
+     * Where else a pseudonymous code takes part in a cycle: its responses and
+     * member-register entries in other facilities, as (facility_code, category).
+     * Native SQL keeps the questionnaire domain free of the facility entities.
+     */
+    @Query(value = "select f.facility_code, x.category from ("
+            + " select r.facility_id, r.respondent_category as category from questionnaire_responses r"
+            + "  where r.annual_cycle_id = :cycleId and upper(r.subject_code) = upper(:code)"
+            + "    and r.facility_id is not null and r.facility_id <> :facilityId and r.id <> :excludeId"
+            + " union"
+            + " select m.facility_id, m.category from facility_members m"
+            + "  where m.annual_cycle_id = :cycleId and upper(m.member_code) = upper(:code)"
+            + "    and m.facility_id <> :facilityId"
+            + ") x join facilities f on f.id = x.facility_id order by 1", nativeQuery = true)
+    List<Object[]> findOtherCommunities(@Param("cycleId") Long cycleId, @Param("code") String code,
+                                        @Param("facilityId") Long facilityId, @Param("excludeId") Long excludeId);
+
     @Query(value = "select f.facility_code from facilities f where f.id = :id",
             nativeQuery = true)
     Optional<String> findFacilityCode(@Param("id") Long id);

@@ -86,6 +86,8 @@ export interface ProfileFieldDef {
   maxLength?: number;
   repeat?: { mode: 'fixedRows'; rows: { key: string; label: string }[] } | { mode: 'list'; maxRows?: number };
   fields?: ProfileFieldDef[];
+  /** filled from another field of the same row, still editable (GAS-Set L/M area from role) */
+  derivedFrom?: { field: string; map: Record<string, string> };
 }
 
 export interface ProfileSchema {

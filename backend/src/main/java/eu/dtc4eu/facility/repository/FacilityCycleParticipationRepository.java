@@ -20,6 +20,10 @@ public interface FacilityCycleParticipationRepository extends JpaRepository<Faci
     /** Cross-cycle view for the accreditation-history screen (v0.2 register §6). */
     List<FacilityCycleParticipation> findByFacilityId(Long facilityId);
 
+    /** Participations in a cycle naming this person as Internal Facilitator (one community per cycle). */
+    List<FacilityCycleParticipation> findByAnnualCycleIdAndInternalFacilitatorId(Long annualCycleId,
+                                                                               Long internalFacilitatorId);
+
     /** Grants an assigned Internal Facilitator access to the facility (native: the access table belongs to user/). */
     @Modifying
     @Query(value = "insert into user_facility_access (user_id, facility_id) values (:userId, :facilityId)"
