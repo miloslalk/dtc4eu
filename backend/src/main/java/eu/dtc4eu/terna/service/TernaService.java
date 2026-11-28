@@ -38,6 +38,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -155,6 +156,11 @@ public class TernaService {
 
         Set<Long> previousCoordinators = ternaCoordinatorRepository.findByTernaId(terna.getId()).stream()
                 .map(TernaCoordinator::getCoordinatorId).collect(Collectors.toSet());
+        if (!dataScopeService.scopeOf(actor).all()
+                && !previousCoordinators.equals(new HashSet<>(request.coordinatorIds()))) {
+            // coordinators gain (or lose) the terna's facilities with it, so only admins re-staff a terna
+            throw new AccessDeniedException("Only an administrator can change a terna's coordinators");
+        }
 
         applyAndValidate(terna, request, terna.getId());
 

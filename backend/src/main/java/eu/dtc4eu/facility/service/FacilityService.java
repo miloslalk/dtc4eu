@@ -45,12 +45,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -244,6 +246,10 @@ public class FacilityService {
                     return created;
                 });
         Long previousFacilitatorId = participation.getInternalFacilitatorId();
+        if (!Objects.equals(previousFacilitatorId, facilitatorId) && !isAdmin(actor)) {
+            // naming a facilitator grants them the facility's data, so only admins assign one
+            throw new AccessDeniedException("Only an administrator can change the Internal Facilitator");
+        }
         participation.setActivity(request.activity());
         participation.setInternalFacilitatorId(request.internalFacilitatorId());
         participation.setSagDone(request.sagDone());
@@ -329,12 +335,20 @@ public class FacilityService {
 
     /**
      * Clinical access to GAS-Set Section N (per-user clinical data, register
-     * §11.7): admins, the research team and internal facilitators (whose data
-     * scope already restricts them to their own facilities).
+     * §11.7): admins, the research team, and an internal facilitator for the
+     * facilities a cycle names them facilitator of (not every facility their
+     * other roles let them see).
      */
-    private boolean hasClinicalAccess(AppUserDetails principal) {
-        return principal.hasRole(Role.ADMIN) || principal.hasRole(Role.SUPER_ADMIN)
-                || principal.hasRole(Role.RESEARCH_TEAM) || principal.hasRole(Role.INTERNAL_FACILITATOR);
+    private boolean hasClinicalAccess(Long facilityId, AppUserDetails principal) {
+        if (isAdmin(principal) || principal.hasRole(Role.RESEARCH_TEAM)) {
+            return true;
+        }
+        return principal.hasRole(Role.INTERNAL_FACILITATOR) && participationRepository.findByFacilityId(facilityId)
+                .stream().anyMatch(p -> principal.getId().equals(p.getInternalFacilitatorId()));
+    }
+
+    private static boolean isAdmin(AppUserDetails principal) {
+        return principal.hasRole(Role.ADMIN) || principal.hasRole(Role.SUPER_ADMIN);
     }
 
     @Transactional(readOnly = true)
@@ -342,7 +356,7 @@ public class FacilityService {
         findInScope(facilityId, principal);
         JsonNode schema = profileSchemaService.find(GAS_SCHEMA_CODE, GAS_SCHEMA_FORM)
                 .orElseThrow(() -> new NotFoundException("GAS-Set schema not available"));
-        if (hasClinicalAccess(principal)) {
+        if (hasClinicalAccess(facilityId, principal)) {
             return schema;
         }
         JsonNode copy = schema.deepCopy();
@@ -384,7 +398,7 @@ public class FacilityService {
     @Transactional(readOnly = true)
     public List<SagDto> getSags(Long facilityId, AppUserDetails principal) {
         findInScope(facilityId, principal);
-        boolean clinical = hasClinicalAccess(principal);
+        boolean clinical = hasClinicalAccess(facilityId, principal);
         return sagRepository
                 .findByFacilityIdAndAnnualCycleIdOrderByGridVariantAsc(facilityId, cycleContext.requireId())
                 .stream().map(sag -> sagDto(sag, clinical)).toList();

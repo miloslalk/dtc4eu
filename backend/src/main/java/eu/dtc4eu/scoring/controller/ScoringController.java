@@ -10,6 +10,7 @@ import eu.dtc4eu.scoring.service.TernaAnalyticsService;
 import eu.dtc4eu.scoring.service.TernaExportService;
 import eu.dtc4eu.security.AppUserDetails;
 import eu.dtc4eu.security.CycleContext;
+import eu.dtc4eu.user.entity.Role;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -65,6 +66,9 @@ public class ScoringController {
     public FacilityScoresDto recompute(@PathVariable Long facilityId, @RequestParam Long questionnaireId,
                                        @AuthenticationPrincipal AppUserDetails principal) {
         facilityScoringService.facilityInScope(facilityId, principal);
+        if (!principal.hasRole(Role.ADMIN) && !principal.hasRole(Role.SUPER_ADMIN)) {
+            cycleContext.requireWritable(); // admins may still repair a closed cycle's derived scores
+        }
         facilityScoringService.recompute(facilityId, cycleContext.requireId(), questionnaireId);
         auditService.success(principal.getId(), "RECOMPUTE_SCORES", "facility", facilityId,
                 Map.of("questionnaireId", questionnaireId, "cycleId", cycleContext.requireId()));

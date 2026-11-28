@@ -271,6 +271,7 @@ public class StandardApplicationService {
     public EffectivenessDto linkEffectiveness(Long facilityId, Long applicationId, Long questionnaireItemId,
                                               AppUserDetails actor) {
         facilityInScope(facilityId, actor);
+        cycleContext.requireWritable();
         StandardApplication application = owned(facilityId, applicationId);
         if (application.getStandardType() != StandardApplication.StandardType.GPP) {
             throw new eu.dtc4eu.common.error.BadRequestException(

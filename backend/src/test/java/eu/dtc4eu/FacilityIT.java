@@ -272,4 +272,90 @@ class FacilityIT {
         assertThat((List<Map<String, Object>>) board.getBody().get("administrations"))
                 .isNotEmpty().allSatisfy(a -> assertThat(a).doesNotContainKey("scoreByStandard"));
     }
+
+    /**
+     * Security review, 28 Nov 2026: naming the Internal Facilitator grants them the
+     * facility's data, so only an administrator assigns or changes one. A facilitator
+     * still saves the rest of the participation with the facilitator left as it is.
+     */
+    @Test
+    @Order(10)
+    void onlyAnAdministratorAssignsTheInternalFacilitator() {
+        Long facilitatorAId = userId("facilitatorA");
+        HttpHeaders facilitator = headersOf("facilitatorA", "Facil1tatorA!");
+        ResponseEntity<Map> self = rest.exchange("/api/v1/facilities/" + facilityAId + "/participation",
+                HttpMethod.POST, new HttpEntity<>(Map.of("activity", "QUALITY_AUDIT",
+                        "internalFacilitatorId", facilitatorAId), facilitator), Map.class);
+        assertThat(self.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        assertThat(rest.exchange("/api/v1/facilities/" + facilityAId + "/participation", HttpMethod.POST,
+                new HttpEntity<>(Map.of("activity", "QUALITY_AUDIT", "internalFacilitatorId", facilitatorAId),
+                        admin()), Map.class).getStatusCode()).isEqualTo(HttpStatus.OK);
+        ResponseEntity<Map> unchanged = rest.exchange("/api/v1/facilities/" + facilityAId + "/participation",
+                HttpMethod.POST, new HttpEntity<>(Map.of("activity", "VISITING_TERNA",
+                        "internalFacilitatorId", facilitatorAId), facilitator), Map.class);
+        assertThat(unchanged.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(unchanged.getBody().get("activity")).isEqualTo("VISITING_TERNA");
+    }
+
+    /**
+     * Section N is clinical data: an Internal Facilitator sees it only for the facility
+     * they facilitate, not for every facility another role of theirs can read.
+     */
+    @Test
+    @Order(11)
+    @SuppressWarnings("unchecked")
+    void sectionNFollowsTheFacilityAFacilitatorFacilitates() {
+        rest.exchange("/api/v1/users", HttpMethod.POST, new HttpEntity<>(Map.of(
+                "username", "coordFacil", "fullName", "Coordinator Facilitator", "password", "CoordF4cil!",
+                "roles", List.of("COORDINATOR", "INTERNAL_FACILITATOR"),
+                "facilityIds", List.of(facilityAId, facilityBId), "ternaIds", List.of()), admin()), Map.class);
+        HttpHeaders dualRole = headersOf("coordFacil", "CoordF4cil!");
+        assertThat(sectionKeys(facilityBId, dualRole)).contains("a").doesNotContain("n");
+
+        assertThat(rest.exchange("/api/v1/facilities/" + facilityBId + "/participation", HttpMethod.POST,
+                new HttpEntity<>(Map.of("activity", "VISITING_TERNA", "internalFacilitatorId", userId("coordFacil")),
+                        admin()), Map.class).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(sectionKeys(facilityBId, dualRole)).contains("n");
+        // facilitatorA (named on facility A in order 10) keeps Section N there
+        assertThat(sectionKeys(facilityAId, headersOf("facilitatorA", "Facil1tatorA!"))).contains("n");
+    }
+
+    /** Closed cycles are read-only for derived data too (GPP effectiveness links, score recomputes). */
+    @Test
+    @Order(12)
+    void closedCycleRejectsEffectivenessLinksAndCoordinatorRecomputes() {
+        ResponseEntity<Map> created = rest.exchange("/api/v1/cycles", HttpMethod.POST,
+                new HttpEntity<>(Map.of("code", "2033-2034"), admin()), Map.class);
+        Number closedCycleId = (Number) created.getBody().get("id");
+        rest.exchange("/api/v1/cycles/" + closedCycleId, HttpMethod.PUT,
+                new HttpEntity<>(Map.of("status", "CLOSED"), admin()), Map.class);
+
+        HttpHeaders adminOnClosed = admin();
+        adminOnClosed.set("X-Cycle-Id", String.valueOf(closedCycleId));
+        ResponseEntity<Map> link = rest.exchange("/api/v1/facilities/" + facilityAId
+                        + "/document-applications/1/effectiveness", HttpMethod.PUT,
+                new HttpEntity<>(Map.of("questionnaireItemId", 1), adminOnClosed), Map.class);
+        assertThat(link.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+
+        HttpHeaders coordinatorOnClosed = headersOf("coordFacil", "CoordF4cil!");
+        coordinatorOnClosed.set("X-Cycle-Id", String.valueOf(closedCycleId));
+        ResponseEntity<Map> recompute = rest.exchange("/api/v1/facilities/" + facilityAId
+                        + "/scores/recompute?questionnaireId=1", HttpMethod.POST,
+                new HttpEntity<>(coordinatorOnClosed), Map.class);
+        assertThat(recompute.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    private Long userId(String username) {
+        return jdbc.queryForObject("select id from users where username = ?", Long.class, username);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Object> sectionKeys(Long facilityId, HttpHeaders headers) {
+        ResponseEntity<Map> schema = rest.exchange("/api/v1/facilities/" + facilityId
+                + "/set-analysis-grid/schema", HttpMethod.GET, new HttpEntity<>(headers), Map.class);
+        assertThat(schema.getStatusCode()).isEqualTo(HttpStatus.OK);
+        return ((List<Map<String, Object>>) schema.getBody().get("sections")).stream()
+                .map(s -> s.get("key")).toList();
+    }
 }

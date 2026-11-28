@@ -296,4 +296,39 @@ class TernaIT {
         body.put("coordinatorIds", coordinators);
         return body;
     }
+
+    /**
+     * Security review, 28 Nov 2026: naming a coordinator hands them the terna's
+     * facilities, so once a terna exists only an administrator changes who coordinates it.
+     */
+    @Test
+    @Order(10)
+    @SuppressWarnings("unchecked")
+    void onlyAnAdministratorChangesATernasCoordinators() {
+        ResponseEntity<Map> c3 = rest.exchange("/api/v1/users", HttpMethod.POST, new HttpEntity<>(Map.of(
+                "username", "coord3", "fullName", "Coordinator Three", "password", "Coord3nator!",
+                "roles", List.of("COORDINATOR")), admin()), Map.class);
+        Long coordinator3Id = ((Number) c3.getBody().get("id")).longValue();
+        HttpHeaders coordinator = headersOf("coord1", "Coord1nator!");
+        Object t1Id = ((List<Map<String, Object>>) rest.exchange("/api/v1/ternas", HttpMethod.GET,
+                new HttpEntity<>(coordinator), Map.class).getBody().get("content")).stream()
+                .filter(t -> "T1".equals(t.get("ternaCode"))).findFirst().orElseThrow().get("id");
+        List<Long> t1Facilities = facilityIds.subList(0, 3);
+
+        ResponseEntity<Map> coOpted = rest.exchange("/api/v1/ternas/" + t1Id, HttpMethod.PUT,
+                new HttpEntity<>(payload("T1", "TCS", t1Facilities, List.of(coordinator1Id, coordinator3Id)),
+                        coordinator), Map.class);
+        assertThat(coOpted.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(rest.exchange("/api/v1/ternas/" + t1Id, HttpMethod.GET,
+                new HttpEntity<>(headersOf("coord3", "Coord3nator!")), Map.class).getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+
+        // the same coordinators can still be saved by the coordinator, and an admin can re-staff
+        assertThat(rest.exchange("/api/v1/ternas/" + t1Id, HttpMethod.PUT,
+                new HttpEntity<>(payload("T1", "TCS", t1Facilities, List.of(coordinator2Id, coordinator1Id)),
+                        coordinator), Map.class).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(rest.exchange("/api/v1/ternas/" + t1Id, HttpMethod.PUT,
+                new HttpEntity<>(payload("T1", "TCS", t1Facilities, List.of(coordinator1Id, coordinator3Id)),
+                        admin()), Map.class).getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
 }
