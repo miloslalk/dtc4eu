@@ -15,12 +15,16 @@ import eu.dtc4eu.user.repository.UserTernaAccessRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -34,6 +38,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuditService auditService;
+    private final NamedParameterJdbcTemplate jdbc;
 
     @Transactional(readOnly = true, noRollbackFor = {BadCredentialsException.class, DisabledException.class})
     public TokenResponse login(LoginRequest request) {
@@ -67,10 +72,17 @@ public class AuthService {
         if (!user.isActive()) {
             throw new DisabledException("Account disabled");
         }
-        if (!TokenCutoff.accepts(user.getTokensValidAfter(), claims.getIssuedAt())) {
+        if (!TokenCutoff.accepts(tokensValidAfter(user.getId()), claims.getIssuedAt())) {
             throw new BadCredentialsException("Invalid refresh token");
         }
         return tokensFor(user);
+    }
+
+    /** Plain SQL keeps this class's user-slice edges frozen (security↔user cycle in the ArchUnit store). */
+    private OffsetDateTime tokensValidAfter(Long userId) {
+        List<OffsetDateTime> cutoffs = jdbc.queryForList("select tokens_valid_after from users where id = :id",
+                new MapSqlParameterSource("id", userId), OffsetDateTime.class);
+        return cutoffs.isEmpty() ? null : cutoffs.get(0);
     }
 
     public void logout(AppUserDetails principal) {
