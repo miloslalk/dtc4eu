@@ -2,13 +2,17 @@ package eu.dtc4eu.security;
 
 import eu.dtc4eu.audit.AuditService;
 import eu.dtc4eu.common.error.BadRequestException;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
@@ -26,6 +30,7 @@ public class PasswordPolicyService {
     private final NamedParameterJdbcTemplate jdbc;
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
+    private final JwtService jwtService;
 
     @Transactional
     public void changePassword(AppUserDetails principal, String currentPassword, String newPassword) {
@@ -49,6 +54,23 @@ public class PasswordPolicyService {
                         .addValue("cutoff", TokenCutoff.now())
                         .addValue("id", principal.getId()));
         auditService.success(principal.getId(), "CHANGE_PASSWORD", "user", principal.getId());
+    }
+
+    /** V19: refuses a refresh token issued before the user's last password change. */
+    @Transactional(readOnly = true)
+    public void requireRefreshNotRevoked(String refreshToken) {
+        Claims claims;
+        try {
+            claims = jwtService.parse(refreshToken);
+        } catch (JwtException e) {
+            return; // AuthService.refresh rejects it
+        }
+        List<OffsetDateTime> cutoffs = jdbc.queryForList(
+                "select tokens_valid_after from users where username = :username",
+                new MapSqlParameterSource("username", claims.getSubject()), OffsetDateTime.class);
+        if (!cutoffs.isEmpty() && !TokenCutoff.accepts(cutoffs.get(0), claims.getIssuedAt())) {
+            throw new BadCredentialsException("Invalid refresh token");
+        }
     }
 
     /** Flags the seeded admin while its published seed password still works; true if flagged. */

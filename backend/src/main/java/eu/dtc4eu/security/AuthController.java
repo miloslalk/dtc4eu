@@ -52,6 +52,7 @@ public class AuthController {
     @Operation(summary = "Exchange a valid refresh token for a new token pair")
     @PostMapping("/refresh")
     public TokenResponse refresh(@Valid @RequestBody RefreshRequest request) {
+        passwordPolicyService.requireRefreshNotRevoked(request.refreshToken());
         return withPasswordFlag(authService.refresh(request.refreshToken()));
     }
 
