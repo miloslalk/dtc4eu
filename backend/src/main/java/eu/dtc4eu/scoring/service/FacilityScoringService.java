@@ -109,13 +109,18 @@ public class FacilityScoringService {
                 : responseItemRepository.findByResponseIdIn(responses.stream().map(QuestionnaireResponse::getId).toList())
                         .stream().collect(Collectors.groupingBy(QuestionnaireResponseItem::getResponseId));
 
+        Object[] scale = questionnaireScoreRepository.findScale(questionnaireId).get(0);
+        int scaleMin = ((Number) scale[0]).intValue();
+        int scaleMax = ((Number) scale[1]).intValue();
         Map<QuestionnaireResponse.RespondentCategory, List<Map<Coordinate, Integer>>> input =
                 new EnumMap<>(QuestionnaireResponse.RespondentCategory.class);
         for (QuestionnaireResponse response : responses) {
             Map<Coordinate, Integer> values = new LinkedHashMap<>();
             for (QuestionnaireResponseItem answer : answersByResponse.getOrDefault(response.getId(), List.of())) {
                 Coordinate coordinate = coordinateByItemId.get(answer.getItemId());
-                if (coordinate != null && answer.getNumericValue() != null) {
+                // answers outside the scale (ViVaCom 8, 9) are recorded but not scored
+                Integer value = answer.getNumericValue();
+                if (coordinate != null && value != null && value >= scaleMin && value <= scaleMax) {
                     values.put(coordinate, answer.getNumericValue());
                 }
             }

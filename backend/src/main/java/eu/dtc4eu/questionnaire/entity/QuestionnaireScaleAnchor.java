@@ -30,4 +30,8 @@ public class QuestionnaireScaleAnchor {
 
     @Column(nullable = false, length = 200)
     private String label;
+
+    /** False for an answer outside the scale that is recorded but not scored (ViVaCom 8, 9; V18). */
+    @Column(name = "counts_in_score", nullable = false)
+    private boolean countsInScore = true;
 }

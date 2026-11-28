@@ -105,6 +105,13 @@ class SimoneAnswersIT {
                 "subjectCode", subjectCode), admin()), Map.class);
     }
 
+    private static Map<String, Object> scoredAnchorsOnly(Map<String, Object> questionnaire) {
+        Map<String, Object> copy = new HashMap<>(questionnaire);
+        copy.put("anchors", ((List<Map<String, Object>>) questionnaire.get("anchors")).stream()
+                .filter(a -> Boolean.TRUE.equals(a.get("countsInScore"))).toList());
+        return copy;
+    }
+
     private static String message(ResponseEntity<Map> response) {
         return String.valueOf(response.getBody().get("message"));
     }
@@ -113,7 +120,8 @@ class SimoneAnswersIT {
     @Test
     @Order(1)
     void vivacomHasSimonesBandsAndAnswerLabels() {
-        Map<String, Object> vivacom = questionnaire("VIVACOM");
+        // the scored answers; 8 and 9 (V18, not scored) are checked in SimoneAnswers27IT
+        Map<String, Object> vivacom = scoredAnchorsOnly(questionnaire("VIVACOM"));
         assertThat(((Number) vivacom.get("bandCriticalMax")).doubleValue()).isEqualTo(3.0);
         assertThat(((Number) vivacom.get("bandEfficacyMin")).doubleValue()).isEqualTo(4.0);
         assertThat((List<Map<String, Object>>) vivacom.get("anchors"))

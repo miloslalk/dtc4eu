@@ -128,7 +128,9 @@ public class ResponseImportService {
                 r = codebookRow(codebook, r, PROFILE_PREFIX + column.path(), column.label(), allowed(column),
                         column.required());
             }
+            List<Integer> nonScoring = questionnaireRepository.findNonScoringValues(questionnaireId);
             String scale = definition.questionnaire().getScaleMin() + "–" + definition.questionnaire().getScaleMax()
+                    + (nonScoring.isEmpty() ? "" : ", or " + nonScoring + " (not scored)")
                     + " (blank = not answered)";
             for (QuestionnaireItem item : definition.items()) {
                 boolean likert = item.getResponseType() == QuestionnaireItem.ResponseType.LIKERT;
@@ -162,9 +164,12 @@ public class ResponseImportService {
 
     private void addPickLists(Sheet sheet, Definition definition, List<String> columns) {
         DataValidationHelper helper = sheet.getDataValidationHelper();
-        String[] likert = java.util.stream.IntStream
+        List<Integer> likertValues = java.util.stream.IntStream
                 .rangeClosed(definition.questionnaire().getScaleMin(), definition.questionnaire().getScaleMax())
-                .mapToObj(String::valueOf).toArray(String[]::new);
+                .boxed()
+                .collect(Collectors.toCollection(ArrayList::new));
+        likertValues.addAll(questionnaireRepository.findNonScoringValues(definition.questionnaire().getId()));
+        String[] likert = likertValues.stream().map(String::valueOf).toArray(String[]::new);
         Map<String, ProfileColumn> profileByColumn = definition.profileColumns().stream()
                 .collect(Collectors.toMap(c -> PROFILE_PREFIX + c.path(), c -> c));
         Set<String> likertCodes = definition.items().stream()
@@ -369,6 +374,7 @@ public class ResponseImportService {
 
             int scaleMin = definition.questionnaire().getScaleMin();
             int scaleMax = definition.questionnaire().getScaleMax();
+            List<Integer> nonScoring = questionnaireRepository.findNonScoringValues(definition.questionnaire().getId());
             List<ParsedRow> rows = new ArrayList<>();
             for (int r = 1; r <= sheet.getLastRowNum(); r++) {
                 Row row = sheet.getRow(r);
@@ -400,9 +406,10 @@ public class ResponseImportService {
                         QuestionnaireItem item = itemsByCode.get(key);
                         if (item.getResponseType() == QuestionnaireItem.ResponseType.LIKERT) {
                             Integer value = wholeNumber(cell, text);
-                            if (value == null || value < scaleMin || value > scaleMax) {
+                            if (value == null || (value < scaleMin || value > scaleMax) && !nonScoring.contains(value)) {
                                 errors.add(item.getItemCode() + ": \"" + text + "\" is not a value between "
-                                        + scaleMin + " and " + scaleMax);
+                                        + scaleMin + " and " + scaleMax
+                                        + (nonScoring.isEmpty() ? "" : " or one of " + nonScoring));
                             } else {
                                 answers.add(new ItemAnswer(item.getId(), value, null));
                                 likertAnswered++;

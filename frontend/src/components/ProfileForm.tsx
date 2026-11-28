@@ -1,5 +1,5 @@
 import type { ProfileFieldDef, ProfileSchema } from '../features/questionnaires/api';
-import { setRowField } from '../lib/profileDerivation';
+import { isNotApplicable, setRowField } from '../lib/profileDerivation';
 
 type ProfileValue = Record<string, unknown>;
 
@@ -224,7 +224,7 @@ function GroupControl({ field, value, onChange, readOnly }: {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {subFields.map((sub) => (
             <FieldControl key={sub.key} field={sub} value={groupValue[sub.key]}
-              onChange={(v) => setSub(sub.key, v)} readOnly={readOnly} />
+              onChange={(v) => setSub(sub.key, v)} readOnly={readOnly || isNotApplicable(sub, groupValue)} />
           ))}
         </div>
       </fieldset>
@@ -261,7 +261,8 @@ function GroupControl({ field, value, onChange, readOnly }: {
                   {subFields.map((sub) => (
                     <td key={sub.key} className="py-1.5 pr-3">
                       <FieldControl field={sub} value={groupValue[row.key]?.[sub.key]}
-                        onChange={(v) => setCell(row.key, sub.key, v)} readOnly={readOnly} compact />
+                        onChange={(v) => setCell(row.key, sub.key, v)}
+                        readOnly={readOnly || isNotApplicable(sub, groupValue[row.key] ?? {})} compact />
                     </td>
                   ))}
                 </tr>
@@ -292,7 +293,7 @@ function GroupControl({ field, value, onChange, readOnly }: {
                 <span className="mb-0.5 block text-[10px] font-semibold text-neutral-500">{sub.label}</span>
                 <FieldControl field={sub} value={row[sub.key]}
                   onChange={(v) => setRow(index, setRowField(subFields, row, sub.key, v))}
-                  readOnly={readOnly} compact />
+                  readOnly={readOnly || isNotApplicable(sub, row)} compact />
               </div>
             ))}
             {!readOnly && (

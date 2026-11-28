@@ -83,7 +83,7 @@ public class QuestionnaireService {
                 itemRepository.findByQuestionnaireIdOrderBySortOrderAscIdAsc(id).stream().map(ItemDto::of).toList(),
                 forms.stream().map(FormDto::of).toList(),
                 anchorRepository.findByQuestionnaireIdOrderByValue(id).stream()
-                        .map(a -> new AnchorDto(a.getValue(), a.getLabel())).toList(),
+                        .map(a -> new AnchorDto(a.getValue(), a.getLabel(), a.isCountsInScore())).toList(),
                 formAreaLabels, questionnaire.getBandCriticalMax(), questionnaire.getBandEfficacyMin(),
                 responseRepository.existsByQuestionnaireId(id));
     }

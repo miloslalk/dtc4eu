@@ -106,8 +106,9 @@ public class QcncStandardsService {
 
     /**
      * Qualitative meta-areas (spec §6.5). Only the standards required for
-     * scoring count: in a cluster that flags mandatory standards (Q1's ★) those
-     * are the required ones, otherwise every standard of the cluster. Per
+     * scoring count: in a cluster that flags mandatory standards those are the
+     * required ones, otherwise every standard of the cluster (since V18 all of
+     * Q1 is flagged, so every standard counts). Per
      * administration, a meta-area is strong when all its required standards
      * are C and weak when fewer than half are; the facility status needs the
      * same verdict in all three administrations, else it is INCOMPLETE (an

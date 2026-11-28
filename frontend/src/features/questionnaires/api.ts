@@ -51,6 +51,8 @@ export interface Form {
 export interface Anchor {
   value: number;
   label: string;
+  /** False for an answer outside the scale that is recorded but not scored (ViVaCom 8, 9). */
+  countsInScore: boolean;
 }
 
 export interface FormAreaLabel {
@@ -87,7 +89,7 @@ export interface ProfileFieldDef {
   repeat?: { mode: 'fixedRows'; rows: { key: string; label: string }[] } | { mode: 'list'; maxRows?: number };
   fields?: ProfileFieldDef[];
   /** filled from another field of the same row, still editable (GAS-Set L/M area from role) */
-  derivedFrom?: { field: string; map: Record<string, string> };
+  derivedFrom?: { field: string; map: Record<string, string>; none?: string[] };
 }
 
 export interface ProfileSchema {

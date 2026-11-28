@@ -37,6 +37,7 @@
   },
   "common": {
     "save": "Zapisz",
+    "notScored": "nie liczy się do wyniku",
     "cancel": "Anuluj",
     "create": "Utwórz",
     "edit": "Edytuj",
@@ -204,7 +205,7 @@
       },
       "metaAreas": {
         "title": "Jakościowe metaobszary",
-        "hint": "Liczy standardy uwzględniane w metaobszarach (7 na standard jakości) oznaczone jako C w każdej administracji. Metaobszar jest mocną stroną, gdy wszystkie są C, a słabą, gdy mniej niż połowa jest C — we wszystkich trzech administracjach. Jego obszary DTCRO stają się jakościowymi mocnymi lub słabymi obszarami placówki w Tabeli Podsumowującej.",
+        "hint": "Liczy standardy każdego metaobszaru oznaczone jako C w każdej administracji (liczy się każdy standard: 10 w Q1, po 7 w Q2–Q5). Metaobszar jest mocną stroną, gdy wszystkie są C, a słabą, gdy mniej niż połowa jest C — we wszystkich trzech administracjach. Jego obszary DTCRO stają się jakościowymi mocnymi lub słabymi obszarami placówki w Tabeli Podsumowującej.",
         "metaArea": "Metaobszar",
         "dtcroAreas": "Obszary DTCRO",
         "status": "Wynik",

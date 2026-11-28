@@ -237,6 +237,7 @@ public class ResponseService {
         Questionnaire questionnaire = questionnaireRepository.findById(response.getQuestionnaireId()).orElseThrow();
         Map<Long, QuestionnaireItem> definition = definitionItems(response).stream()
                 .collect(Collectors.toMap(QuestionnaireItem::getId, Function.identity()));
+        List<Integer> nonScoring = questionnaireRepository.findNonScoringValues(questionnaire.getId());
 
         for (ItemAnswer answer : request.items()) {
             QuestionnaireItem item = definition.get(answer.itemId());
@@ -247,9 +248,11 @@ public class ResponseService {
             }
             if (item.getResponseType() == QuestionnaireItem.ResponseType.LIKERT) {
                 Integer value = answer.numericValue();
-                if (value != null && (value < questionnaire.getScaleMin() || value > questionnaire.getScaleMax())) {
+                if (value != null && (value < questionnaire.getScaleMin() || value > questionnaire.getScaleMax())
+                        && !nonScoring.contains(value)) {
                     throw new BadRequestException("Value for item " + item.getItemCode() + " must be between "
-                            + questionnaire.getScaleMin() + " and " + questionnaire.getScaleMax());
+                            + questionnaire.getScaleMin() + " and " + questionnaire.getScaleMax()
+                            + (nonScoring.isEmpty() ? "" : " or one of " + nonScoring));
                 }
             }
             QuestionnaireResponseItem row = responseItemRepository

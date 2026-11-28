@@ -33,6 +33,7 @@
   },
   "common": {
     "save": "Save",
+    "notScored": "not scored",
     "cancel": "Cancel",
     "create": "Create",
     "edit": "Edit",
@@ -200,7 +201,7 @@
       },
       "metaAreas": {
         "title": "Qualitative meta-areas",
-        "hint": "Counts the standards that count for the meta-areas (7 per quality standard) marked C in each administration. A meta-area is a strength when all are C, and a weakness when fewer than half are, in all three administrations. Its DTCRO areas become the facility's qualitative strength or weakness areas in the Summary Table.",
+        "hint": "Counts the standards of each meta-area marked C in each administration (every standard counts: 10 in Q1, 7 in each of Q2–Q5). A meta-area is a strength when all are C, and a weakness when fewer than half are, in all three administrations. Its DTCRO areas become the facility's qualitative strength or weakness areas in the Summary Table.",
         "metaArea": "Meta-area",
         "dtcroAreas": "DTCRO areas",
         "status": "Result",

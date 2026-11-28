@@ -1,9 +1,11 @@
 package eu.dtc4eu.questionnaire.service;
 
+import eu.dtc4eu.questionnaire.entity.Questionnaire;
 import eu.dtc4eu.questionnaire.entity.QuestionnaireItem;
 import eu.dtc4eu.questionnaire.entity.QuestionnaireResponseItem;
 import eu.dtc4eu.questionnaire.entity.ResponseAreaScore;
 import eu.dtc4eu.questionnaire.repository.QuestionnaireItemRepository;
+import eu.dtc4eu.questionnaire.repository.QuestionnaireRepository;
 import eu.dtc4eu.questionnaire.repository.QuestionnaireResponseItemRepository;
 import eu.dtc4eu.questionnaire.repository.ResponseAreaScoreRepository;
 import org.junit.jupiter.api.Test;
@@ -15,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -28,6 +31,9 @@ class ScoringServiceTest {
 
     private static final long RESPONSE_ID = 100L;
     private static final long QUESTIONNAIRE_ID = 1L;
+
+    @Mock
+    private QuestionnaireRepository questionnaireRepository;
 
     @Mock
     private QuestionnaireItemRepository itemRepository;
@@ -100,6 +106,16 @@ class ScoringServiceTest {
         assertThat(byArea).containsOnlyKeys(10L);
     }
 
+    /** ViVaCom 8/9 (V18): answers outside the scale are recorded but not scored. */
+    @Test
+    void answersOutsideTheScaleAreLeftOutOfTheMean() {
+        stubDefinition(likertItem(1L, 10L), likertItem(2L, 10L), likertItem(3L, 10L));
+        stubAnswers(numeric(1L, 9), numeric(2L, 2), numeric(3L, 4));
+        stubSaveAll();
+
+        assertThat(compute().get(10L)).isEqualByComparingTo("3.000");
+    }
+
     @Test
     void recomputationIsIdempotentBecauseOldScoresAreDeletedFirst() {
         stubDefinition(likertItem(1L, 10L));
@@ -126,6 +142,10 @@ class ScoringServiceTest {
     }
 
     private void stubDefinition(QuestionnaireItem... items) {
+        Questionnaire questionnaire = new Questionnaire();
+        questionnaire.setScaleMin(1);
+        questionnaire.setScaleMax(4);
+        when(questionnaireRepository.findById(QUESTIONNAIRE_ID)).thenReturn(Optional.of(questionnaire));
         when(itemRepository.findByQuestionnaireIdOrderBySortOrderAscIdAsc(QUESTIONNAIRE_ID))
                 .thenReturn(List.of(items));
     }

@@ -77,6 +77,28 @@ class QcncMetaAreasTest {
         assertThat(meta(metaAreas, "RO.3").dtcroAreas()).containsExactly(7, 8, 9);
     }
 
+    /** V18 (Simone, 27 Nov 2026): 1A–1C are flagged too, so every Q1 standard counts. */
+    @Test
+    void withEveryQ1StandardFlaggedAllOfThemCount() {
+        List<StandardDto> v18 = CATALOGUE.stream()
+                .map(s -> s.clusterCode().equals("Q1") ? new StandardDto(s.id(), s.clusterCode(), s.letterCode(),
+                        s.standardType(), true, s.settingParameters(), s.description(), s.sortOrder()) : s)
+                .toList();
+        List<Long> allButOneA = new ArrayList<>(idsOf("Q1", "Q2"));
+        allButOneA.remove(Long.valueOf(1L));
+        Map<AdministrationType, AdministrationDto> administrations = new EnumMap<>(AdministrationType.class);
+        for (AdministrationType type : AdministrationType.values()) {
+            Map<Long, String> marks = new HashMap<>();
+            v18.forEach(s -> marks.put(s.id(), allButOneA.contains(s.id()) ? "C" : "NC"));
+            administrations.put(type, new AdministrationDto(type, null, null, null, marks));
+        }
+
+        MetaAreaDto ro1 = meta(QcncStandardsService.metaAreas(v18, administrations), "RO.1");
+        assertThat(ro1.requiredStandards()).isEqualTo(17);
+        // 1A non-conforming now spoils the strength
+        assertThat(ro1.status()).isEqualTo(MetaAreaStatus.NEITHER);
+    }
+
     @Test
     void allRequiredConformingInAllThreeIsAStrength() {
         // 1A–1C non-conforming must not spoil RO.1: they are not required

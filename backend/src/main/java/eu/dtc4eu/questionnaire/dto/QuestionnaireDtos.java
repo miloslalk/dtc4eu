@@ -51,7 +51,8 @@ public final class QuestionnaireDtos {
         }
     }
 
-    public record AnchorDto(Integer value, String label) {
+    /** {@code countsInScore} false: an answer outside the scale that is recorded but not scored (V18). */
+    public record AnchorDto(Integer value, String label, boolean countsInScore) {
     }
 
     /** Form-specific area header phrasing (v0.2 register §2.2 / open question 12.5). */

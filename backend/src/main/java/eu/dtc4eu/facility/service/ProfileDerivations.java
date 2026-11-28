@@ -22,7 +22,8 @@ final class ProfileDerivations {
      * they are still empty, e.g. the GAS-Set L/M disciplinary area from the
      * professional role (Tables 1-2: "simply choosing the role, the
      * corresponding disciplinary area is automatically assigned"). A value
-     * already chosen is kept. Returns a copy; the input is not modified.
+     * already chosen is kept, except for a source listed under "none", which
+     * clears it. Returns a copy; the input is not modified.
      */
     static Map<String, Object> apply(Map<String, Object> profile, JsonNode schema) {
         if (profile == null || schema == null) {
@@ -59,15 +60,29 @@ final class ProfileDerivations {
                 }
             }
             JsonNode derivedFrom = field.path("derivedFrom");
+            if (derivedFrom.isMissingNode()) {
+                continue;
+            }
+            Object source = copy.get(derivedFrom.path("field").asText());
             boolean empty = value == null || (value instanceof String text && text.isBlank());
-            if (!derivedFrom.isMissingNode() && empty) {
-                Object source = copy.get(derivedFrom.path("field").asText());
-                if (source instanceof String sourceText && derivedFrom.path("map").hasNonNull(sourceText)) {
-                    copy.put(key, derivedFrom.path("map").get(sourceText).asText());
-                }
+            if (source instanceof String sourceText && hasNone(derivedFrom, sourceText)) {
+                copy.remove(key);
+            } else if (empty && source instanceof String sourceText
+                    && derivedFrom.path("map").hasNonNull(sourceText)) {
+                copy.put(key, derivedFrom.path("map").get(sourceText).asText());
             }
         }
         return copy;
+    }
+
+    /** Source values listed under "none" have no derived value at all (GAS-Set M: Volunteers have no area). */
+    private static boolean hasNone(JsonNode derivedFrom, String sourceText) {
+        for (JsonNode none : derivedFrom.path("none")) {
+            if (sourceText.equals(none.asText())) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

@@ -1,9 +1,11 @@
 package eu.dtc4eu.questionnaire.service;
 
+import eu.dtc4eu.questionnaire.entity.Questionnaire;
 import eu.dtc4eu.questionnaire.entity.QuestionnaireItem;
 import eu.dtc4eu.questionnaire.entity.QuestionnaireResponseItem;
 import eu.dtc4eu.questionnaire.entity.ResponseAreaScore;
 import eu.dtc4eu.questionnaire.repository.QuestionnaireItemRepository;
+import eu.dtc4eu.questionnaire.repository.QuestionnaireRepository;
 import eu.dtc4eu.questionnaire.repository.QuestionnaireResponseItemRepository;
 import eu.dtc4eu.questionnaire.repository.ResponseAreaScoreRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ScoringService {
 
+    private final QuestionnaireRepository questionnaireRepository;
     private final QuestionnaireItemRepository itemRepository;
     private final QuestionnaireResponseItemRepository responseItemRepository;
     private final ResponseAreaScoreRepository scoreRepository;
@@ -37,10 +40,13 @@ public class ScoringService {
         List<QuestionnaireItem> definitionItems =
                 itemRepository.findByQuestionnaireIdOrderBySortOrderAscIdAsc(questionnaireId);
         List<QuestionnaireResponseItem> answers = responseItemRepository.findByResponseId(responseId);
+        Questionnaire questionnaire = questionnaireRepository.findById(questionnaireId).orElseThrow();
 
         Map<Long, Integer> valueByItem = new HashMap<>();
         for (QuestionnaireResponseItem answer : answers) {
-            if (answer.getNumericValue() != null) {
+            // answers outside the scale (ViVaCom 8, 9) are recorded but not scored
+            if (answer.getNumericValue() != null && answer.getNumericValue() >= questionnaire.getScaleMin()
+                    && answer.getNumericValue() <= questionnaire.getScaleMax()) {
                 valueByItem.put(answer.getItemId(), answer.getNumericValue());
             }
         }

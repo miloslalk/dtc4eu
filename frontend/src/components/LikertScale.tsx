@@ -1,9 +1,13 @@
+import { useTranslation } from 'react-i18next';
+
 /**
  * The shared Likert control (spec T6: built first). Generic over the
  * questionnaire's scale bounds — DTCRO uses 1–4 with the v0.2 anchors
  * (1 Not at all … 4 Very much) passed via `anchors`. Sentence-long anchors
  * (ViVaCom 0–5) do not fit under the buttons: the chosen one is spelled out
  * below the row instead, and every button keeps its anchor as a tooltip.
+ * Anchors outside min–max (ViVaCom 8 Disagree, 9 Not pertinent) are answers
+ * that are recorded but not scored; they follow the scale, set apart.
  */
 const SHORT_ANCHOR = 24;
 
@@ -15,10 +19,14 @@ export function LikertScale({ min, max, value, onChange, disabled, anchors }: {
   disabled?: boolean;
   anchors?: Record<number, string>;
 }) {
+  const { t } = useTranslation();
   const steps: number[] = [];
   for (let v = min; v <= max; v++) {
     steps.push(v);
   }
+  const unscored = Object.keys(anchors ?? {}).map(Number).filter((v) => v < min || v > max)
+    .sort((a, b) => a - b);
+  steps.push(...unscored);
   const short = Object.values(anchors ?? {}).every((label) => label.length <= SHORT_ANCHOR);
   const chosen = value !== null ? anchors?.[value] : undefined;
   return (
@@ -27,14 +35,16 @@ export function LikertScale({ min, max, value, onChange, disabled, anchors }: {
       {steps.map((step) => {
         const selected = value === step;
         const anchor = anchors?.[step];
+        const notScored = unscored.includes(step);
         return (
-          <div key={step} className="flex w-12 flex-col items-center gap-0.5">
+          <div key={step} className={`flex w-12 flex-col items-center gap-0.5 ${
+            step === unscored[0] ? 'ml-3 border-l border-neutral-200 pl-3' : ''}`}>
             <button
               type="button"
               role="radio"
               aria-checked={selected}
               aria-label={anchor ? `${step} — ${anchor}` : String(step)}
-              title={anchor}
+              title={notScored ? `${anchor} (${t('common.notScored')})` : anchor}
               disabled={disabled}
               onClick={() => onChange(step)}
               className={`size-9 rounded-lg border text-sm font-bold transition-colors
@@ -43,7 +53,7 @@ export function LikertScale({ min, max, value, onChange, disabled, anchors }: {
                   selected
                     ? 'border-blue-600 bg-blue-600 text-white'
                     : 'border-neutral-300 bg-white text-neutral-700 hover:border-blue-400 hover:bg-blue-50'
-                }`}
+                } ${notScored && !selected ? 'border-dashed' : ''}`}
             >
               {step}
             </button>
@@ -59,7 +69,9 @@ export function LikertScale({ min, max, value, onChange, disabled, anchors }: {
       })}
     </div>
     {!short && chosen && (
-      <p className="mt-1 text-xs font-medium text-blue-700">{value} = {chosen}</p>
+      <p className="mt-1 text-xs font-medium text-blue-700">
+        {value} = {chosen}{value !== null && unscored.includes(value) && ` (${t('common.notScored')})`}
+      </p>
     )}
     </div>
   );

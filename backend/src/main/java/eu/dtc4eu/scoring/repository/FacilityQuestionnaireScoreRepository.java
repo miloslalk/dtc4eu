@@ -25,4 +25,8 @@ public interface FacilityQuestionnaireScoreRepository extends JpaRepository<Faci
     /** The questionnaire's TAB.5 band limits [critical max, efficacy min] (V15); native to stay off questionnaire entities. */
     @Query(value = "select band_critical_max, band_efficacy_min from questionnaires where id = :id", nativeQuery = true)
     java.util.List<Object[]> findBands(@Param("id") Long questionnaireId);
+
+    /** The questionnaire's scale [min, max]; answers outside it (ViVaCom 8, 9; V18) are not scored. Native like findBands. */
+    @Query(value = "select scale_min, scale_max from questionnaires where id = :id", nativeQuery = true)
+    java.util.List<Object[]> findScale(@Param("id") Long questionnaireId);
 }

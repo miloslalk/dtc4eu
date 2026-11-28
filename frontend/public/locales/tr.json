@@ -37,6 +37,7 @@
   },
   "common": {
     "save": "Kaydet",
+    "notScored": "puana dahil edilmez",
     "cancel": "İptal",
     "create": "Oluştur",
     "edit": "Düzenle",
@@ -204,7 +205,7 @@
       },
       "metaAreas": {
         "title": "Nitel meta-alanlar",
-        "hint": "Meta-alanlarda sayılan standartlardan (kalite standardı başına 7) her uygulamada C olarak işaretlenenleri sayar. Bir meta-alan, üç uygulamanın hepsinde tümü C ise güçlü yön, yarısından azı C ise zayıf yöndür. DTCRO alanları Özet Tabloda tesisin nitel güçlü veya zayıf alanları olur.",
+        "hint": "Her meta-alanın standartlarından her uygulamada C olarak işaretlenenleri sayar (her standart sayılır: Q1'de 10, Q2–Q5'te 7'şer). Bir meta-alan, üç uygulamanın hepsinde tümü C ise güçlü yön, yarısından azı C ise zayıf yöndür. DTCRO alanları Özet Tabloda tesisin nitel güçlü veya zayıf alanları olur.",
         "metaArea": "Meta-alan",
         "dtcroAreas": "DTCRO alanları",
         "status": "Sonuç",

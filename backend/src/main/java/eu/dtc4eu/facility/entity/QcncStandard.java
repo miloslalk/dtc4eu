@@ -20,7 +20,7 @@ import java.util.Map;
  * QCNC catalogue entry (V11 seed, verbatim from "BRUSCHETTA C N-C Quest"
  * 2026): 5 clusters Q1–Q5, organizational-structural vs community-functional
  * standards; the mandatory Q1 block (1D,1E,1K,1O,1P,1Q,1R) per the expert
- * annotation.
+ * annotation, joined by 1A–1C in V18, so every Q1 standard now counts.
  */
 @Entity
 @Table(name = "qcnc_standards")
