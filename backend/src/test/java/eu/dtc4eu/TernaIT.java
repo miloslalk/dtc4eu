@@ -306,8 +306,9 @@ class TernaIT {
     @SuppressWarnings("unchecked")
     void onlyAnAdministratorChangesATernasCoordinators() {
         ResponseEntity<Map> c3 = rest.exchange("/api/v1/users", HttpMethod.POST, new HttpEntity<>(Map.of(
-                "username", "coord3", "fullName", "Coordinator Three", "password", "Coord3nator!",
+                "username", "coord-restaff", "fullName", "Coordinator Restaff", "password", "CoordRest4ff!",
                 "roles", List.of("COORDINATOR")), admin()), Map.class);
+        assertThat(c3.getStatusCode()).as(String.valueOf(c3.getBody())).isEqualTo(HttpStatus.CREATED);
         Long coordinator3Id = ((Number) c3.getBody().get("id")).longValue();
         HttpHeaders coordinator = headersOf("coord1", "Coord1nator!");
         Object t1Id = ((List<Map<String, Object>>) rest.exchange("/api/v1/ternas", HttpMethod.GET,
@@ -320,7 +321,7 @@ class TernaIT {
                         coordinator), Map.class);
         assertThat(coOpted.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(rest.exchange("/api/v1/ternas/" + t1Id, HttpMethod.GET,
-                new HttpEntity<>(headersOf("coord3", "Coord3nator!")), Map.class).getStatusCode())
+                new HttpEntity<>(headersOf("coord-restaff", "CoordRest4ff!")), Map.class).getStatusCode())
                 .isEqualTo(HttpStatus.NOT_FOUND);
 
         // the same coordinators can still be saved by the coordinator, and an admin can re-staff
