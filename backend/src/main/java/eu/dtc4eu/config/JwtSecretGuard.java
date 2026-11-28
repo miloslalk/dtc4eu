@@ -1,6 +1,5 @@
-package eu.dtc4eu.website.security;
+package eu.dtc4eu.config;
 
-import eu.dtc4eu.website.config.AppProperties;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 

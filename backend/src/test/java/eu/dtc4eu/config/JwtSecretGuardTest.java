@@ -1,4 +1,4 @@
-package eu.dtc4eu.security;
+package eu.dtc4eu.config;
 
 import org.junit.jupiter.api.Test;
 
