@@ -13,13 +13,18 @@ import java.util.Map;
  */
 public final class BlockRegistry {
 
-    public enum Kind {STRING, HTML, INTEGER, BOOLEAN, MEDIA_ID, REFERENCE_ID, ENUM, ITEMS}
+    public enum Kind {STRING, URL, HTML, INTEGER, BOOLEAN, MEDIA_ID, REFERENCE_ID, ENUM, ITEMS}
 
     public record Field(String key, Kind kind, boolean required, int maxLength, List<String> options,
                         List<Field> itemFields) {
 
         static Field string(String key, boolean required, int maxLength) {
             return new Field(key, Kind.STRING, required, maxLength, null, null);
+        }
+
+        /** A link target rendered as href: a string restricted to {@link eu.dtc4eu.website.common.web.SafeUrl}. */
+        static Field url(String key, boolean required) {
+            return new Field(key, Kind.URL, required, 300, null, null);
         }
 
         static Field html(String key, boolean required) {
@@ -53,7 +58,7 @@ public final class BlockRegistry {
                     Field.string("heading", true, 200),
                     Field.string("subheading", false, 500),
                     Field.string("ctaLabel", false, 60),
-                    Field.string("ctaHref", false, 300),
+                    Field.url("ctaHref", false),
                     Field.mediaId("imageMediaId"))),
             Map.entry(BlockType.RICH_TEXT, List.of(
                     Field.string("heading", false, 200),
@@ -78,7 +83,7 @@ public final class BlockRegistry {
                     Field.string("heading", false, 200),
                     Field.items("items", true, List.of(
                             Field.string("name", true, 160),
-                            Field.string("url", false, 300),
+                            Field.url("url", false),
                             Field.string("country", false, 80),
                             Field.mediaId("logoMediaId"))))),
             Map.entry(BlockType.GALLERY, List.of(
@@ -97,7 +102,7 @@ public final class BlockRegistry {
                     Field.string("heading", true, 200),
                     Field.html("bodyHtml", false),
                     Field.string("buttonLabel", true, 60),
-                    Field.string("buttonHref", true, 300))),
+                    Field.url("buttonHref", true))),
             Map.entry(BlockType.CONTACT_FORM, List.of(
                     Field.string("heading", false, 200),
                     Field.string("intro", false, 500))));

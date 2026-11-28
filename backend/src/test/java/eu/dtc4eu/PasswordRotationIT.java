@@ -15,6 +15,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -24,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * FIX-LIST X4 (temporary passwords, forced rotation of the published seed admin
@@ -48,6 +52,12 @@ class PasswordRotationIT {
 
     @Autowired
     private PasswordPolicyService passwordPolicyService;
+
+    @Autowired
+    private NamedParameterJdbcTemplate jdbc;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     private TokenResponse login(String username, String password) {
         return rest.postForEntity("/api/v1/auth/login", Map.of("username", username, "password", password),
@@ -139,5 +149,27 @@ class PasswordRotationIT {
 
         rest.exchange("/api/v1/cycles/" + older, HttpMethod.PUT,
                 new HttpEntity<>(Map.of("isDefault", false, "status", "CLOSED"), admin), Map.class);
+    }
+
+    /** The published seed password never works in production: it is swapped for the private bootstrap one. */
+    @Test
+    @Order(4)
+    void theSeedPasswordIsReplacedByTheBootstrapPasswordAtStartUp() {
+        jdbc.update("update users set password_hash = :hash, must_change_password = false where username = 'admin'",
+                new MapSqlParameterSource("hash", passwordEncoder.encode(SEED)));
+
+        // no bootstrap password configured: start-up refuses rather than keep the published one
+        assertThatThrownBy(() -> passwordPolicyService.replaceSeedAdminPasswordIfUnrotated(""))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("SEED_ADMIN_PASSWORD");
+        assertThatThrownBy(() -> passwordPolicyService.replaceSeedAdminPasswordIfUnrotated(SEED))
+                .isInstanceOf(IllegalStateException.class);
+
+        assertThat(passwordPolicyService.replaceSeedAdminPasswordIfUnrotated("Bootstrap-pass-2026")).isTrue();
+        assertThat(rest.postForEntity("/api/v1/auth/login", Map.of("username", "admin", "password", SEED),
+                Map.class).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        TokenResponse tokens = login("admin", "Bootstrap-pass-2026");
+        assertThat(tokens.user().mustChangePassword()).isTrue();
+
+        assertThat(passwordPolicyService.replaceSeedAdminPasswordIfUnrotated("")).isFalse();
     }
 }

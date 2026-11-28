@@ -15,9 +15,11 @@ import eu.dtc4eu.facility.repository.QcncStandardRepository;
 import eu.dtc4eu.facility.repository.QcncStandardResultRepository;
 import eu.dtc4eu.security.AppUserDetails;
 import eu.dtc4eu.security.CycleContext;
+import eu.dtc4eu.user.entity.Role;
 import eu.dtc4eu.user.repository.UserRepository;
 import eu.dtc4eu.audit.AuditService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -169,10 +171,28 @@ public class QcncStandardsService {
         return intersection == null ? List.of() : intersection.stream().sorted().toList();
     }
 
+    /**
+     * Each administration belongs to its administrator (register §4): the internal
+     * facilitator self-assesses, the terna coordinators assess from outside, and a
+     * facilitator must not be able to fill in the external view of its own facility.
+     * Admins may enter any. Mirrors the board's per-column write rights.
+     */
+    static void requireAdministrator(QcncAssessment.AdministrationType administrationType, AppUserDetails actor) {
+        boolean allowed = actor.hasAnyRole(Role.ADMIN, Role.SUPER_ADMIN)
+                || (administrationType == QcncAssessment.AdministrationType.INTERNAL_FACILITATOR
+                        ? actor.hasRole(Role.INTERNAL_FACILITATOR)
+                        : actor.hasAnyRole(Role.COORDINATOR, Role.AUDIT_COORDINATOR));
+        if (!allowed) {
+            throw new AccessDeniedException("The " + administrationType + " administration is entered by its own "
+                    + "administrator");
+        }
+    }
+
     @Transactional
     public QcncBoardDto saveResults(Long facilityId, QcncAssessment.AdministrationType administrationType,
                                     SaveResultsRequest request, AppUserDetails actor) {
         facilityService.findInScope(facilityId, actor);
+        requireAdministrator(administrationType, actor);
         Long cycleId = cycleContext.requireWritable().getId();
 
         Set<Long> known = standardRepository.findAll().stream().map(QcncStandard::getId)

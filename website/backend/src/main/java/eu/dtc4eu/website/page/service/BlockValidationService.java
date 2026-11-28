@@ -2,6 +2,7 @@ package eu.dtc4eu.website.page.service;
 
 import eu.dtc4eu.website.common.error.BadRequestException;
 import eu.dtc4eu.website.common.web.HtmlSanitizerService;
+import eu.dtc4eu.website.common.web.SafeUrl;
 import eu.dtc4eu.website.page.entity.BlockType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -73,6 +74,25 @@ public class BlockValidationService {
                 }
                 if (trimmed.length() > field.maxLength()) {
                     errors.add(path + " exceeds " + field.maxLength() + " characters");
+                    return null;
+                }
+                return trimmed;
+            }
+            case URL -> {
+                if (!(raw instanceof String s)) {
+                    errors.add(path + " must be a string");
+                    return null;
+                }
+                String trimmed = s.trim();
+                if (trimmed.isEmpty()) {
+                    return null;
+                }
+                if (trimmed.length() > field.maxLength()) {
+                    errors.add(path + " exceeds " + field.maxLength() + " characters");
+                    return null;
+                }
+                if (!SafeUrl.isSafe(trimmed)) {
+                    errors.add(path + " must be a /path, #anchor, http(s):// or mailto: link");
                     return null;
                 }
                 return trimmed;

@@ -33,6 +33,7 @@ services:
       DB_USERNAME: dtc4eu
       DB_PASSWORD: ${PLATFORM_DB_PASSWORD}
       JWT_SECRET: ${PLATFORM_JWT_SECRET}
+      SEED_ADMIN_PASSWORD: ${STAGING_USER_PASSWORD}  # first boot only, before the first refresh
       STORAGE_ENDPOINT: http://minio:9000
       STORAGE_BUCKET: dtc4eu
       STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER}

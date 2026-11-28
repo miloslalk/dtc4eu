@@ -2,7 +2,7 @@ import { Container } from '../components/Container';
 import { Reveal } from '../components/Reveal';
 import { SectionHeading } from '../components/SectionHeading';
 import { mediaUrl } from '../../lib/types';
-import { items, num, str } from './helpers';
+import { items, num, safeHref, str } from './helpers';
 
 export function Partners({ payload }: { payload: Record<string, unknown> }) {
   const heading = str(payload, 'heading');
@@ -13,7 +13,7 @@ export function Partners({ payload }: { payload: Record<string, unknown> }) {
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {items(payload).map((partner, index) => {
             const name = str(partner, 'name');
-            const url = str(partner, 'url');
+            const url = safeHref(str(partner, 'url'));
             const logo = mediaUrl(num(partner, 'logoMediaId'));
             const body = (
               <div className="group flex h-full items-center gap-4 rounded-2xl border border-neutral-200/70 bg-white p-5

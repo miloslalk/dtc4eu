@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Container } from '../components/Container';
 import { Reveal } from '../components/Reveal';
-import { str } from './helpers';
+import { safeHref, str } from './helpers';
 
 export function Cta({ payload }: { payload: Record<string, unknown> }) {
   const bodyHtml = str(payload, 'bodyHtml');
@@ -22,7 +22,7 @@ export function Cta({ payload }: { payload: Record<string, unknown> }) {
               />
             )}
             <Link
-              to={str(payload, 'buttonHref')}
+              to={safeHref(str(payload, 'buttonHref')) || '#'}
               className="group relative mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-sm font-bold text-blue-700
                 shadow-lg transition-all hover:shadow-xl hover:brightness-95
                 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500"

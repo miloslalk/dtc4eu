@@ -247,6 +247,15 @@ class FacilityIT {
                 .containsEntry(String.valueOf(standardId), "C").containsEntry(String.valueOf(secondId), "NC");
         assertThat(column).doesNotContainKey("scoreByStandard");
         assertThat(saved.getBody()).doesNotContainKey("standardScores");
+
+        // the facilitator cannot fill in the coordinators' external view of its own facility
+        ResponseEntity<Map> external = rest.exchange(
+                "/api/v1/facilities/" + facilityAId + "/qcnc-standards/TERNA_COORDINATOR_OWN", HttpMethod.PUT,
+                new HttpEntity<>(Map.of("results", List.of(Map.of("standardId", standardId, "conformity", "C"))),
+                        facilitator), Map.class);
+        assertThat(external.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(jdbc.queryForObject("select count(*) from qcnc_assessments where facility_id = ?"
+                + " and administration_type = 'TERNA_COORDINATOR_OWN'", Integer.class, facilityAId)).isZero();
     }
 
     /** Scores recorded before Simone's answer stay in the database but are no longer reported. */

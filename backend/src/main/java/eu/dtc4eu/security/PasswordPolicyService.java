@@ -62,4 +62,27 @@ public class PasswordPolicyService {
                 new MapSqlParameterSource());
         return true;
     }
+
+    /**
+     * While the seeded admin still accepts the published seed password, replaces it
+     * with the deployment's bootstrap password and requires a change at next login,
+     * so nobody who read the repository can claim the account first. Refuses (throws)
+     * when no usable bootstrap password is configured. True if replaced.
+     */
+    @Transactional
+    public boolean replaceSeedAdminPasswordIfUnrotated(String bootstrapPassword) {
+        List<String> hashes = jdbc.queryForList("select password_hash from users where username = 'admin'",
+                new MapSqlParameterSource(), String.class);
+        if (hashes.isEmpty() || !passwordEncoder.matches(SEED_ADMIN_PASSWORD, hashes.get(0))) {
+            return false;
+        }
+        if (bootstrapPassword == null || bootstrapPassword.isBlank()
+                || bootstrapPassword.equals(SEED_ADMIN_PASSWORD)) {
+            throw new IllegalStateException("The seeded admin still uses the published password: set "
+                    + "SEED_ADMIN_PASSWORD to a private bootstrap password (see deploy/DEPLOY.md)");
+        }
+        jdbc.update("update users set password_hash = :hash, must_change_password = true where username = 'admin'",
+                new MapSqlParameterSource("hash", passwordEncoder.encode(bootstrapPassword)));
+        return true;
+    }
 }

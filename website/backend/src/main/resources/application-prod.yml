@@ -11,3 +11,9 @@ spring:
 logging:
   level:
     eu.dtc4eu.website: INFO
+
+website:
+  security:
+    # replaces the published seed webadmin password at start-up while it still works
+    force-seed-admin-rotation: true
+    seed-admin-password: ${SEED_ADMIN_PASSWORD:}

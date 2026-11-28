@@ -84,13 +84,19 @@ Encrypt certificates for all three hostnames.
 
 ### First-boot checklist (do immediately)
 
-1. `https://platform.dtc4.eu` → log in `admin` / `Dtc4eu!Admin2026`
+The repository is public, so the seeded passwords (`admin` / `Dtc4eu!Admin2026`,
+`webadmin` / `Dtc4eu!Web2026`) are known to anyone. At start-up each API
+replaces a seeded password that still works with `PLATFORM_SEED_ADMIN_PASSWORD`
+/ `WEBSITE_SEED_ADMIN_PASSWORD` from `deploy/.env`, and **refuses to start** while
+a published password still works and its variable is empty. The published
+passwords never work in production.
+
+1. `https://platform.dtc4.eu` → log in `admin` / your `PLATFORM_SEED_ADMIN_PASSWORD`
    → the platform shows **only a change-password screen** until you choose a
-   new one (the prod profile flags the seed admin while that published
-   password still works). Then create **one named admin account per person**
+   new one. Then create **one named admin account per person**
    (Users → New user, "Temporary password" ticked, so each person picks their
    own) and stop sharing `admin`.
-2. `https://dtc4.eu/admin` → log in `webadmin` / `Dtc4eu!Web2026`
+2. `https://dtc4.eu/admin` → log in `webadmin` / your `WEBSITE_SEED_ADMIN_PASSWORD`
    → **change the password** (Users screen).
 3. CMS → Settings → **Platform link** → `https://platform.dtc4.eu`.
 4. Replace placeholder content/photos through the CMS at your leisure.

@@ -16,3 +16,5 @@ dtc4eu:
   security:
     # FIX-LIST X4: require the seeded admin to change the published password
     force-seed-admin-rotation: true
+    # replaces the published seed password at start-up while it still works
+    seed-admin-password: ${SEED_ADMIN_PASSWORD:}

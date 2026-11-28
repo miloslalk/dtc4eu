@@ -252,4 +252,17 @@ class WebsiteCmsIT {
                 new HttpEntity<>(Map.of("images", List.of(Map.of("mediaId", 424242))), admin), Map.class);
         assertThat(invalid.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
+
+    @Test
+    @Order(9)
+    void settingsLinksMustBeSafe() {
+        HttpHeaders admin = adminHeaders();
+        ResponseEntity<Map> script = rest.exchange("/api/admin/settings/platform", HttpMethod.PUT,
+                new HttpEntity<>(Map.of("url", "javascript:alert(1)", "label", "Platform"), admin), Map.class);
+        assertThat(script.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+
+        ResponseEntity<Map> ok = rest.exchange("/api/admin/settings/platform", HttpMethod.PUT,
+                new HttpEntity<>(Map.of("url", "https://platform.dtc4.eu", "label", "Platform"), admin), Map.class);
+        assertThat(ok.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
 }

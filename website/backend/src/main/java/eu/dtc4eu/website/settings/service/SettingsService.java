@@ -1,5 +1,7 @@
 package eu.dtc4eu.website.settings.service;
 
+import eu.dtc4eu.website.common.error.BadRequestException;
+import eu.dtc4eu.website.common.web.SafeUrl;
 import eu.dtc4eu.website.settings.entity.SiteSetting;
 import eu.dtc4eu.website.settings.repository.SiteSettingRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +26,15 @@ public class SettingsService {
         return result;
     }
 
+    /** Link fields the public site renders as href (e.g. platform.url) must pass {@link SafeUrl}. */
     @Transactional
     public void put(String key, Map<String, Object> value) {
+        value.forEach((field, fieldValue) -> {
+            boolean link = field.equals("url") || field.endsWith("Url") || field.endsWith("Href");
+            if (link && fieldValue instanceof String s && !s.isBlank() && !SafeUrl.isSafe(s.trim())) {
+                throw new BadRequestException(key + "." + field + " must be a /path, #anchor, http(s):// or mailto: link");
+            }
+        });
         SiteSetting setting = siteSettingRepository.findBySettingKey(key).orElseGet(() -> {
             SiteSetting created = new SiteSetting();
             created.setSettingKey(key);

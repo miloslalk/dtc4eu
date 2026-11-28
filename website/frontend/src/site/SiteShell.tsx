@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useNav, useSiteSettings } from '../lib/publicApi';
 import { settingText } from '../lib/types';
+import { safeHref } from './blocks/helpers';
 import { Container } from './components/Container';
 
 /**
@@ -25,7 +26,7 @@ export function SiteShell() {
 
   const items = nav.data ?? [];
   const toPath = (slug: string) => (slug === 'home' ? '/' : `/${slug}`);
-  const platformUrl = settingText(settings.data, 'platform', 'url');
+  const platformUrl = safeHref(settingText(settings.data, 'platform', 'url'));
   const platformLabel = settingText(settings.data, 'platform', 'label') || 'Platform';
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>

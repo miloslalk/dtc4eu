@@ -2,13 +2,13 @@ import { Link } from 'react-router-dom';
 import { Container } from '../components/Container';
 import { MediaImg } from '../components/MediaImg';
 import { Reveal } from '../components/Reveal';
-import { num, str } from './helpers';
+import { num, safeHref, str } from './helpers';
 
 export function Hero({ payload }: { payload: Record<string, unknown> }) {
   const kicker = str(payload, 'kicker');
   const subheading = str(payload, 'subheading');
   const ctaLabel = str(payload, 'ctaLabel');
-  const ctaHref = str(payload, 'ctaHref');
+  const ctaHref = safeHref(str(payload, 'ctaHref'));
   const imageMediaId = num(payload, 'imageMediaId');
   const hasImage = imageMediaId !== null;
 

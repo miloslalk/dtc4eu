@@ -138,7 +138,11 @@ public class PublicSiteController {
     @GetMapping("/media/{id}")
     public ResponseEntity<org.springframework.core.io.InputStreamResource> media(@PathVariable Long id) {
         MediaService.StreamedMedia streamed = mediaService.stream(id);
-        return ResponseEntity.ok()
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok();
+        if (needsSandbox(streamed.asset().getContentType())) {
+            response.header("Content-Security-Policy", MEDIA_SANDBOX);
+        }
+        return response
                 .header(HttpHeaders.CACHE_CONTROL, "public, max-age=86400")
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "inline; filename=\"" + streamed.asset().getFilename().replace("\"", "") + "\"")
@@ -156,6 +160,17 @@ public class PublicSiteController {
     @PostMapping("/contact")
     public void contact(@Valid @RequestBody ContactDtos.SubmitRequest request) {
         contactService.submit(request);
+    }
+
+    /**
+     * Uploads are served from the site's own origin, so an SVG opened directly
+     * could run its scripts there; the sandbox stops that (an {@code <img>} never
+     * runs them anyway). PDFs are exempt: browsers refuse to show a sandboxed PDF.
+     */
+    static final String MEDIA_SANDBOX = "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox";
+
+    static boolean needsSandbox(String contentType) {
+        return !"application/pdf".equals(contentType);
     }
 
     private <T> ResponseEntity<T> cached(T body) {

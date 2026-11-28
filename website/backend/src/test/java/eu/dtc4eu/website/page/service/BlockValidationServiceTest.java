@@ -49,6 +49,24 @@ class BlockValidationServiceTest {
     }
 
     @Test
+    void linkFieldsAcceptOnlySafeTargets() {
+        for (String href : List.of("/the-project", "#contact", "https://dtc4.eu", "HTTP://x.eu", "mailto:a@b.eu")) {
+            assertThat(service.validate(BlockType.CTA, Map.of("heading", "x", "buttonLabel", "Go",
+                    "buttonHref", href))).containsEntry("buttonHref", href);
+        }
+        for (String href : List.of("javascript:alert(1)", " JavaScript:alert(1)", "data:text/html,x",
+                "//evil.example", "/\\evil.example", "java\tscript:alert(1)")) {
+            assertThatThrownBy(() -> service.validate(BlockType.HERO, Map.of("heading", "x", "ctaHref", href)))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("ctaHref must be");
+        }
+        assertThatThrownBy(() -> service.validate(BlockType.PARTNERS, Map.of(
+                "items", List.of(Map.of("name", "P", "url", "javascript:alert(1)")))))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("items[0].url must be");
+    }
+
+    @Test
     void itemListsAreValidatedPerEntry() {
         assertThatThrownBy(() -> service.validate(BlockType.FACTS, Map.of(
                 "items", List.of(Map.of("label", "Programme"))))) // value missing
