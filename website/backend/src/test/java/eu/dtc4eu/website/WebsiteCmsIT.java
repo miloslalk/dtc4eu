@@ -265,4 +265,28 @@ class WebsiteCmsIT {
                 new HttpEntity<>(Map.of("url", "https://platform.dtc4.eu", "label", "Platform"), admin), Map.class);
         assertThat(ok.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
+
+    @Test
+    @Order(10)
+    @SuppressWarnings("unchecked")
+    void settingAPasswordEndsTheUsersOtherSessions() throws InterruptedException {
+        HttpHeaders admin = adminHeaders();
+        TokenResponse stale = rest.postForEntity("/api/admin/auth/login",
+                Map.of("username", "editor1", "password", "Editor!2026x"), TokenResponse.class).getBody();
+        Thread.sleep(1100); // JWT iat has whole-second precision
+
+        Map<String, Object> editor = (Map<String, Object>) rest.exchange("/api/admin/users", HttpMethod.GET,
+                new HttpEntity<>(admin), List.class).getBody().stream()
+                .filter(u -> "editor1".equals(((Map<String, Object>) u).get("username"))).findFirst().orElseThrow();
+        assertThat(rest.exchange("/api/admin/users/" + editor.get("id"), HttpMethod.PUT,
+                new HttpEntity<>(Map.of("fullName", "Content Editor", "role", "EDITOR", "active", true,
+                        "password", "Editor!2026y"), admin), Map.class).getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        assertThat(rest.postForEntity("/api/admin/auth/refresh", Map.of("refreshToken", stale.refreshToken()),
+                Map.class).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        TokenResponse fresh = rest.postForEntity("/api/admin/auth/login",
+                Map.of("username", "editor1", "password", "Editor!2026y"), TokenResponse.class).getBody();
+        assertThat(rest.postForEntity("/api/admin/auth/refresh", Map.of("refreshToken", fresh.refreshToken()),
+                TokenResponse.class).getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
 }

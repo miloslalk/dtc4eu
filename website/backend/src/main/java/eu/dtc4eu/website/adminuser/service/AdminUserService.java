@@ -54,6 +54,8 @@ public class AdminUserService {
         user.setActive(request.active());
         if (request.password() != null && !request.password().isBlank()) {
             user.setPasswordHash(passwordEncoder.encode(request.password()));
+            // every session on the old password ends when its short-lived access token expires
+            user.setTokensValidAfter(java.time.OffsetDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS));
         }
         return AdminUserDtos.AdminUserDto.of(user);
     }

@@ -43,8 +43,10 @@ public class PasswordPolicyService {
                 .toLowerCase())) {
             throw new BadRequestException("Choose a password that is not published and does not contain your username");
         }
-        jdbc.update("update users set password_hash = :hash, must_change_password = false where id = :id",
+        jdbc.update("update users set password_hash = :hash, must_change_password = false,"
+                        + " tokens_valid_after = :cutoff where id = :id",
                 new MapSqlParameterSource("hash", passwordEncoder.encode(newPassword))
+                        .addValue("cutoff", TokenCutoff.now())
                         .addValue("id", principal.getId()));
         auditService.success(principal.getId(), "CHANGE_PASSWORD", "user", principal.getId());
     }
@@ -81,8 +83,10 @@ public class PasswordPolicyService {
             throw new IllegalStateException("The seeded admin still uses the published password: set "
                     + "SEED_ADMIN_PASSWORD to a private bootstrap password (see deploy/DEPLOY.md)");
         }
-        jdbc.update("update users set password_hash = :hash, must_change_password = true where username = 'admin'",
-                new MapSqlParameterSource("hash", passwordEncoder.encode(bootstrapPassword)));
+        jdbc.update("update users set password_hash = :hash, must_change_password = true,"
+                        + " tokens_valid_after = :cutoff where username = 'admin'",
+                new MapSqlParameterSource("hash", passwordEncoder.encode(bootstrapPassword))
+                        .addValue("cutoff", TokenCutoff.now()));
         return true;
     }
 }

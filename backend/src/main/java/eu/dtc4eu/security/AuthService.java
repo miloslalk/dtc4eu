@@ -67,6 +67,9 @@ public class AuthService {
         if (!user.isActive()) {
             throw new DisabledException("Account disabled");
         }
+        if (!TokenCutoff.accepts(user.getTokensValidAfter(), claims.getIssuedAt())) {
+            throw new BadCredentialsException("Invalid refresh token");
+        }
         return tokensFor(user);
     }
 

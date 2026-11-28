@@ -17,3 +17,13 @@ website:
     # replaces the published seed webadmin password at start-up while it still works
     force-seed-admin-rotation: true
     seed-admin-password: ${SEED_ADMIN_PASSWORD:}
+
+# hardening: no public API docs in production; take the client address from
+# Caddy's X-Forwarded-For (only Caddy reaches the API) for the login throttle
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+server:
+  forward-headers-strategy: native

@@ -18,7 +18,7 @@ type FormValues = { currentPassword: string; newPassword: string; confirm: strin
  */
 export function ChangePasswordPage({ forced = false }: { forced?: boolean }) {
   const { t } = useTranslation();
-  const { passwordChanged, logout } = useAuth();
+  const { user, login, passwordChanged, logout } = useAuth();
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const schema = z.object({
     currentPassword: z.string().min(1, t('auth.passwordRequired')),
@@ -32,6 +32,10 @@ export function ChangePasswordPage({ forced = false }: { forced?: boolean }) {
     setMessage(null);
     try {
       await api.post('/auth/me/password', { currentPassword: values.currentPassword, newPassword: values.newPassword });
+      // the change revokes every refresh token issued before it, this session's included: sign in afresh
+      if (user) {
+        await login(user.username, values.newPassword);
+      }
       reset();
       setMessage({ ok: true, text: t('account.changed') });
       passwordChanged();

@@ -43,6 +43,7 @@ public class AuthService {
         }
         AdminUser user = adminUserRepository.findByUsername(claims.getSubject())
                 .filter(AdminUser::isActive)
+                .filter(u -> u.acceptsTokenIssuedAt(claims.getIssuedAt()))
                 .orElseThrow(() -> new BadCredentialsException("Invalid refresh token"));
         return new AuthDtos.TokenResponse(jwtService.createAccessToken(user), jwtService.createRefreshToken(user));
     }

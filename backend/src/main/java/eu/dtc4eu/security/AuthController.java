@@ -7,9 +7,11 @@ import eu.dtc4eu.security.dto.AuthDtos.RefreshRequest;
 import eu.dtc4eu.security.dto.AuthDtos.TokenResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,11 +31,22 @@ public class AuthController {
     private final CyclesWithDataService cyclesWithDataService;
     private final PasswordPolicyService passwordPolicyService;
     private final PasswordChangeGate passwordChangeGate;
+    private final LoginThrottle loginThrottle;
 
-    @Operation(summary = "Log in with username + password, returns access and refresh tokens")
+    @Operation(summary = "Log in with username + password, returns access and refresh tokens "
+            + "(429 after repeated failures)")
     @PostMapping("/login")
-    public TokenResponse login(@Valid @RequestBody LoginRequest request) {
-        return withPasswordFlag(authService.login(request));
+    public TokenResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
+        String address = http.getRemoteAddr();
+        loginThrottle.check(request.username(), address);
+        try {
+            TokenResponse tokens = withPasswordFlag(authService.login(request));
+            loginThrottle.recordSuccess(request.username(), address);
+            return tokens;
+        } catch (AuthenticationException e) {
+            loginThrottle.recordFailure(request.username(), address);
+            throw e;
+        }
     }
 
     @Operation(summary = "Exchange a valid refresh token for a new token pair")

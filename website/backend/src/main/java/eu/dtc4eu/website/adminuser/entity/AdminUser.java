@@ -43,6 +43,16 @@ public class AdminUser {
     @Column(nullable = false)
     private boolean active = true;
 
+    /** Refresh tokens issued before this instant are refused; moved whenever the password is set (V5). */
+    @Column(name = "tokens_valid_after")
+    private OffsetDateTime tokensValidAfter;
+
+    /** JWT iat has whole-second precision, so the cut-off is stored truncated and compared strictly. */
+    public boolean acceptsTokenIssuedAt(java.util.Date issuedAt) {
+        return tokensValidAfter == null
+                || (issuedAt != null && !issuedAt.toInstant().isBefore(tokensValidAfter.toInstant()));
+    }
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 

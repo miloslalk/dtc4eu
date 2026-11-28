@@ -172,4 +172,24 @@ class PasswordRotationIT {
 
         assertThat(passwordPolicyService.replaceSeedAdminPasswordIfUnrotated("")).isFalse();
     }
+
+    /** A password change refuses every refresh token issued before it, so other sessions end with their access token. */
+    @Test
+    @Order(5)
+    void aPasswordChangeEndsEveryOtherSession() throws InterruptedException {
+        TokenResponse other = login("temp-user", "Brand-new-pass1");
+        TokenResponse self = login("temp-user", "Brand-new-pass1");
+        Thread.sleep(1100); // JWT iat has whole-second precision
+
+        assertThat(changePassword(self, "Brand-new-pass1", "Third-pass-2026").getStatusCode())
+                .isEqualTo(HttpStatus.NO_CONTENT);
+        for (TokenResponse stale : List.of(other, self)) {
+            assertThat(refresh(stale).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+        assertThat(refresh(login("temp-user", "Third-pass-2026")).getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    private ResponseEntity<Map> refresh(TokenResponse tokens) {
+        return rest.postForEntity("/api/v1/auth/refresh", Map.of("refreshToken", tokens.refreshToken()), Map.class);
+    }
 }

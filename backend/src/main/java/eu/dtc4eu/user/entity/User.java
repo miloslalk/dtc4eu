@@ -51,6 +51,10 @@ public class User {
     @Column(name = "must_change_password", nullable = false)
     private boolean mustChangePassword;
 
+    /** Tokens issued before this instant are refused; moved on every password change (V19). */
+    @Column(name = "tokens_valid_after")
+    private OffsetDateTime tokensValidAfter;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 

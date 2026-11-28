@@ -123,6 +123,8 @@ public class UserAdminService {
         if (request.password() != null && !request.password().isBlank()) {
             user.setPasswordHash(passwordEncoder.encode(request.password()));
             user.setMustChangePassword(Boolean.TRUE.equals(request.mustChangePassword()));
+            // signs out every session on the old password (second precision, like JWT iat: see security.TokenCutoff)
+            user.setTokensValidAfter(java.time.OffsetDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS));
         }
         user.setRoles(resolveRoles(request.roles()));
         replaceScope(user.getId(), request.facilityIds(), request.ternaIds());
